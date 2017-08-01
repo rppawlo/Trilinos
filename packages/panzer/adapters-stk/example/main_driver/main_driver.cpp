@@ -61,6 +61,7 @@
 #include "Panzer_PauseToAttach.hpp"
 #include "Panzer_String_Utilities.hpp"
 #include "Panzer_EpetraLinearObjContainer.hpp"
+#include "Panzer_ResponseEvaluatorFactory_Point.hpp"
 
 #ifdef Panzer_BUILD_PAPI_SUPPORT
 #include "Panzer_PAPI_Counter.hpp"
@@ -139,7 +140,7 @@ int main(int argc, char *argv[])
     Teuchos::RCP<Teuchos::ParameterList> input_params = Teuchos::rcp(new Teuchos::ParameterList("User_App Parameters"));
     Teuchos::updateParametersFromXmlFileAndBroadcast(input_file_name, input_params.ptr(), *comm);
     
-    *out << *input_params << std::endl;
+    //*out << *input_params << std::endl;
 
     Teuchos::ParameterList solver_factories = input_params->sublist("Solver Factories");
     input_params->remove("Solver Factories");
@@ -186,15 +187,7 @@ int main(int argc, char *argv[])
         TEUCHOS_ASSERT(responses.entry(itr).isList());
         Teuchos::ParameterList & lst = Teuchos::getValue<Teuchos::ParameterList>(responses.entry(itr));
 
-
-        // parameterize the builder
-        panzer::FunctionalResponse_Builder<int,int> builder;
-        builder.comm = MPI_COMM_WORLD; // good enough
-        builder.cubatureDegree = 2;
-        builder.requiresCellIntegral = lst.isType<bool>("Requires Cell Integral") ? lst.get<bool>("Requires Cell Integral"): false;
-        builder.quadPointField = lst.get<std::string>("Field Name");
-
-        // add the respone
+        // add the response
         std::vector<std::string> eblocks;
         panzer::StringTokenizer(eblocks,lst.get<std::string>("Element Blocks"),",",true);
         
@@ -202,11 +195,31 @@ int main(int argc, char *argv[])
         for(std::size_t i=0;i<eblocks.size();i++) 
           wkst_descs.push_back(panzer::blockDescriptor(eblocks[i]));
 
-        int respIndex = me_factory.addResponse(name,wkst_descs,builder);
+        int respIndex = -1;
+        if (lst.get<std::string>("Type") == "Functional") {
+          // parameterize the builder
+          panzer::FunctionalResponse_Builder<int,int> builder;
+          builder.comm = MPI_COMM_WORLD; // good enough
+          builder.cubatureDegree = 2;
+          builder.requiresCellIntegral = lst.isType<bool>("Requires Cell Integral") ? lst.get<bool>("Requires Cell Integral"): false;
+          builder.quadPointField = lst.get<std::string>("Field Name");
+          respIndex = me_factory.addResponse(name,wkst_descs,builder);
+        }
+        else {
+          panzer::PointResponse_Builder<int,int> builder;
+          builder.comm = MPI_COMM_WORLD;
+          Teuchos::Array<double> point(2,0.0);
+          builder.point = point;
+          builder.fieldComponent = 0;
+          builder.cubatureDegree = 2;
+          builder.fieldName = lst.get<std::string>("Field Name");
+          respIndex = me_factory.addResponse(name,wkst_descs,builder);
+        }
+
         responseIndexToName[respIndex] = name;
       }
  
-      // enusre all the responses are built
+      // ensure all the responses are built
       me_factory.buildResponses(cm_factory);
 
       physicsBlocks = me_factory.getPhysicsBlocks();
@@ -358,7 +371,7 @@ int main(int argc, char *argv[])
 
             TEUCHOS_ASSERT(response!=Teuchos::null); // should not be null!
 
-            *out << "Response Value \"" << responseIndexToName[i] << "\": " << *response << std::endl;
+            *out << "Response Value \"" << responseIndexToName[i] << "\": " << Thyra::get_ele(*response,0) << std::endl;
          }
       }
 
