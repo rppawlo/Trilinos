@@ -55,14 +55,15 @@ namespace panzer {
 
   template <typename Scalar>
   void PointValues2<Scalar>::
-  setupArrays(const Teuchos::RCP<const PointRule> & pr)
+  setupArrays(const std::size_t num_cells,
+              const Teuchos::RCP<const PointRule> & pr)
   {
     MDFieldArrayFactory af(prefix_, ddims_, alloc_arrays_);
 
     point_rule = pr;
     
     int num_nodes = point_rule->topology->getNodeCount();
-    int num_cells = point_rule->workset_size;
+    // int num_cells = point_rule->workset_size;
     int num_space_dim = point_rule->spatial_dimension;
 
     if (point_rule->isSide()) {
@@ -91,10 +92,37 @@ namespace panzer {
     }
     
     Intrepid2::CellTools<PHX::exec_space> cell_tools;
-    
+
+
+
+
+
+
+
+    using Kokkos::ALL;
+    using Kokkos::subview;
+    // auto tmp_jac = subview(jac.get_view(),std::make_pair(0,num_cells),ALL,ALL,ALL);
+    // auto tmp_jac_inv = subview(jac_inv.get_view(),std::make_pair(0,num_cells),ALL,ALL,ALL);
+    // auto tmp_jac_det = subview(jac_det.get_view(),std::make_pair(0,num_cells),ALL);
+    // auto tmp_coords_ref = subview(coords_ref.get_view(),std::make_pair(0,num_cells),ALL,ALL);
+
     cell_tools.setJacobian(jac.get_view(), coords_ref.get_view(), node_coordinates.get_view(), *(point_rule->topology));
-    cell_tools.setJacobianInv(jac_inv.get_view(), jac.get_view());
     cell_tools.setJacobianDet(jac_det.get_view(), jac.get_view());
+    for (int i=0; i < jac_det.extent(0); ++i)
+      for (int j=0; j < jac_det.extent(1); ++j)
+        std::cout << "ROGER det=" << jac_det(i,j) << std::endl;
+
+    cell_tools.setJacobianInv(jac_inv.get_view(), jac.get_view());
+    
+
+
+
+
+    
+    
+    // cell_tools.setJacobian(jac.get_view(), coords_ref.get_view(), node_coordinates.get_view(), *(point_rule->topology));
+    // cell_tools.setJacobianInv(jac_inv.get_view(), jac.get_view());
+    // cell_tools.setJacobianDet(jac_det.get_view(), jac.get_view());
     
     // IP coordinates
     cell_tools.mapToPhysicalFrame(point_coords.get_view(), coords_ref.get_view(), node_coordinates.get_view(), *(point_rule->topology));

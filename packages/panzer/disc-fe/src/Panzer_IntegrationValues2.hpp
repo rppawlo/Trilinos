@@ -77,9 +77,11 @@ namespace panzer {
         : alloc_arrays(allocArrays), prefix(pre), ddims_(1,0) {}
     
     //! Sizes/allocates memory for arrays
-    void setupArrays(const Teuchos::RCP<const panzer::IntegrationRule>& ir);
+    void setupArrays(const std::size_t num_cells,
+                     const Teuchos::RCP<const panzer::IntegrationRule>& ir);
 
-    void setupArraysForNodeRule(const Teuchos::RCP<const panzer::IntegrationRule>& ir);
+    void setupArraysForNodeRule(const std::size_t num_cells,
+                                const Teuchos::RCP<const panzer::IntegrationRule>& ir);
 
     //! Cell vertex coordinates, not basis coordinates.
     void evaluateValues(const PHX::MDField<Scalar,Cell,NODE,Dim> & vertex_coordinates);

@@ -77,7 +77,7 @@ namespace panzer {
     const int num_qp = int_rule->num_points;
     
     panzer::IntegrationValues2<double> int_values("prefix_",true);
-    int_values.setupArrays(int_rule);
+    int_values.setupArrays(num_cells,int_rule);
 
     const int num_vertices = int_rule->topology->getNodeCount();
     panzer::MDFieldArrayFactory af("prefix_",true);
@@ -129,7 +129,7 @@ namespace panzer {
     panzer::BasisValues2<double> basis_values("",true,true);
 
     out << "setupArrays" << std::endl;
-    basis_values.setupArrays(basis);
+    basis_values.setupArrays(num_cells,basis);
     
     out << "evaluateValues" << std::endl;
     basis_values.evaluateValues(int_values.cub_points,
@@ -180,7 +180,7 @@ namespace panzer {
     const int num_qp = int_rule->num_points;
     
     panzer::IntegrationValues2<double> int_values("prefix_",true);
-    int_values.setupArrays(int_rule);
+    int_values.setupArrays(num_cells,int_rule);
 
     const int num_vertices = int_rule->topology->getNodeCount();
     panzer::MDFieldArrayFactory af("prefix_",true);
@@ -231,7 +231,7 @@ namespace panzer {
     TEST_EQUALITY(basis->getIntrepid2Basis()->requireOrientation(), false);
 
     panzer::BasisValues2<double> basis_values("",true,true);
-    basis_values.setupArrays(basis);
+    basis_values.setupArrays(num_cells,basis);
     basis_values.evaluateValues(int_values.cub_points,
                                 int_values.jac,
                                 int_values.jac_det,
@@ -285,7 +285,7 @@ namespace panzer {
     const unsigned int num_qp = Teuchos::as<unsigned int>(int_rule->num_points);
     
     panzer::IntegrationValues2<double> int_values("prefix_",true);
-    int_values.setupArrays(int_rule);
+    int_values.setupArrays(num_cells,int_rule);
 
     const int num_vertices = int_rule->topology->getNodeCount();
     panzer::MDFieldArrayFactory af("prefix_",true);
@@ -346,7 +346,7 @@ namespace panzer {
 
     panzer::BasisValues2<double> basis_values("",true,true);
 
-    basis_values.setupArrays(basisIRLayout);
+    basis_values.setupArrays(num_cells,basisIRLayout);
     basis_values.evaluateValues(int_values.cub_points,
                                 int_values.jac,
                                 int_values.jac_det,
@@ -417,7 +417,7 @@ namespace panzer {
     const unsigned int num_qp = Teuchos::as<unsigned int>(int_rule->num_points);
     
     panzer::IntegrationValues2<double> int_values("prefix_",true);
-    int_values.setupArrays(int_rule);
+    int_values.setupArrays(num_cells,int_rule);
 
     const int num_vertices = int_rule->topology->getNodeCount();
     panzer::MDFieldArrayFactory af("prefix_",true);
@@ -467,7 +467,7 @@ namespace panzer {
 
     panzer::BasisValues2<double> basis_values("",true,true);
 
-    basis_values.setupArrays(basisIRLayout);
+    basis_values.setupArrays(num_cells,basisIRLayout);
     basis_values.evaluateValues(int_values.cub_points,
                                 int_values.jac,
                                 int_values.jac_det,
@@ -594,7 +594,7 @@ namespace panzer {
     const unsigned int num_qp = Teuchos::as<unsigned int>(int_rule->num_points);
     
     panzer::IntegrationValues2<double> int_values("prefix_",true);
-    int_values.setupArrays(int_rule);
+    int_values.setupArrays(num_cells,int_rule);
 
     const int num_vertices = int_rule->topology->getNodeCount();
     panzer::MDFieldArrayFactory af("prefix_",true);
@@ -679,7 +679,7 @@ namespace panzer {
 
     panzer::BasisValues2<double> basis_values("prefix_",true,true);
 
-    basis_values.setupArrays(basisIRLayout);
+    basis_values.setupArrays(num_cells,basisIRLayout);
     basis_values.evaluateValues(int_values.cub_points,
                                 int_values.jac,
                                 int_values.jac_det,
@@ -733,7 +733,7 @@ namespace panzer {
 
     panzer::BasisValues2<double> basis_values("prefix_",true,true);
 
-    basis_values.setupArrays(basisPtLayout);
+    basis_values.setupArrays(num_cells,basisPtLayout);
 
     // check to make sure all data layouts and field names are as 
     // expected. In a simulation environment the field manager will
@@ -817,7 +817,7 @@ namespace panzer {
     //panzer::BasisValues2<ScalarType> basis_values("prefix_",true,true);
     panzer::BasisValues2<double> basis_values("prefix_",true,true);
 
-    basis_values.setupArrays(basisPtLayout);
+    basis_values.setupArrays(num_cells,basisPtLayout);
 
     // check to make sure all data layouts and field names are as 
     // expected. In a simulation environment the field manager will
@@ -892,7 +892,7 @@ namespace panzer {
     const unsigned int num_qp = Teuchos::as<unsigned int>(int_rule_vol->num_points);
     
     panzer::IntegrationValues2<double> int_values_vol("prefix_",true);
-    int_values_vol.setupArrays(int_rule_vol);
+    int_values_vol.setupArrays(num_cells,int_rule_vol);
 
     const int num_vertices = int_rule_vol->topology->getNodeCount();
     panzer::MDFieldArrayFactory af("prefix_",true);
@@ -942,7 +942,7 @@ namespace panzer {
 
     panzer::BasisValues2<double> basis_values("",true,true);
 
-    basis_values.setupArrays(basisIRLayout);
+    basis_values.setupArrays(num_cells,basisIRLayout);
     basis_values.evaluateValuesCV(int_values_vol.ref_ip_coordinates,
                                   int_values_vol.jac,
                                   int_values_vol.jac_det,

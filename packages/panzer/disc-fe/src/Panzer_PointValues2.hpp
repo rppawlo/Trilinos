@@ -72,7 +72,8 @@ namespace panzer {
        : alloc_arrays_(allocArrays), prefix_(pre), ddims_(ddims) {}
     
     //! Sizes/allocates memory for arrays
-    void setupArrays(const Teuchos::RCP<const panzer::PointRule>& pr);
+    void setupArrays(const std::size_t num_cells,
+                     const Teuchos::RCP<const panzer::PointRule>& pr);
 
     /** Evaluate teh jacobian and derivative information at the requested reference
       * points.

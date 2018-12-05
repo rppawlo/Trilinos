@@ -1492,7 +1492,8 @@ PureBasis::EElementSpace BasisValues2<Scalar>::getElementSpace() const
 
 template <typename Scalar>
 void panzer::BasisValues2<Scalar>::
-setupArrays(const Teuchos::RCP<const panzer::BasisIRLayout>& layout,
+setupArrays(const std::size_t numCells,
+            const Teuchos::RCP<const panzer::BasisIRLayout>& layout,
             bool computeDerivatives)
 {
   MDFieldArrayFactory af(prefix,alloc_arrays);
@@ -1505,7 +1506,8 @@ setupArrays(const Teuchos::RCP<const panzer::BasisIRLayout>& layout,
   int num_quad = layout->numPoints();
   int dim      = basisDesc->dimension();
   int card     = basisDesc->cardinality();
-  int numcells = basisDesc->numCells();
+  // int numcells = basisDesc->numCells();
+  int numcells = numCells;
   panzer::PureBasis::EElementSpace elmtspace = basisDesc->getElementSpace();
   Teuchos::RCP<const shards::CellTopology> cellTopo = basisDesc->getCellTopology();
   

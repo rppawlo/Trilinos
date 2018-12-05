@@ -73,7 +73,7 @@ namespace panzer {
     panzer::IntegrationValues2<double> int_values("prefix_",true);
     panzer::MDFieldArrayFactory af("prefix_",true);
 
-    int_values.setupArrays(int_rule);
+    int_values.setupArrays(num_cells,int_rule);
 
     const int num_vertices = int_rule->topology->getNodeCount();
     PHX::MDField<double,Cell,NODE,Dim> node_coordinates 
@@ -130,7 +130,7 @@ namespace panzer {
     panzer::IntegrationValues2<double> int_values_vol("prefix_",true);
     panzer::MDFieldArrayFactory af("prefix_",true);
 
-    int_values_vol.setupArrays(int_rule_vol);
+    int_values_vol.setupArrays(num_cells,int_rule_vol);
 
     cv_type = "side";
     RCP<IntegrationRule> int_rule_side = 
@@ -138,7 +138,7 @@ namespace panzer {
     
     panzer::IntegrationValues2<double> int_values_side("prefix_",true);
 
-    int_values_side.setupArrays(int_rule_side);
+    int_values_side.setupArrays(num_cells,int_rule_side);
 
     const int num_vertices = int_rule_vol->topology->getNodeCount();
     PHX::MDField<double,Cell,NODE,Dim> node_coordinates 
@@ -205,7 +205,7 @@ namespace panzer {
     panzer::IntegrationValues2<double> int_values_bc("prefix_",true);
     panzer::MDFieldArrayFactory af("prefix_",true);
 
-    int_values_bc.setupArrays(int_rule_bc);
+    int_values_bc.setupArrays(num_cells,int_rule_bc);
 
     const int num_vertices = int_rule_bc->topology->getNodeCount();
     PHX::MDField<double,Cell,NODE,Dim> node_coordinates 
@@ -379,7 +379,7 @@ namespace panzer {
     panzer::IntegrationValues2<double> int_values("prefix_",true);
     panzer::MDFieldArrayFactory af("prefix_",true);
 
-    int_values.setupArrays(int_rule);
+    int_values.setupArrays(in_num_cells,int_rule);
 
     const int num_vertices = int_rule->topology->getNodeCount();
     PHX::MDField<double,Cell,NODE,Dim> node_coordinates 

@@ -280,7 +280,7 @@ namespace panzer {
 
     Teuchos::RCP<panzer::IntegrationRule> point_rule = buildIR(workset_size,integration_order);
     panzer::IntegrationValues2<double> int_values("",true);
-    int_values.setupArrays(point_rule);
+    int_values.setupArrays(workset_size,point_rule);
     int_values.evaluateValues(workset.cell_vertex_coordinates);
 
     // Teuchos::RCP<Kokkos::DynRankView<double,PHX::Device> > userArray = Teuchos::rcpFromRef(int_values.cub_points);
@@ -411,7 +411,7 @@ namespace panzer {
 
     Teuchos::RCP<panzer::IntegrationRule> point_rule = buildIR(workset_size,integration_order);
     panzer::IntegrationValues2<double> int_values("",true);
-    int_values.setupArrays(point_rule);
+    int_values.setupArrays(workset_size,point_rule);
     int_values.evaluateValues(workset.cell_vertex_coordinates);
 
     // Teuchos::RCP<Kokkos::DynRankView<double,PHX::Device> > userArray = Teuchos::rcpFromRef(int_values.cub_points);
@@ -584,7 +584,7 @@ namespace panzer {
 
     Teuchos::RCP<panzer::IntegrationRule> point_rule = buildIR(workset_size,integration_order);
     panzer::IntegrationValues2<double> int_values("",true);
-    int_values.setupArrays(point_rule);
+    int_values.setupArrays(workset_size,point_rule);
     int_values.evaluateValues(workset.cell_vertex_coordinates);
 
     // Teuchos::RCP<Kokkos::DynRankView<double,PHX::Device> > userArray = Teuchos::rcpFromRef(int_values.cub_points);

@@ -101,7 +101,7 @@ void BasisValues_Evaluator<EvalT,TRAITST>::initialize(const Teuchos::RCP<const p
 
   // setup all fields to be evaluated and constructed
   pointValues = PointValues2<double>(pointRule->getName()+"_",false);
-  pointValues.setupArrays(pointRule);
+  pointValues.setupArrays(pointRule->workset_size,pointRule);
 
   // the field manager will allocate all of these field
   {
@@ -115,7 +115,7 @@ void BasisValues_Evaluator<EvalT,TRAITST>::initialize(const Teuchos::RCP<const p
   // setup all fields to be evaluated and constructed
   Teuchos::RCP<panzer::BasisIRLayout> layout = Teuchos::rcp(new panzer::BasisIRLayout(basis,*pointRule));
   basisValues = Teuchos::rcp(new BasisValues2<double>(basis->name()+"_"+pointRule->getName()+"_",false));
-  basisValues->setupArrays(layout,derivativesRequired_);
+  basisValues->setupArrays(layout->getBasis()->numCells(),layout,derivativesRequired_);
 
   // the field manager will allocate all of these field
 

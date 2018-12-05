@@ -138,7 +138,7 @@ namespace panzer_stk {
       RCP<panzer::IntegrationRule> ir = Teuchos::rcp(new panzer::IntegrationRule(cubDegree,sideCellData));
 
       panzer::IntegrationValues2<double> iv("",true);
-      iv.setupArrays(ir);
+      iv.setupArrays(1,ir);
       iv.evaluateValues(vertices);
       
       // KK: use serial interface; jac_at_point (D,D) from (C,P,D,D)

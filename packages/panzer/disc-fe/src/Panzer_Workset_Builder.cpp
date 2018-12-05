@@ -136,7 +136,7 @@ void populateValueArrays(std::size_t num_cells,bool isSide,const WorksetNeeds & 
       
     RCP<panzer::IntegrationValues2<double> > iv2 = 
         rcp(new panzer::IntegrationValues2<double>("",true));
-    iv2->setupArrays(int_rules[i]);
+    iv2->setupArrays(num_cells, int_rules[i]);
     if (Teuchos::nonnull(other_details))
       iv2->evaluateValues(details.cell_vertex_coordinates, other_details->int_rules[i]->ip_coordinates);
     else
@@ -155,7 +155,7 @@ void populateValueArrays(std::size_t num_cells,bool isSide,const WorksetNeeds & 
                                                              int_rules[i]->order()));
       RCP<panzer::BasisValues2<double> > bv2 = 
           rcp(new panzer::BasisValues2<double>("",true,true));
-      bv2->setupArrays(b_layout);
+      bv2->setupArrays(num_cells,b_layout);
       bv2->evaluateValues(details.int_rules[int_degree_index]->cub_points,
                          details.int_rules[int_degree_index]->jac,
                          details.int_rules[int_degree_index]->jac_det,

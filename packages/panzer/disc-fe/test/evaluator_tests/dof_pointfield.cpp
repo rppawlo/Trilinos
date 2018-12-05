@@ -238,7 +238,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL(dof_pointfield,value,EvalType)
   panzer::CellData cellData(2,1,topo);
   Teuchos::RCP<panzer::IntegrationRule> quadRule = Teuchos::rcp(new panzer::IntegrationRule(quadOrder,cellData));
   Teuchos::RCP<panzer::IntegrationValues2<double> > quadValues = Teuchos::rcp(new panzer::IntegrationValues2<double>("",true));
-  quadValues->setupArrays(quadRule);
+  quadValues->setupArrays(numCells,quadRule);
   quadValues->evaluateValues(coords);
 
   // build basis values
@@ -247,7 +247,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL(dof_pointfield,value,EvalType)
   Teuchos::RCP<panzer::BasisIRLayout> basisLayout = Teuchos::rcp(new panzer::BasisIRLayout(pureBasis,*quadRule));
   Teuchos::RCP<panzer::BasisValues2<double> > basisValues 
      = Teuchos::rcp(new panzer::BasisValues2<double>("",true,true));
-  basisValues->setupArrays(basisLayout);
+  basisValues->setupArrays(numCells,basisLayout);
   basisValues->evaluateValues(quadValues->cub_points,quadValues->jac,quadValues->jac_det,quadValues->jac_inv,quadValues->weighted_measure,coords);
 
   {

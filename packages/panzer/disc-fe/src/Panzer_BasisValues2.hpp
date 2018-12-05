@@ -77,7 +77,8 @@ namespace panzer {
         , ddims_(1,0), references_evaluated(false) {}
  
     //! Sizes/allocates memory for arrays
-    void setupArrays(const Teuchos::RCP<const panzer::BasisIRLayout>& basis,
+    void setupArrays(const std::size_t numCells,
+                     const Teuchos::RCP<const panzer::BasisIRLayout>& basis,
                      bool computeDerivatives=true);
 
     void evaluateValues(const PHX::MDField<Scalar,IP,Dim,void,void,void,void,void,void> & cub_points,

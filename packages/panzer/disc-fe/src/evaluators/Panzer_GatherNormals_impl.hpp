@@ -79,7 +79,7 @@ GatherNormals(
   std::string orientationFieldName = basis->name() + " Orientation";
   // setup all fields to be evaluated and constructed
   pointValues = panzer::PointValues2<double> (pointRule->getName()+"_",false);
-  pointValues.setupArrays(pointRule);
+  pointValues.setupArrays(pointRule->workset_size,pointRule);
 
   // the field manager will allocate all of these field
   constJac_ = pointValues.jac;

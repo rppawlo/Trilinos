@@ -102,7 +102,7 @@ panzer::buildWorksets(const WorksetNeeds & needs,
          
        RCP<panzer::IntegrationValues2<double> > iv2 = 
 	 rcp(new panzer::IntegrationValues2<double>("",true));
-       iv2->setupArrays(needs.int_rules[j]);
+       iv2->setupArrays(i->num_cells,needs.int_rules[j]);
 
        ir_degrees->push_back(needs.int_rules[j]->cubature_degree);
        i->int_rules.push_back(iv2);
@@ -116,7 +116,7 @@ panzer::buildWorksets(const WorksetNeeds & needs,
 	 
 	 RCP<panzer::BasisValues2<double> > bv2 
              = rcp(new panzer::BasisValues2<double>("",true,true));
-	 bv2->setupArrays(b_layout);
+	 bv2->setupArrays(i->num_cells,b_layout);
 	 i->bases.push_back(bv2);
 
 	 basis_names->push_back(b_layout->name());
@@ -159,7 +159,7 @@ panzer::buildWorksets(const WorksetNeeds & needs,
       cell_local_ids_k(i) = wkst->cell_local_ids[i];
     wkst->cell_local_ids_k = cell_local_ids_k;
     
-    wkst->cell_vertex_coordinates = mdArrayFactory.buildStaticArray<double,Cell,NODE,Dim>("cvc",workset_size,
+    wkst->cell_vertex_coordinates = mdArrayFactory.buildStaticArray<double,Cell,NODE,Dim>("cvc",wkst->num_cells,
 					 vertex_coordinates.extent(1),
 					 vertex_coordinates.extent(2));
     wkst->block_id = elementBlock;
@@ -484,7 +484,7 @@ panzer::buildEdgeWorksets(const WorksetNeeds & needs_a,
          
       RCP<panzer::IntegrationValues2<double> > iv2 = 
          rcp(new panzer::IntegrationValues2<double>("",true));
-       iv2->setupArrays(needs_a.int_rules[j]);
+      iv2->setupArrays(i->num_cells,needs_a.int_rules[j]);
 
        ir_degrees->push_back(needs_a.int_rules[j]->cubature_degree);
        i->int_rules.push_back(iv2);
@@ -499,7 +499,7 @@ panzer::buildEdgeWorksets(const WorksetNeeds & needs_a,
 	 
 	 RCP<panzer::BasisValues2<double> > bv2 = 
 	   rcp(new panzer::BasisValues2<double>("",true,true));
-	 bv2->setupArrays(b_layout);
+	 bv2->setupArrays(i->num_cells,b_layout);
 	 i->bases.push_back(bv2);
 
 	 basis_names->push_back(b_layout->name());

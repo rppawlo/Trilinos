@@ -66,12 +66,12 @@ namespace panzer {
 // * Specialization for Kokkos::DynRankView<double,PHX::Device>
 template <typename Scalar>
 void IntegrationValues2<Scalar>::
-setupArraysForNodeRule(const Teuchos::RCP<const panzer::IntegrationRule>& ir)
+setupArraysForNodeRule(const std::size_t num_cells, const Teuchos::RCP<const panzer::IntegrationRule>& ir)
 {
   MDFieldArrayFactory af(prefix,alloc_arrays);
 
   int num_nodes = ir->topology->getNodeCount();
-  int num_cells = ir->workset_size;
+  // int num_cells = ir->workset_size;
   int num_space_dim = ir->topology->getDimension();
 
   int num_ip = 1;
@@ -128,7 +128,7 @@ setupArraysForNodeRule(const Teuchos::RCP<const panzer::IntegrationRule>& ir)
 
 template <typename Scalar>
 void IntegrationValues2<Scalar>::
-setupArrays(const Teuchos::RCP<const panzer::IntegrationRule>& ir)
+setupArrays(const std::size_t num_cells, const Teuchos::RCP<const panzer::IntegrationRule>& ir)
 {
   MDFieldArrayFactory af(prefix,alloc_arrays);
 
@@ -137,12 +137,12 @@ setupArrays(const Teuchos::RCP<const panzer::IntegrationRule>& ir)
   int_rule = ir;
 
   int num_nodes = ir->topology->getNodeCount();
-  int num_cells = ir->workset_size;
+  // int num_cells = ir->workset_size;
   int num_space_dim = ir->topology->getDimension();
 
-  // specialize content if this is quadrature at anode
+  // specialize content if this is quadrature at a node
   if(num_space_dim==1 && ir->isSide()) {
-    setupArraysForNodeRule(ir);
+    setupArraysForNodeRule(num_cells,ir);
     return;
   }
 

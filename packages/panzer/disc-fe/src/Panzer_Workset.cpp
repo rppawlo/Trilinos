@@ -142,7 +142,7 @@ void WorksetDetails::setupNeeds(Teuchos::RCP<const shards::CellTopology> cell_to
 
     // Create and store integration values
     Teuchos::RCP<panzer::IntegrationValues2<double> > iv = Teuchos::rcp(new panzer::IntegrationValues2<double>("",true));
-    iv->setupArrays(ir);
+    iv->setupArrays(num_cells,ir);
     iv->evaluateValues(cell_vertex_coordinates);
     _integrator_map[integration_description.getKey()] = iv;
 
@@ -157,7 +157,7 @@ void WorksetDetails::setupNeeds(Teuchos::RCP<const shards::CellTopology> cell_to
 
       // Create and store basis values
       Teuchos::RCP<panzer::BasisValues2<double> > bv = Teuchos::rcp(new panzer::BasisValues2<double>("",true,true));
-      bv->setupArrays(b_layout);
+      bv->setupArrays(num_cells,b_layout);
       if(ir->getType() == panzer::IntegrationDescriptor::SURFACE){
         bv->evaluateValues(iv->ref_ip_coordinates,
                            iv->jac,
@@ -199,7 +199,7 @@ void WorksetDetails::setupNeeds(Teuchos::RCP<const shards::CellTopology> cell_to
 
     // Create and store integration values
     Teuchos::RCP<panzer::PointValues2<double> > pv = Teuchos::rcp(new panzer::PointValues2<double>("",true));
-    pv->setupArrays(pr);
+    pv->setupArrays(num_cells,pr);
     pv->evaluateValues(cell_vertex_coordinates,points);
 
     _point_map[point_description.getKey()] = pv;
@@ -215,7 +215,7 @@ void WorksetDetails::setupNeeds(Teuchos::RCP<const shards::CellTopology> cell_to
 
       // Create and store basis values
       Teuchos::RCP<panzer::BasisValues2<double> > bv = Teuchos::rcp(new panzer::BasisValues2<double>("",true,true));
-      bv->setupArrays(b_layout);
+      bv->setupArrays(num_cells,b_layout);
 
       bv->evaluateValues(pv->coords_ref,
                          pv->jac,

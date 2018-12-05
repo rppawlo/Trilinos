@@ -75,7 +75,7 @@ namespace panzer {
     TEST_EQUALITY(point_rule->num_points,Teuchos::as<int>(num_points));
   
     panzer::PointValues2<double > point_values2("prefix_");
-    point_values2.setupArrays(point_rule);
+    point_values2.setupArrays(num_cells,point_rule);
 
     // check to make sure all data layouts and field names are as 
     // expected. In a simulation environment the field manager will
@@ -144,7 +144,7 @@ namespace panzer {
     panzer::MDFieldArrayFactory af("prefix_",ddims);
   
     panzer::PointValues2<ScalarType> point_values2("prefix_",ddims);
-    point_values2.setupArrays(point_rule);
+    point_values2.setupArrays(num_cells,point_rule);
 
     // Set up node coordinates.  Here we assume the following
     // ordering.  This needs to be consistent with shards topology,

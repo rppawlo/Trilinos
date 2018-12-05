@@ -86,7 +86,7 @@ DOF_PointValues(const Teuchos::ParameterList & p)
   // setup all basis fields that are required
   Teuchos::RCP<BasisIRLayout> layout = Teuchos::rcp(new BasisIRLayout(basis,*pointRule));
   basisValues = Teuchos::rcp(new BasisValues2<double>(basis->name()+"_"+pointRule->getName()+"_"));
-  basisValues->setupArrays(layout,false);
+  basisValues->setupArrays(layout->getBasis()->numCells(),layout,false);
 
   // the field manager will allocate all of these field
   // swap between scalar basis value, or vector basis value
@@ -199,7 +199,7 @@ DOF_PointValues(const Teuchos::ParameterList & p)
   // setup all basis fields that are required
   Teuchos::RCP<BasisIRLayout> layout = Teuchos::rcp(new BasisIRLayout(basis,*pointRule));
   basisValues = Teuchos::rcp(new BasisValues2<double>(basis->name()+"_"+pointRule->getName()+"_"));
-  basisValues->setupArrays(layout,false);
+  basisValues->setupArrays(layout->getBasis()->numCells(),layout,false);
 
   // the field manager will allocate all of these field
   // swap between scalar basis value, or vector basis value

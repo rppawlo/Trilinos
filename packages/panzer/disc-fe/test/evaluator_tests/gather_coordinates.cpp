@@ -126,11 +126,11 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL(gather_coordinates,basis,EvalType)
   RCP<BasisIRLayout> basisLayout = rcp(new BasisIRLayout(basis,*quadRule));
 
   RCP<IntegrationValues2<double> > quadValues = rcp(new IntegrationValues2<double>("",true));
-  quadValues->setupArrays(quadRule);
+  quadValues->setupArrays(numCells,quadRule);
   quadValues->evaluateValues(coords);
 
   RCP<BasisValues2<double> > basisValues = rcp(new BasisValues2<double>("",true));
-  basisValues->setupArrays(basisLayout);
+  basisValues->setupArrays(numCells,basisLayout);
   basisValues->evaluateValues(quadValues->cub_points,
                               quadValues->jac,
                               quadValues->jac_det,
@@ -265,11 +265,11 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL(gather_coordinates,integration,EvalType)
   RCP<BasisIRLayout> basisLayout = rcp(new BasisIRLayout(basis,*quadRule));
 
   RCP<IntegrationValues2<double> > quadValues = rcp(new IntegrationValues2<double>("",true));
-  quadValues->setupArrays(quadRule);
+  quadValues->setupArrays(numCells,quadRule);
   quadValues->evaluateValues(coords);
 
   RCP<BasisValues2<double> > basisValues = rcp(new BasisValues2<double>("",true));
-  basisValues->setupArrays(basisLayout);
+  basisValues->setupArrays(numCells,basisLayout);
   basisValues->evaluateValues(quadValues->cub_points,
                               quadValues->jac,
                               quadValues->jac_det,

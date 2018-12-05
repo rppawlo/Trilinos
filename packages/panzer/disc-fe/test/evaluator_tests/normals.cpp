@@ -117,7 +117,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL(normals,test2d,EvalType)
   Teuchos::RCP<panzer::IntegrationRule> quadRule = Teuchos::rcp(new panzer::IntegrationRule(quadOrder,cellData));
   out << "num quad points = " << quadRule->num_points << std::endl;
   Teuchos::RCP<panzer::IntegrationValues2<double> > quadValues = Teuchos::rcp(new panzer::IntegrationValues2<double>("",true));
-  quadValues->setupArrays(quadRule);
+  quadValues->setupArrays(numCells,quadRule);
   quadValues->evaluateValues(coords);
 
   workset->cell_local_ids.push_back(0); workset->cell_local_ids.push_back(1);
