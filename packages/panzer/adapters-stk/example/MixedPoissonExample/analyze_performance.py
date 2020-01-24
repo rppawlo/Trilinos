@@ -100,8 +100,8 @@ def main():
 
         ws = workset_range[i]
         
-        filename = "mixed_poisson_nx_%i_ny_%i_nz_%i_order_%i_ws_%i_ts_%i_vs_%i.out" % (nx, ny, nz , order, ws, ts, vs)
-        run_output = "mixed_poisson_nx_%i_ny_%i_nz_%i_order_%i_ws_%i_ts_%i_vs_%i.log" % (nx, ny, nz , order, ws, ts, vs)
+        filename = "mixed_poisson_nx_%i_ny_%i_nz_%i_order_%i_ws_%i_ts_%i_vs_%i.log" % (nx, ny, nz , order, ws, ts, vs)
+        run_output = "mixed_poisson_nx_%i_ny_%i_nz_%i_order_%i_ws_%i_ts_%i_vs_%i.out" % (nx, ny, nz , order, ws, ts, vs)
         if args.prefix:
             filename = args.prefix+filename
             run_output = args.prefix+run_output
