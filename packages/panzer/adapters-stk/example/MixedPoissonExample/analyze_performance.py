@@ -38,26 +38,41 @@ def main():
     parser.add_argument('-o', '--basis-order', type=int, required=True, help='FE basis order.')
     parser.add_argument('-ts', '--team-size', type=int, required=True, help='Team size for hierarchic parallelism.')
     parser.add_argument('-vs', '--vector-size', type=int, required=True, help='Vector size for hierarchic parallelism.')
-    group = parser.add_mutually_exclusive_group()
-    group.add_argument('-b', '--base-exe', action='store_true', default=False, help="Use the Base executable")
-    group.add_argument('-m', '--mixed-exe', action='store_true', default=False, help="Use the Mixed Field Type executable")
-    group.add_argument('-d', '--device-dag-exe', action='store_true', default=True, help="Use the Device DAG executable")
+    parser.add_argument('-s', '--use-shared-memory', action='store_true', help='Use shared memory for hierarchic parallelism.')    
     args = parser.parse_args()
 
-    nx = 20
-    ny = 20
-    nz = 20
+    nx = 200
+    ny = 10
+    nz = 10
     order = args.basis_order
     ts = args.team_size
     vs = args.vector_size
+    shared_mem_flag = "--no-use-shared-mem-for-ad"
+    if args.use_shared_memory:
+        shared_mem_flag = "--use-shared-mem-for-ad"
     print "basis order = %d, team size = %d, vector size = %d\n" % (order, ts, vs)
+    print "shared memory flag = %s \n" % (shared_mem_flag)
 
     executable = "./PanzerAdaptersSTK_MixedPoissonExample.exe"
 
     print "Starting Workset Analysis"
 
-    ws_step_size = 100
-    workset_range = range(100,2000+ws_step_size,ws_step_size)
+    ws_step_size = 1000
+    #workset_range = range(100,2000+ws_step_size,ws_step_size)
+    workset_range = []
+    workset_range += range(100,600,100)
+    workset_range += range(750,1250,250)
+    workset_range += range(2000,22000,2000)
+    #workset_range.append(200)
+    #workset_range.append(300)
+    #workset_range.append(400)
+    #workset_range.append(500)
+    #workset_range.append(1000)
+    #workset_range.append(1200)
+    #workset_range.append(1400)
+    #workset_range.append(1600)
+    #workset_range.append(1800)
+    #workset_range.append(2000)
     print "workset range = "+str(workset_range)
 
     timings = {}
@@ -85,10 +100,12 @@ def main():
 
         ws = workset_range[i]
         
-        filename = "fea_nx_%i_ny_%i_nz_%i_order_%i_ws_%i_ts_%i_vs_%i.dat" % (nx, ny, nz , order, ws, ts, vs)
+        filename = "mixed_poisson_nx_%i_ny_%i_nz_%i_order_%i_ws_%i_ts_%i_vs_%i.out" % (nx, ny, nz , order, ws, ts, vs)
+        run_output = "mixed_poisson_nx_%i_ny_%i_nz_%i_order_%i_ws_%i_ts_%i_vs_%i.log" % (nx, ny, nz , order, ws, ts, vs)
         if args.prefix:
             filename = args.prefix+filename
-        command = executable+" --x-elements=%i --y-elements=%i --z-elements=%i --hgrad-basis-order=%i --hdiv-basis-order=%i --workset-size=%i --use-shared-mem-for-ad --no-check-order" % (nx, ny, nz, order, order, ws)  +" >& "+filename
+            run_output = args.prefix+run_output
+        command = executable+" --x-elements=%i --y-elements=%i --z-elements=%i --hgrad-basis-order=%i --hdiv-basis-order=%i --workset-size=%i %s --no-check-order --stacked-timer-filename=%s" % (nx, ny, nz, order, order, ws, shared_mem_flag, filename)  +" >& "+run_output
 
         if args.run:
             #print 'generating data...'
@@ -141,22 +158,26 @@ def main():
         fig = plt.figure(2)
         #plt.clf()
         plt.semilogy()
-        plt.plot(workset_range,timings["[panzer::Traits::Jacobian] Integrator_DivBasisTimesScalar (EVALUATES):  RESIDUAL_GRADPHI_FIELD"],label="Integrator DivBasisTimesScalar (eval)",marker='s')
-        plt.plot(workset_range,timings["[panzer::Traits::Jacobian] Integrator_DivBasisTimesScalar (CONTRIBUTES):  RESIDUAL_GRADPHI_FIELD"],label="Integrator DivBasisTimesScalar (contrib)",marker='^')
-        plt.plot(workset_range,timings["[panzer::Traits::Jacobian] Integrator_GradBasisDotVector (EVALUATES):  RESIDUAL_PHI_MASS_OP"],label="Integrator GradBasisDotVector (mass op)",marker='*')
-        plt.plot(workset_range,timings["[panzer::Traits::Jacobian] Integrator_GradBasisDotVector (EVALUATES):  RESIDUAL_PHI_DIFFUSION_OP"],label="Integrator GradBasisDotVector (diff op)",marker='D')
-        plt.plot(workset_range,timings["[panzer::Traits::Jacobian] DOF: GRADPHI_FIELD accel_jac  (panzer::Traits::Jacobian)"],label="DOF (GradPHI)",marker='+')
-        plt.plot(workset_range,timings["[panzer::Traits::Jacobian] DOFGradient: GRAD_PHI (panzer::Traits::Jacobian)"],label="DOFGradient (GradPhi)",marker='x')
+        plt.plot(workset_range,timings["[panzer::Traits::Jacobian] Integrator_DivBasisTimesScalar (EVALUATES):  RESIDUAL_GRADPHI_FIELD"],label="Integrate HDiv Diffusion Operator",marker='s',markersize=8,linewidth=2)
+        plt.plot(workset_range,timings["[panzer::Traits::Jacobian] Integrator_DivBasisTimesScalar (CONTRIBUTES):  RESIDUAL_GRADPHI_FIELD"],label="Integrate HDiv Source Operator",marker='^',markersize=8,linewidth=2)
+        plt.plot(workset_range,timings["[panzer::Traits::Jacobian] Integrator_GradBasisDotVector (EVALUATES):  RESIDUAL_PHI_MASS_OP"],label="Integrate HGrad Mass Operator",marker='*',markersize=12,linewidth=4)
+        plt.plot(workset_range,timings["[panzer::Traits::Jacobian] Integrator_GradBasisDotVector (EVALUATES):  RESIDUAL_PHI_DIFFUSION_OP"],label="Integrate HGrad Diffusion Operator",marker='D',markersize=4,linewidth=2)
+        plt.plot(workset_range,timings["[panzer::Traits::Jacobian] DOF: GRADPHI_FIELD accel_jac  (panzer::Traits::Jacobian)"],label="Field Evaluation: PHI",marker='+',markersize=8,linewidth=2)
+        plt.plot(workset_range,timings["[panzer::Traits::Jacobian] DOFGradient: GRAD_PHI (panzer::Traits::Jacobian)"],label="Field Evaluation: Grad PHI",marker='x',markersize=8,linewidth=2)
         #plt.plot(workset_range,timings["[panzer::Traits::Jacobian] DOFDiv: DIV_GRADPHI_FIELD (panzer::Traits::Jacobian)"],label="DOF Div (GradPhi)",marker='o')
         #plt.plot(workset_range,timings[""],label="Res Scatter",marker='.',color="#ff6600")
-        plt.xlabel("Workset Size",fontsize=16)
-        plt.ylabel("Time (s)",fontsize=16)
+        plt.xlabel("Workset Size",fontsize=16,fontweight='bold')
+        plt.ylabel("Time (s)",fontsize=16,fontweight='bold')
         plt.tick_params(labelsize=16)
+        plt.rcParams["font.weight"] = 'bold'
+        plt.rcParams["axes.labelweight"] = 'bold'
         plt.ylim(1.0e-4,1.0e1)
-        title = "nel=%i,order=%i" % (nx*ny*nz,order)
-        plt.title(title)
+        title = "Flat"
+        #title = "Hierarchic No Shared Memory"
+        #title = "Hierarchic with Shared Memory"
+        plt.title(title,fontsize=20,fontweight='bold')
         #plt.legend(bbox_to_anchor=(1,1))
-        plt.legend(loc='upper center', bbox_to_anchor=(0.5,0.25),ncol=2,fancybox=True,shadow=True, prop={'size': 10})
+        plt.legend(loc='lower left', bbox_to_anchor=(0.05,0.05),ncol=1,fancybox=True,shadow=True, prop={'size': 12})
         #plt.axis([0,2000,1.0e-4,0.1])
         plt.grid()
         res_evaluator_timings_filename = "kernel_timings_nx_%i_ny_%i_nz_%i_order_%i_ts_%i_vs_%i.png" % (nx, ny, nz, order, ts, vs)

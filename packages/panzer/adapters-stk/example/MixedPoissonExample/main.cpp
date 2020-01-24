@@ -148,6 +148,7 @@ int main(int argc,char * argv[])
      bool use_shared_mem_for_ad = true;
      bool check_order_for_shared_mem = true;
      bool stacked_timer_output = true;
+     std::string stacked_timer_filename = "";
 
      Teuchos::CommandLineProcessor clp;
      clp.throwExceptions(false);
@@ -166,6 +167,7 @@ int main(int argc,char * argv[])
      clp.setOption("use-shared-mem-for-ad","no-use-shared-mem-for-ad",&use_shared_mem_for_ad);
      clp.setOption("check-order","no-check-order",&check_order_for_shared_mem);
      clp.setOption("stacked-timer-output","time-monitor-output",&stacked_timer_output);
+     clp.setOption("stacked-timer-filename",&stacked_timer_filename);
 
      // parse commandline argument
      Teuchos::CommandLineProcessor::EParseCommandLineReturn r_parse= clp.parse( argc, argv );
@@ -522,6 +524,14 @@ int main(int argc,char * argv[])
        options.output_histogram = true;
        options.num_histogram = 5;
        stackedTimer->report(std::cout, Teuchos::DefaultComm<int>::getComm(), options);
+
+       if (stacked_timer_filename != "") {
+	 options.print_warnings = false;
+	 std::ofstream ofs;
+	 ofs.open(stacked_timer_filename.c_str());
+	 stackedTimer->report(ofs, Teuchos::DefaultComm<int>::getComm(), options);
+	 ofs.close();
+       }
      }
      else {
        Teuchos::TimeMonitor::summarize(out,false,true,false,Teuchos::Union);
