@@ -53,7 +53,6 @@
 #include "Panzer_BasisIRLayout.hpp"
 #include "Panzer_IntegrationRule.hpp"
 #include "Panzer_Workset_Utilities.hpp"
-#include "Panzer_HierarchicParallelism.hpp"
 
 namespace panzer
 {
@@ -204,7 +203,7 @@ namespace panzer
 
   /////////////////////////////////////////////////////////////////////////////
   //
-  //  operator()() NO shared memory
+  //  operator()()
   //
   /////////////////////////////////////////////////////////////////////////////
   template<typename EvalT, typename Traits>
@@ -214,18 +213,16 @@ namespace panzer
   Integrator_GradBasisDotVector<EvalT, Traits>::
   operator()(
     const FieldMultTag<NUM_FIELD_MULT>& /* tag */,
-    const Kokkos::TeamPolicy<PHX::exec_space>::member_type& team) const
+    const size_t&                       cell) const
   {
     using panzer::EvaluatorStyle;
-    const int cell = team.league_rank();
 
     // Initialize the evaluated field.
     const int numQP(vector_.extent(1)), numDim(vector_.extent(2)),
               numBases(basis_.extent(1));
     if (evalStyle_ == EvaluatorStyle::EVALUATES)
-      Kokkos::parallel_for(Kokkos::TeamThreadRange(team,0,numBases),KOKKOS_LAMBDA (const int& basis) {
+      for (int basis(0); basis < numBases; ++basis)
         field_(cell, basis) = 0.0;
-      });
 
     // The following if-block is for the sake of optimization depending on the
     // number of field multipliers.
@@ -240,9 +237,8 @@ namespace panzer
         for (int dim(0); dim < numDim; ++dim)
         {
           tmp = multiplier_ * vector_(cell, qp, dim);
-	  Kokkos::parallel_for(Kokkos::TeamThreadRange(team,0,numBases),KOKKOS_LAMBDA (const int& basis) {
+          for (int basis(0); basis < numBases; ++basis)
             field_(cell, basis) += basis_(cell, basis, qp, dim) * tmp;
-	  });
         } // end loop over the dimensions of the vector field
       } // end loop over the quadrature points
     }
@@ -257,9 +253,8 @@ namespace panzer
         {
           tmp = multiplier_ * vector_(cell, qp, dim) *
             kokkosFieldMults_(0)(cell, qp);
-	  Kokkos::parallel_for(Kokkos::TeamThreadRange(team,0,numBases),KOKKOS_LAMBDA (const int& basis) {
+          for (int basis(0); basis < numBases; ++basis)
             field_(cell, basis) += basis_(cell, basis, qp, dim) * tmp;
-	  });
         } // end loop over the dimensions of the vector field
       } // end loop over the quadrature points
     }
@@ -279,124 +274,11 @@ namespace panzer
         for (int dim(0); dim < numDim; ++dim)
         {
           tmp = multiplier_ * vector_(cell, qp, dim) * fieldMultsTotal;
-	  Kokkos::parallel_for(Kokkos::TeamThreadRange(team,0,numBases),KOKKOS_LAMBDA (const int& basis) {
+          for (int basis(0); basis < numBases; ++basis)
             field_(cell, basis) += basis_(cell, basis, qp, dim) * tmp;
-	  });
         } // end loop over the dimensions of the vector field
       } // end loop over the quadrature points
     } // end if (NUM_FIELD_MULT == something)
-  } // end of operator()()
-
-  /////////////////////////////////////////////////////////////////////////////
-  //
-  //  operator()() With shared memory
-  //
-  /////////////////////////////////////////////////////////////////////////////
-  template<typename EvalT, typename Traits>
-  template<int NUM_FIELD_MULT>
-  KOKKOS_INLINE_FUNCTION
-  void
-  Integrator_GradBasisDotVector<EvalT, Traits>::
-  operator()(
-    const SharedFieldMultTag<NUM_FIELD_MULT>& /* tag */,
-    const Kokkos::TeamPolicy<PHX::exec_space>::member_type& team) const
-  {
-    using panzer::EvaluatorStyle;
-    const int cell = team.league_rank();
-    const int numQP = vector_.extent(1);
-    const int numDim = vector_.extent(2);
-    const int numBases = basis_.extent(1);
-    const int fadSize = Kokkos::dimension_scalar(field_.get_view());
-
-    scratch_view tmp;
-    scratch_view tmp_field;
-    if (Sacado::IsADType<ScalarT>::value) {
-      tmp = scratch_view(team.team_shmem(),1,fadSize);
-      tmp_field = scratch_view(team.team_shmem(),numBases,fadSize);
-    }
-    else {
-      tmp = scratch_view(team.team_shmem(),1);
-      tmp_field = scratch_view(team.team_shmem(),numBases);
-    }
-
-    // Initialize the evaluated field.
-    Kokkos::parallel_for(Kokkos::TeamThreadRange(team,0,numBases),KOKKOS_LAMBDA (const int& basis) {
-      tmp_field(basis) = 0.0;
-    });
-
-    // The following if-block is for the sake of optimization depending on the
-    // number of field multipliers.
-    if (NUM_FIELD_MULT == 0)
-    {
-      // Loop over the quadrature points and dimensions of our vector fields,
-      // scale the integrand by the multiplier, and then perform the
-      // integration, looping over the bases.
-      for (int qp(0); qp < numQP; ++qp)
-      {
-        for (int dim(0); dim < numDim; ++dim)
-        {
-	  team.team_barrier();
-          tmp(0) = multiplier_ * vector_(cell, qp, dim);
-	  Kokkos::parallel_for(Kokkos::TeamThreadRange(team,0,numBases),KOKKOS_LAMBDA (const int& basis) {
-	    tmp_field(basis) += basis_(cell, basis, qp, dim) * tmp(0);
-	  });
-        } // end loop over the dimensions of the vector field
-      } // end loop over the quadrature points
-    }
-    else if (NUM_FIELD_MULT == 1)
-    {
-      // Loop over the quadrature points and dimensions of our vector fields,
-      // scale the integrand by the multiplier and the single field multiplier,
-      // and then perform the actual integration, looping over the bases.
-      for (int qp(0); qp < numQP; ++qp)
-      {
-        for (int dim(0); dim < numDim; ++dim)
-        {
-	  team.team_barrier();
-          tmp(0) = multiplier_ * vector_(cell, qp, dim) *
-            kokkosFieldMults_(0)(cell, qp);
-	  Kokkos::parallel_for(Kokkos::TeamThreadRange(team,0,numBases),KOKKOS_LAMBDA (const int& basis) {
-	      tmp_field(basis) += basis_(cell, basis, qp, dim) * tmp(0);
-	  });
-        } // end loop over the dimensions of the vector field
-      } // end loop over the quadrature points
-    }
-    else
-    {
-      // Loop over the quadrature points and pre-multiply all the field
-      // multipliers together.  Then loop over the dimensions of our vector
-      // fields, scale the integrand by the multiplier and the combination of
-      // the field multipliers, and then perform the actual integration,
-      // looping over the bases.
-      const int numFieldMults(kokkosFieldMults_.extent(0));
-      for (int qp(0); qp < numQP; ++qp)
-      {
-        ScalarT fieldMultsTotal(1); // need shared mem here
-        for (int fm(0); fm < numFieldMults; ++fm)
-          fieldMultsTotal *= kokkosFieldMults_(fm)(cell, qp);
-        for (int dim(0); dim < numDim; ++dim)
-        {
-	  team.team_barrier();
-          tmp(0) = multiplier_ * vector_(cell, qp, dim) * fieldMultsTotal;
-	  Kokkos::parallel_for(Kokkos::TeamThreadRange(team,0,numBases),KOKKOS_LAMBDA (const int& basis) {
-	    tmp_field(basis) += basis_(cell, basis, qp, dim) * tmp(0);
-	  });
-        } // end loop over the dimensions of the vector field
-      } // end loop over the quadrature points
-    } // end if (NUM_FIELD_MULT == something)
-
-    // Put final values into target field
-    if (evalStyle_ == EvaluatorStyle::EVALUATES) {
-      Kokkos::parallel_for(Kokkos::TeamThreadRange(team,0,numBases),[&] (const int& basis) {
-	field_(cell,basis) = tmp_field(basis);
-      });
-    }
-    else { // Contributed
-      Kokkos::parallel_for(Kokkos::TeamThreadRange(team,0,numBases),[&] (const int& basis) {
-	field_(cell,basis) += tmp_field(basis);
-      });
-    }
-
   } // end of operator()()
 
   /////////////////////////////////////////////////////////////////////////////
@@ -411,50 +293,20 @@ namespace panzer
     typename Traits::EvalData workset)
   {
     using Kokkos::parallel_for;
-    using Kokkos::TeamPolicy;
+    using Kokkos::RangePolicy;
 
     // Grab the basis information.
     basis_ = this->wda(workset).bases[basisIndex_]->weighted_grad_basis;
 
-    bool use_shared_memory = panzer::HP::inst().useSharedMemory<ScalarT>();
-    if (use_shared_memory) {
-      int bytes;
-      if (Sacado::IsADType<ScalarT>::value) {
-	const int fadSize = Kokkos::dimension_scalar(field_.get_view());
-	bytes = scratch_view::shmem_size(1,fadSize) + scratch_view::shmem_size(basis_.extent(1),fadSize);
-      }
-      else
-	bytes = scratch_view::shmem_size(1) + scratch_view::shmem_size(basis_.extent(1));
-
-      // The following if-block is for the sake of optimization depending on the
-      // number of field multipliers.  The parallel_fors will loop over the cells
-      // in the Workset and execute operator()() above.
-      if (fieldMults_.size() == 0) {
-	auto policy = panzer::HP::inst().teamPolicy<ScalarT,SharedFieldMultTag<0>,PHX::Device>(workset.num_cells).set_scratch_size(0,Kokkos::PerTeam(bytes));
-        parallel_for(policy, *this, this->getName());
-      } else if (fieldMults_.size() == 1) {
-	auto policy = panzer::HP::inst().teamPolicy<ScalarT,SharedFieldMultTag<1>,PHX::Device>(workset.num_cells).set_scratch_size(0,Kokkos::PerTeam(bytes));
-        parallel_for(policy, *this, this->getName());
-      } else {
-	auto policy = panzer::HP::inst().teamPolicy<ScalarT,SharedFieldMultTag<-1>,PHX::Device>(workset.num_cells).set_scratch_size(0,Kokkos::PerTeam(bytes));
-        parallel_for(policy, *this, this->getName());
-      }
-    }
-    else {
-      // The following if-block is for the sake of optimization depending on the
-      // number of field multipliers.  The parallel_fors will loop over the cells
-      // in the Workset and execute operator()() above.
-      if (fieldMults_.size() == 0) {
-	auto policy = panzer::HP::inst().teamPolicy<ScalarT,FieldMultTag<0>,PHX::Device>(workset.num_cells);
-        parallel_for(policy, *this, this->getName());
-      } else if (fieldMults_.size() == 1) {
-	auto policy = panzer::HP::inst().teamPolicy<ScalarT,FieldMultTag<1>,PHX::Device>(workset.num_cells);
-        parallel_for(policy, *this, this->getName());
-      } else {
-	auto policy = panzer::HP::inst().teamPolicy<ScalarT,FieldMultTag<-1>,PHX::Device>(workset.num_cells);
-        parallel_for(policy, *this, this->getName());
-      }
-    }
+    // The following if-block is for the sake of optimization depending on the
+    // number of field multipliers.  The parallel_fors will loop over the cells
+    // in the Workset and execute operator()() above.
+    if (fieldMults_.size() == 0)
+      parallel_for(RangePolicy<FieldMultTag<0>>(0, workset.num_cells), *this);
+    else if (fieldMults_.size() == 1)
+      parallel_for(RangePolicy<FieldMultTag<1>>(0, workset.num_cells), *this);
+    else
+      parallel_for(RangePolicy<FieldMultTag<-1>>(0, workset.num_cells), *this);
   } // end of evaluateFields()
 
   /////////////////////////////////////////////////////////////////////////////

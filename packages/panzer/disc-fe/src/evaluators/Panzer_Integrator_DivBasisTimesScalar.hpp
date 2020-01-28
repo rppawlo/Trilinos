@@ -213,16 +213,7 @@ namespace panzer
       }; // end of struct FieldMultTag
 
       /**
-       *  \brief This empty struct allows us to optimize `operator()()`
-       *         depending on the number of field multipliers.
-       */
-      template<int NUM_FIELD_MULT>
-      struct SharedFieldMultTag
-      {
-      }; // end of struct FieldMultTag
-
-      /**
-       *  \brief Perform the integration. Main memory version.
+       *  \brief Perform the integration.
        *
        *  Generally speaking, for a given cell in the `Workset`, this routine
        *  loops over quadrature points and bases to perform the integration,
@@ -241,29 +232,7 @@ namespace panzer
       void
       operator()(
         const FieldMultTag<NUM_FIELD_MULT>& tag,
-        const Kokkos::TeamPolicy<PHX::exec_space>::member_type& team) const;
-
-      /**
-       *  \brief Perform the integration. Shared memory version.
-       *
-       *  Generally speaking, for a given cell in the `Workset`, this routine
-       *  loops over quadrature points and bases to perform the integration,
-       *  scaling the vector field to be integrated by the multiplier (\f$ M
-       *  \f$) and any field multipliers (\f$ a(x) \f$, \f$ b(x) \f$, etc.).
-       *
-       *  \note Optimizations are made for the cases in which we have no field
-       *        multipliers or only a single one.
-       *
-       *  \param[in] tag  An indication of the number of field multipliers we
-       *                  have; either 0, 1, or something else.
-       *  \param[in] cell The cell in the `Workset` over which to integrate.
-       */
-      template<int NUM_FIELD_MULT>
-      KOKKOS_INLINE_FUNCTION
-      void
-      operator()(
-        const SharedFieldMultTag<NUM_FIELD_MULT>& tag,
-        const Kokkos::TeamPolicy<PHX::exec_space>::member_type& team) const;
+        const std::size_t&                  cell) const;
 
     private:
 
@@ -283,9 +252,6 @@ namespace panzer
        *  \brief The scalar type.
        */
       using ScalarT = typename EvalT::ScalarT;
-
-      /// Type for shared memory
-    using scratch_view = Kokkos::View<ScalarT* ,typename PHX::DevLayout<ScalarT>::type,typename PHX::exec_space::scratch_memory_space,Kokkos::MemoryUnmanaged>;
 
       /**
        *  \brief An `enum` determining the behavior of this `Evaluator`.
@@ -326,7 +292,7 @@ namespace panzer
        *         of fields that are multipliers out in front of the integral
        *         (\f$ a(x) \f$, \f$ b(x) \f$, etc.).
        */
-    Kokkos::View<Kokkos::View<const ScalarT**,typename PHX::DevLayout<ScalarT>::type,PHX::Device>*> kokkosFieldMults_;
+      Kokkos::View<Kokkos::View<const ScalarT**,typename PHX::DevLayout<ScalarT>::type,PHX::Device>*> kokkosFieldMults_;
 
       /**
        *  \brief The number of quadrature points for each cell.
@@ -348,11 +314,6 @@ namespace panzer
        *  \brief The scalar basis information necessary for integration.
        */
       PHX::MDField<double, panzer::Cell, panzer::BASIS, panzer::IP> basis_;
-
-      /**
-       * \brief If set to true, device shared memory will be used.
-       */
-      bool use_shared_memory;
 
   }; // end of class Integrator_DivBasisTimesScalar
 
