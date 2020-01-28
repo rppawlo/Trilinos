@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 
 """
 Script for analyzing Panzer kernel performance on next-generation
@@ -12,7 +12,7 @@ __date__    = "Dec 2018"
 
 # Import python modules for command-line options, the operating system, regular
 # expressions, and system functions
-import commands
+import subprocess
 import argparse
 import os
 import re
@@ -26,9 +26,9 @@ def main():
     """Script for analyzing Phalanx performance on next-generation architectures."""
 
     # Initialization
-    print '****************************************'
-    print '* Starting Panzer Analysis'
-    print '****************************************'
+    print('****************************************')
+    print('* Starting Panzer Analysis')
+    print('****************************************')
 
     parser = argparse.ArgumentParser(description='Panzer hierarchic parallelism analysis script')
     parser.add_argument('-r', '--run', action='store_true', help='Run the executable to generate data and output to files.')
@@ -50,19 +50,19 @@ def main():
     shared_mem_flag = "--no-use-shared-mem-for-ad"
     if args.use_shared_memory:
         shared_mem_flag = "--use-shared-mem-for-ad"
-    print "basis order = %d, team size = %d, vector size = %d\n" % (order, ts, vs)
-    print "shared memory flag = %s \n" % (shared_mem_flag)
+    print("basis order = %d, team size = %d, vector size = %d\n" % (order, ts, vs))
+    print("shared memory flag = %s \n" % (shared_mem_flag))
 
     executable = "./PanzerAdaptersSTK_MixedPoissonExample.exe"
 
-    print "Starting Workset Analysis"
+    print("Starting Workset Analysis")
 
     ws_step_size = 1000
     #workset_range = range(100,2000+ws_step_size,ws_step_size)
     workset_range = []
-    workset_range += range(100,600,100)
-    workset_range += range(750,1250,250)
-    workset_range += range(2000,22000,2000)
+    workset_range += list(range(100,600,100))
+    workset_range += list(range(750,1250,250))
+    workset_range += list(range(2000,12000,2000))
     #workset_range.append(200)
     #workset_range.append(300)
     #workset_range.append(400)
@@ -73,7 +73,7 @@ def main():
     #workset_range.append(1600)
     #workset_range.append(1800)
     #workset_range.append(2000)
-    print "workset range = "+str(workset_range)
+    print("workset range = "+str(workset_range))
 
     timings = {}
     if args.analyze:
@@ -110,11 +110,11 @@ def main():
         if args.run:
             #print 'generating data...'
             if args.verbose:
-                print "  Running \""+command+"\" ...",
+                print("  Running \""+command+"\" ...", end=' ')
                 sys.stdout.flush()
             os.system(command);
             if args.verbose:
-                print "completed!"
+                print("completed!")
                 sys.stdout.flush()
 
         if args.analyze:
@@ -122,13 +122,13 @@ def main():
             lines = f.readlines()
             for line in lines:
                 if args.verbose:
-                    print line,
-                for key,value in timings.iteritems():
+                    print(line, end=' ')
+                for key,value in timings.items():
                     if key in line:
                         split_line = line.split()
                         timings[key][i] += float(split_line[-4])
                         if args.verbose:
-                            print "  found key: "+key+" = "+str(split_line[-4])
+                            print("  found key: "+key+" = "+str(split_line[-4]))
                         break
             f.close()
 
@@ -172,12 +172,13 @@ def main():
         plt.rcParams["font.weight"] = 'bold'
         plt.rcParams["axes.labelweight"] = 'bold'
         plt.ylim(1.0e-4,1.0e1)
-        title = "Flat"
+        #title = "Flat"
         #title = "Hierarchic No Shared Memory"
         #title = "Hierarchic with Shared Memory"
-        plt.title(title,fontsize=20,fontweight='bold')
+        #plt.title(title,fontsize=20,fontweight='bold')
         #plt.legend(bbox_to_anchor=(1,1))
-        plt.legend(loc='lower left', bbox_to_anchor=(0.05,0.05),ncol=1,fancybox=True,shadow=True, prop={'size': 12})
+        #plt.legend(loc='lower left', bbox_to_anchor=(0.05,0.05),ncol=1,fancybox=True,shadow=True, prop={'size': 12})
+        plt.legend(loc='upper center', bbox_to_anchor=(0.05,0.05),ncol=1,fancybox=True,shadow=True, prop={'size': 12})
         #plt.axis([0,2000,1.0e-4,0.1])
         plt.grid()
         res_evaluator_timings_filename = "kernel_timings_nx_%i_ny_%i_nz_%i_order_%i_ts_%i_vs_%i.png" % (nx, ny, nz, order, ts, vs)
@@ -187,7 +188,7 @@ def main():
 
         # Plot to assess savings
         count = 0;
-        for key,value in timings.iteritems():
+        for key,value in timings.items():
             filename_f = "raw_data_output_timer_%i_nx_%i_ny_%i_nz_%i_order_%i_ws_%i_ts_%i_vs_%i.csv" % (count, nx, ny, nz, order, ws, ts, vs)
             write_file = open(filename_f,'w')
             count += 1;
@@ -195,10 +196,10 @@ def main():
             for i in range(len(workset_range)):
                 write_file.write(str(workset_range[i])+", "+str(timings[key][i])+"\n")
         
-    print "Finished Workset Analysis"
+    print("Finished Workset Analysis")
 
     if args.verbose:
-        print timings
+        print(timings)
     
 
         # f = open(filename, mode='r')
@@ -221,9 +222,9 @@ def main():
     #timestamp_file.write(date)
     #timestamp_file.close()
     
-    print '****************************************'
-    print '* Finished Panzer Analysis!'
-    print '****************************************'
+    print('****************************************')
+    print('* Finished Panzer Analysis!')
+    print('****************************************')
     
 
 #############################################################################
