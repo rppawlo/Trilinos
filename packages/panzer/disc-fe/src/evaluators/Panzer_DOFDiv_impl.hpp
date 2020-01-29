@@ -99,23 +99,18 @@ public:
 	dof_values(dof) = dof_value(cell,dof);
       });
 
-      Kokkos::parallel_for(Kokkos::TeamThreadRange(team,0,num_points), [&] (const int& pt) {
-	point_values(pt) = 0.0;
-      });
-
       team.team_barrier();
 
-      // Perform contraction
-      for (int dof=0; dof<num_fields; ++dof) {
-	Kokkos::parallel_for(Kokkos::TeamThreadRange(team,0,num_points), [&] (const int& pt) {
-	  point_values(pt) += dof_values(dof) * div_basis(cell,dof,pt);
-        });
-      }
-
-      // Copy to main memory
       Kokkos::parallel_for(Kokkos::TeamThreadRange(team,0,num_points), [&] (const int& pt) {
-	dof_div(cell,pt) = point_values(pt);
+        // Perform contraction
+        point_values(pt) = 0.0;
+        for (int dof=0; dof<num_fields; ++dof) {
+          point_values(pt) += dof_values(dof) * div_basis(cell,dof,pt);
+        }
+        // Copy to main gpu memory
+        dof_div(cell,pt) = point_values(pt);
       });
+
     }
     else {
       Kokkos::parallel_for(Kokkos::TeamThreadRange(team,0,num_points), [&] (const int& pt) {
