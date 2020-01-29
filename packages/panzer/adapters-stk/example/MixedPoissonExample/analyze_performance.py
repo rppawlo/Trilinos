@@ -41,7 +41,7 @@ def main():
     parser.add_argument('-s', '--use-shared-memory', action='store_true', help='Use shared memory for hierarchic parallelism.')    
     args = parser.parse_args()
 
-    nx = 200
+    nx = 100
     ny = 10
     nz = 10
     order = args.basis_order
@@ -95,45 +95,50 @@ def main():
         
 
     #print dir(np)
+    num_samples = 5;
+    for ns in range(num_samples):
+        print("run=%i" % (ns))
         
-    for i in range(len(workset_range)):
+        for i in range(len(workset_range)):
 
-        ws = workset_range[i]
-        
-        filename = "mixed_poisson_nx_%i_ny_%i_nz_%i_order_%i_ws_%i_ts_%i_vs_%i.log" % (nx, ny, nz , order, ws, ts, vs)
-        run_output = "mixed_poisson_nx_%i_ny_%i_nz_%i_order_%i_ws_%i_ts_%i_vs_%i.out" % (nx, ny, nz , order, ws, ts, vs)
-        if args.prefix:
-            filename = args.prefix+filename
-            run_output = args.prefix+run_output
-        command = executable+" --x-elements=%i --y-elements=%i --z-elements=%i --hgrad-basis-order=%i --hdiv-basis-order=%i --workset-size=%i %s --no-check-order --stacked-timer-filename=%s" % (nx, ny, nz, order, order, ws, shared_mem_flag, filename)  +" >& "+run_output
+            ws = workset_range[i]
 
-        if args.run:
-            #print 'generating data...'
-            if args.verbose:
-                print("  Running \""+command+"\" ...", end=' ')
-                sys.stdout.flush()
-            os.system(command);
-            if args.verbose:
-                print("completed!")
-                sys.stdout.flush()
+            filename =   "mixed_poisson_nx_%i_ny_%i_nz_%i_order_%i_ws_%i_ts_%i_vs_%i_ns_%i.log" % (nx, ny, nz , order, ws, ts, vs, ns)
+            run_output = "mixed_poisson_nx_%i_ny_%i_nz_%i_order_%i_ws_%i_ts_%i_vs_%i_ns_%i.out" % (nx, ny, nz , order, ws, ts, vs, ns)
+            if args.prefix:
+                filename = args.prefix+filename
+                run_output = args.prefix+run_output
+            command = executable+" --x-elements=%i --y-elements=%i --z-elements=%i --hgrad-basis-order=%i --hdiv-basis-order=%i --workset-size=%i %s --no-check-order --stacked-timer-filename=%s" % (nx, ny, nz, order, order, ws, shared_mem_flag, filename)  +" >& "+run_output
 
-        if args.analyze:
-            f = open(filename, mode='r')                
-            lines = f.readlines()
-            for line in lines:
+            if args.run:
+                #print 'generating data...'
                 if args.verbose:
-                    print(line, end=' ')
-                for key,value in timings.items():
-                    if key in line:
-                        split_line = line.split()
-                        timings[key][i] += float(split_line[-4])
-                        if args.verbose:
-                            print("  found key: "+key+" = "+str(split_line[-4]))
-                        break
-            f.close()
+                    print("  Running \""+command+"\" ...", end=' ')
+                    sys.stdout.flush()
+                os.system(command);
+                if args.verbose:
+                    print("completed!")
+                    sys.stdout.flush()
 
-    do_jac = True
-            
+            if args.analyze:
+                f = open(filename, mode='r')
+                lines = f.readlines()
+                for line in lines:
+                    if args.verbose:
+                        print(line, end=' ')
+                    for key,value in timings.items():
+                        if key in line:
+                            split_line = line.split()
+                            timings[key][i] += float(split_line[-4])
+                            if args.verbose:
+                                print("  found key: "+key+" = "+str(split_line[-4]))
+                            break
+                f.close()
+
+    # divide by number of samples to average timings
+    for key,value in timings.items():
+        timings[key,value] /= num_samples
+
     if args.analyze:
         import matplotlib.pyplot as plt
         fig = plt.figure()
