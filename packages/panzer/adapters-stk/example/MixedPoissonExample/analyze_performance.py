@@ -137,7 +137,8 @@ def main():
 
     # divide by number of samples to average timings
     for key,value in timings.items():
-        timings[key,value] /= num_samples
+        for i in range(len(timings[key])):
+            timings[key][i] /= num_samples
 
     if args.analyze:
         import matplotlib.pyplot as plt
