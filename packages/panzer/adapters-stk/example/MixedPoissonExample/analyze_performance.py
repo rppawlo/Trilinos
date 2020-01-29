@@ -38,7 +38,7 @@ def main():
     parser.add_argument('-o', '--basis-order', type=int, required=True, help='FE basis order.')
     parser.add_argument('-ts', '--team-size', type=int, required=True, help='Team size for hierarchic parallelism.')
     parser.add_argument('-vs', '--vector-size', type=int, required=True, help='Vector size for hierarchic parallelism.')
-    parser.add_argument('-s', '--use-shared-memory', action='store_true', help='Use shared memory for hierarchic parallelism.')    
+    parser.add_argument('-s', '--use-shared-memory', action='store_true', help='Use shared memory for hierarchic parallelism.')
     args = parser.parse_args()
 
     nx = 100
@@ -92,13 +92,12 @@ def main():
         timings["[panzer::Traits::Jacobian] Integrator_GradBasisDotVector (EVALUATES):  RESIDUAL_PHI_DIFFUSION_OP"] = np.zeros(len(workset_range),dtype=np.float64)
         timings["[panzer::Traits::Jacobian] SumStatic Rank 2 Evaluator"] = np.zeros(len(workset_range),dtype=np.float64)
         timings["[panzer::Traits::Jacobian] SCATTER_PHI Scatter Residual (Jacobian)"] = np.zeros(len(workset_range),dtype=np.float64)
-        
 
     #print dir(np)
     num_samples = 5;
     for ns in range(num_samples):
         print("run=%i" % (ns))
-        
+
         for i in range(len(workset_range)):
 
             ws = workset_range[i]
@@ -160,7 +159,7 @@ def main():
         dag_timings_filename = "total_time_nx_%i_ny_%i_nz_%i_order_%i_ts_%i_vs_%i.png" % (nx, ny, nz ,order, ts, vs)
         fig.savefig(dag_timings_filename)
         #plt.show()
-            
+
         fig = plt.figure(2)
         #plt.clf()
         plt.semilogy()
@@ -193,20 +192,30 @@ def main():
         #print dir(plt)
 
         # Plot to assess savings
-        count = 0;
+        filename_f = "raw_data_output_timer_nx_%i_ny_%i_nz_%i_order_%i_ws_%i_ts_%i_vs_%i.csv" % (nx, ny, nz, order, ws, ts, vs)
+        write_file = open(filename_f,'w')
+
+        output_lines = []
+        output_lines.append("Workset Size")
+        for i in workset_range:
+            output_lines.append("%i" % i)
+
+        print(output_lines)
+
         for key,value in timings.items():
-            filename_f = "raw_data_output_timer_%i_nx_%i_ny_%i_nz_%i_order_%i_ws_%i_ts_%i_vs_%i.csv" % (count, nx, ny, nz, order, ws, ts, vs)
-            write_file = open(filename_f,'w')
-            count += 1;
-            write_file.write(str(key)+"\n")
+            output_lines[0] = str(output_lines[0]+", "+key)
+            print(output_lines[0])
             for i in range(len(workset_range)):
-                write_file.write(str(workset_range[i])+", "+str(timings[key][i])+"\n")
-        
+                output_lines[i+1] = output_lines[i+1]+(", %e" % value[i])
+
+        for line in output_lines:
+            write_file.write(line+"\n")
+
     print("Finished Workset Analysis")
 
     if args.verbose:
         print(timings)
-    
+
 
         # f = open(filename, mode='r')
         # lines = f.readlines()
@@ -215,9 +224,9 @@ def main():
         #     split_line = line.split(" ")
         #     print split_line[1]
         # f.close()
-        
 
-    
+
+
     #os.chdir('/Users')
 
     # Write timestamp for backup
@@ -227,11 +236,11 @@ def main():
     #date = today.strftime("YYYY.MM.DD: %Y.%m.%d at HH.MM.SS: %H.%M.%S")
     #timestamp_file.write(date)
     #timestamp_file.close()
-    
+
     print('****************************************')
     print('* Finished Panzer Analysis!')
     print('****************************************')
-    
+
 
 #############################################################################
 # If called from the command line, call main()
