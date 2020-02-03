@@ -53,7 +53,8 @@ def main():
     print("basis order = %d, team size = %d, vector size = %d\n" % (order, ts, vs))
     print("shared memory flag = %s \n" % (shared_mem_flag))
 
-    executable = "./PanzerAdaptersSTK_MixedPoissonExample.exe"
+    #executable = "./PanzerAdaptersSTK_MixedPoissonExample.exe"
+    executable = "jsrun -p 1 ./PanzerAdaptersSTK_MixedPoissonExample.exe"
 
     print("Starting Workset Analysis")
 
