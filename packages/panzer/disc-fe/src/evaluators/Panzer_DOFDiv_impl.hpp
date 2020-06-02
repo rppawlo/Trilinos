@@ -62,10 +62,11 @@ void evaluateDiv_withSens(int numCells,
   if(numCells>0) {
     // evaluate at quadrature points
 
-    int numFields = div_basis.extent(1);
-    int numPoints = div_basis.extent(2);
+    const int numFields = div_basis.extent(1);
+    const int numPoints = div_basis.extent(2);
 
-    for (int cell=0; cell<numCells; cell++) {
+    Kokkos::parallel_for(numCells,KOKKOS_LAMBDA (const int& cell) {
+        //for (int cell=0; cell<numCells; cell++) {
       for (int pt=0; pt<numPoints; pt++) {
         // first initialize to the right thing (prevents over writing with 0)
         // then loop over one less basis function
@@ -74,7 +75,7 @@ void evaluateDiv_withSens(int numCells,
         for (int bf=1; bf<numFields; bf++)
           dof_div(cell,pt) += dof_value(cell, bf) * div_basis(cell, bf, pt);
       }
-    }
+    });
   }
 }
 
