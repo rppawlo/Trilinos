@@ -129,6 +129,19 @@ COMBINED_OPTION( NOX_ENABLE_THYRA_TPETRA_ADAPTERS
     " otherwise defaults to OFF"
   )
 
+COMBINED_OPTION( NOX_ENABLE_KOKKOS_SOLVER_STACK
+  DEP_OPTIONS_NAMES NOX_ENABLE_ThyraCore
+                    NOX_ENABLE_ThyraTpetraAdapters
+                    NOX_ENABLE_Stratimikos
+                    Stratimikos_ENABLE_Belos
+                    Stratimikos_ENABLE_Amesos2
+                    ${PROJECT_NAME}_ENABLE_Ifpack2
+                    ${PROJECT_NAME}_ENABLE_MueLu
+  DOCSTR "Enables support for the Kokkos/Tpetra linear solver stack."
+    " Defaults to ON if the Thyra, Tpetra, Stratimikos, Belos, Amesos2, Ifpack2, and MueLu are all enabled,"
+    " otherwise defaults to OFF."
+  )
+
 # PETSc
 COMBINED_OPTION( NOX_ENABLE_ABSTRACT_IMPLEMENTATION_PETSC
   DEP_OPTIONS_NAMES NOX_ENABLE_PETSC
