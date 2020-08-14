@@ -3,7 +3,7 @@
 
 #include "Tpetra_ConfigDefs.hpp"
 #include "Tpetra_Map_fwd.hpp"
-#include "Tpetra_MultiVector_fwd.hpp"
+#include "Tpetra_MultiVector.hpp" // fwd doesn't have default enabled template types
 #include "Tpetra_Vector_fwd.hpp"
 #include "Tpetra_Export_fwd.hpp"
 #include "Tpetra_Import_fwd.hpp"
@@ -12,9 +12,9 @@
 #include "Tpetra_Operator_fwd.hpp"
 
 namespace NOX {
-  
-  using Scalar = double;
-  using LocalOrdinal = int;
+
+  using Scalar = Tpetra::MultiVector<>::scalar_type;
+  using LocalOrdinal = Tpetra::Map<>::local_ordinal_type;
   using GlobalOrdinal = Tpetra::Map<>::global_ordinal_type;
   using GlobalSizeType = Tpetra::global_size_t;
   using DeviceSpace = Kokkos::DefaultExecutionSpace;

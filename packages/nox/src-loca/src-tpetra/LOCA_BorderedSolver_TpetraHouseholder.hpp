@@ -52,9 +52,9 @@
 #define LOCA_BORDEREDSOLVER_TPETRAHOUSEHOLDER_H
 
 #include "LOCA_BorderedSolver_AbstractStrategy.H"  // base class
-
-#include "LOCA_BorderedSolver_HouseholderQR.H" // class data element
-#include "Teuchos_BLAS.hpp" // class data element
+#include "NOX_TpetraTypedefs.hpp"                  // class data element
+#include "LOCA_BorderedSolver_HouseholderQR.H"     // class data element
+#include "Teuchos_BLAS.hpp"                        // class data element
 
 // forward declarations
 class Epetra_Operator;
@@ -69,6 +69,9 @@ namespace LOCA {
     class ConstraintInterfaceMVDX;
   }
   namespace Epetra {
+    class Group;
+  }
+  namespace Thyra {
     class Group;
   }
 }
@@ -470,7 +473,7 @@ namespace LOCA {
       Teuchos::RCP<Teuchos::ParameterList> solverParams;
 
       //! Pointer to group storing J
-      Teuchos::RCP<LOCA::Epetra::Group> grp;
+      Teuchos::RCP<LOCA::Thyra::Group> grp;
 
       // Operator
       Teuchos::RCP<const LOCA::BorderedSolver::AbstractOperator> op;
@@ -544,8 +547,8 @@ namespace LOCA {
       //! Pointer to linear system
       Teuchos::RCP<NOX::Epetra::LinearSystem> linSys;
 
-      //! Pointer to Epetra operator
-      Teuchos::RCP<Epetra_Operator> epetraOp;
+      //! Pointer to Tpetra operator
+      Teuchos::RCP<NOX::TOperator> tpetraOp;
 
       //! Pointer to base map for block vectors
       Teuchos::RCP<const Epetra_BlockMap> baseMap;

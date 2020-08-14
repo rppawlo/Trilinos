@@ -2,17 +2,20 @@ SET(HEADERS "")
 SET(SOURCES "")
 
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR})
+INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/../src-thyra)
 
 # Base library
 APPEND_SET(HEADERS
   NOX_TpetraTypedefs.hpp
   LOCA_Tpetra_Factory.hpp
   LOCA_BorderedSolver_TpetraHouseholder.hpp
+  LOCA_Tpetra_LowRankUpdateRowMatrix.hpp
   )
 
 APPEND_SET(SOURCES
   LOCA_Tpetra_Factory.cpp
   LOCA_BorderedSolver_TpetraHouseholder.cpp
+  LOCA_Tpetra_LowRankUpdateRowMatrix.cpp
   )
 
 IF (NOX_ENABLE_ABSTRACT_IMPLEMENTATION_EPETRA AND NOX_ENABLE_LOCA)
@@ -20,6 +23,6 @@ IF (NOX_ENABLE_ABSTRACT_IMPLEMENTATION_EPETRA AND NOX_ENABLE_LOCA)
     locatpetra
     HEADERS ${HEADERS}
     SOURCES ${SOURCES}
-    DEPLIBS loca nox
+    DEPLIBS locathyra loca nox
     )
 ENDIF()

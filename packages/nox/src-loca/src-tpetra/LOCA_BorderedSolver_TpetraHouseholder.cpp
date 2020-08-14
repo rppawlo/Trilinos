@@ -57,12 +57,19 @@
 #include "LOCA_GlobalData.H"
 #include "LOCA_ErrorCheck.H"
 #include "LOCA_MultiContinuation_ConstraintInterfaceMVDX.H"
+
+#include "LOCA_Thyra_Group.H"
+#include "NOX_Thyra_MultiVector.H"
+#include "Thyra_TpetraMultiVector.hpp"
+#include "Thyra_TpetraLinearOp.hpp"
+
 #include "LOCA_Epetra_Group.H"
 #include "LOCA_Epetra_CompactWYOp.H"
 #include "LOCA_Epetra_LowRankUpdateOp.H"
 #include "LOCA_Epetra_LowRankUpdateRowMatrix.H"
 #include "LOCA_Epetra_TransposeLinearSystem_AbstractStrategy.H"
 #include "LOCA_Epetra_TransposeLinearSystem_Factory.H"
+
 #include "Teuchos_ParameterList.hpp"
 #include "LOCA_BorderedSolver_LowerTriangularBlockElimination.H"
 #include "LOCA_BorderedSolver_UpperTriangularBlockElimination.H"
@@ -76,6 +83,30 @@
 #include "EpetraExt_BlockVector.h"
 #include "EpetraExt_BlockMultiVector.h"
 #endif
+
+// Utility for extracting tpetra vector from nox vector
+using ST = NOX::Scalar;
+using LO = NOX::LocalOrdinal;
+using GO = NOX::GlobalOrdinal;
+using NT = NOX::NodeType;
+namespace NOX {
+  namespace Tpetra {
+
+    TMultiVector& getTpetraMultiVector(NOX::Abstract::MultiVector& v) {
+      auto& v_thyra = *(dynamic_cast<NOX::Thyra::MultiVector&>(v).getThyraMultiVector());
+      auto& v_tpetra = *(dynamic_cast<::Thyra::TpetraMultiVector<ST,LO,GO,NT>&>(v_thyra).getTpetraMultiVector());
+      return v_tpetra;
+    }
+
+    const TMultiVector& getTpetraMultiVector(const NOX::Abstract::MultiVector& v) {
+      const auto& v_thyra = *(dynamic_cast<const NOX::Thyra::MultiVector&>(v).getThyraMultiVector());
+      const auto& v_tpetra = *(dynamic_cast<const ::Thyra::TpetraMultiVector<ST,LO,GO,NT>&>(v_thyra).getConstTpetraMultiVector());
+      return v_tpetra;
+    }
+
+  }
+}
+
 
 LOCA::BorderedSolver::TpetraHouseholder::
 TpetraHouseholder(const Teuchos::RCP<LOCA::GlobalData>& global_data,
@@ -108,7 +139,7 @@ TpetraHouseholder(const Teuchos::RCP<LOCA::GlobalData>& global_data,
   Bscaled(),
   Cscaled(),
   linSys(),
-  epetraOp(),
+  tpetraOp(),
   baseMap(),
   globalMap(),
   numConstraints(0),
@@ -224,8 +255,8 @@ setMatrixBlocks(const Teuchos::RCP<const LOCA::BorderedSolver::AbstractOperator>
     isComplex = false;
 
     // Group must be an Epetra group
-    Teuchos::RCP<const LOCA::Epetra::Group> constGrp =
-      Teuchos::rcp_dynamic_cast<const LOCA::Epetra::Group>(jacOp->getGroup());
+    Teuchos::RCP<const LOCA::Thyra::Group> constGrp =
+      Teuchos::rcp_dynamic_cast<const LOCA::Thyra::Group>(jacOp->getGroup());
     if (constGrp.get() == NULL)
       globalData->locaErrorCheck->throwError(
                     callingFunction,
@@ -238,14 +269,21 @@ setMatrixBlocks(const Teuchos::RCP<const LOCA::BorderedSolver::AbstractOperator>
     Bblock = B;
 
     // Cast to non-const group
-    grp = Teuchos::rcp_const_cast<LOCA::Epetra::Group>(constGrp);
+    grp = Teuchos::rcp_const_cast<LOCA::Thyra::Group>(constGrp);
 
     // Get linear system, and jacobian
-    linSys = grp->getLinearSystem();
-    epetraOp = linSys->getJacobianOperator();
+    //ROGER linSys = grp->getLinearSystem();
+    using ttlop = ::Thyra::TpetraLinearOp<NOX::Scalar,NOX::LocalOrdinal,NOX::GlobalOrdinal>;
+    auto constTpetraOperator = Teuchos::rcp_dynamic_cast<const ttlop>(grp->getJacobianOperator());
+    tpetraOp = Teuchos::rcp_const_cast<ttlop>(constTpetraOperator)->getTpetraOperator();
   }
   else if (complexOp != Teuchos::null) {
 
+    // Complex not yet supported
+    TEUCHOS_TEST_FOR_EXCEPTION(true,std::runtime_error,
+                               "ERROR: Thyra/Tpetra Group doesn't support COMPLEX bordered solve!");
+
+    /*
     isComplex = true;
 
     omega = complexOp->getFrequency();
@@ -275,6 +313,7 @@ setMatrixBlocks(const Teuchos::RCP<const LOCA::BorderedSolver::AbstractOperator>
     // Get A block
     if (!isZeroB)
       Bblock = createBlockMV(*B);
+    */
   }
   else {
     globalData->locaErrorCheck->throwError(
@@ -347,7 +386,7 @@ LOCA::BorderedSolver::TpetraHouseholder::initForSolve()
     // Compute U & V in P operator
     res = computeUV(house_p, *house_x, T, *Ablock, *U, *V, false);
     globalData->locaErrorCheck->checkReturnType(res,
-           "LOCA::BorderedSolver::Epetra_Householder::initForSolve()");
+      "LOCA::BorderedSolver::TpetraHouseholder::initForSolve()");
   }
 
   isValidForSolve = true;
@@ -400,10 +439,9 @@ LOCA::BorderedSolver::TpetraHouseholder::initForTransposeSolve()
              T_trans, R_trans);
 
     // Compute U & V in transposed P operator
-    res = computeUV(house_p_trans, *house_x_trans, T_trans, *Bblock, *U_trans,
-            *V_trans, true);
+    res = computeUV(house_p_trans, *house_x_trans, T_trans, *Bblock, *U_trans, *V_trans, true);
     globalData->locaErrorCheck->checkReturnType(res,
-      "LOCA::BorderedSolver::Epetra_Householder::initForTransposeSolve()");
+      "LOCA::BorderedSolver::TpetraHouseholder::initForTransposeSolve()");
   }
 
   isValidForTransposeSolve = true;
@@ -626,16 +664,14 @@ LOCA::BorderedSolver::TpetraHouseholder::solve(
            std::string(" factorizations.  Call initForSolve() first."));
 
   Teuchos::RCP<const NOX::Abstract::MultiVector> cRHS;
-
+  
   if (!isZeroG) {
 
-    Teuchos::RCP<NOX::Epetra::MultiVector> tmp_x =
-      Teuchos::rcp_dynamic_cast<NOX::Epetra::MultiVector>(X.clone(NOX::ShapeCopy));
+    Teuchos::RCP<NOX::Abstract::MultiVector> tmp_x = X.clone(NOX::ShapeCopy);
     Teuchos::RCP<NOX::Abstract::MultiVector::DenseMatrix> tmp_y =
       Teuchos::rcp(new NOX::Abstract::MultiVector::DenseMatrix(G->numRows(),
-                                   G->numCols()));
-    Teuchos::RCP<NOX::Epetra::MultiVector> RHS =
-      Teuchos::rcp_dynamic_cast<NOX::Epetra::MultiVector>(X.clone(NOX::ShapeCopy));
+                                                               G->numCols()));
+    Teuchos::RCP<NOX::Abstract::MultiVector> RHS = X.clone(NOX::ShapeCopy);
 
     // Compute Z_y = R^-T * G
     Y.assign(*G);
@@ -645,20 +681,15 @@ LOCA::BorderedSolver::TpetraHouseholder::solve(
            R.numRows(), Y.values(), Y.numRows());
 
     // Compute P*[Z_y; 0]
-    qrFact.applyCompactWY(house_p, *house_x, T, &Y, NULL, *tmp_y, *tmp_x,
-              false);
+    qrFact.applyCompactWY(house_p, *house_x, T, &Y, NULL, *tmp_y, *tmp_x, false);
 
     // Compute -[A J]*P*[Z_y 0]
-    int res = epetraOp->Apply(tmp_x->getEpetraMultiVector(),
-                  RHS->getEpetraMultiVector());
-    if (res == 0)
-      status = NOX::Abstract::Group::Ok;
-    else
-      status = NOX::Abstract::Group::Failed;
-    finalStatus =
-      globalData->locaErrorCheck->combineAndCheckReturnTypes(status,
-                                 finalStatus,
-                                 callingFunction);
+    tpetraOp->apply(NOX::Tpetra::getTpetraMultiVector(*tmp_x),
+                    NOX::Tpetra::getTpetraMultiVector(*RHS));
+
+    // Left over from check to make sure above apply was successful. Can probably remove.
+    status = NOX::Abstract::Group::Ok;
+
     RHS->update(Teuchos::NO_TRANS, -1.0, *Ablock, *tmp_y, -1.0);
 
     // Compute F - [A J]*P*[Z_y 0]
@@ -669,6 +700,8 @@ LOCA::BorderedSolver::TpetraHouseholder::solve(
   }
   else
     cRHS = Teuchos::rcp(F, false);
+
+  /*
 
   // Get solution vec
   const NOX::Epetra::Vector& solution_vec =
@@ -777,6 +810,7 @@ LOCA::BorderedSolver::TpetraHouseholder::solve(
   linSys->destroyPreconditioner();
 
   return finalStatus;
+  */
 }
 
 NOX::Abstract::Group::ReturnType
@@ -787,6 +821,7 @@ LOCA::BorderedSolver::TpetraHouseholder::solveTranspose(
                   NOX::Abstract::MultiVector& X,
                   NOX::Abstract::MultiVector::DenseMatrix& Y) const
 {
+  /*
   std::string callingFunction =
     "LOCA::BorderedSolver::TpetraHouseholder::applyInverseTranspose()";
   NOX::Abstract::Group::ReturnType status;
@@ -968,6 +1003,7 @@ LOCA::BorderedSolver::TpetraHouseholder::solveTranspose(
   linSys->destroyPreconditioner();
 
   return finalStatus;
+  */
 }
 
 NOX::Abstract::Group::ReturnType
@@ -981,23 +1017,19 @@ LOCA::BorderedSolver::TpetraHouseholder::computeUV(
                 bool use_jac_transpose)
 {
   // Now compute U and V in P = J + U*V^T, U = A*Y_1 + J*Y_2, V = Y_2*T^T
-  const NOX::Epetra::MultiVector& Y2_epetra =
-    dynamic_cast<const NOX::Epetra::MultiVector&>(Y2);
-  NOX::Epetra::MultiVector& UU_epetra =
-    dynamic_cast<NOX::Epetra::MultiVector&>(UU);
-  bool use_trans = epetraOp->UseTranspose();
-  epetraOp->SetUseTranspose(use_jac_transpose);
-  int status = epetraOp->Apply(Y2_epetra.getEpetraMultiVector(),
-                   UU_epetra.getEpetraMultiVector());
-  epetraOp->SetUseTranspose(use_trans);
+  {
+    const auto& Y2_tpetra = NOX::Tpetra::getTpetraMultiVector(Y2);
+    auto& UU_tpetra = NOX::Tpetra::getTpetraMultiVector(UU);
+    if (use_jac_transpose)
+      tpetraOp->apply(Y2_tpetra,UU_tpetra,Teuchos::TRANS);
+    else
+      tpetraOp->apply(Y2_tpetra,UU_tpetra,Teuchos::NO_TRANS);
+  }
 
   UU.update(Teuchos::NO_TRANS, 1.0, inA, Y1, 1.0);
   VV.update(Teuchos::TRANS, 1.0, Y2, inT, 0.0);
 
-  if (status == 0)
-    return NOX::Abstract::Group::Ok;
-  else
-    return NOX::Abstract::Group::Failed;
+  return NOX::Abstract::Group::Ok;
 }
 
 void
@@ -1006,6 +1038,7 @@ LOCA::BorderedSolver::TpetraHouseholder::updateJacobianForPreconditioner(
               const NOX::Abstract::MultiVector& VV,
               Epetra_CrsMatrix& jac) const
 {
+  /*
   // Get number of rows on this processor
   int numMyRows = jac.NumMyRows();
 
@@ -1060,12 +1093,18 @@ LOCA::BorderedSolver::TpetraHouseholder::updateJacobianForPreconditioner(
 
     }
   }
+  */
 }
 
 Teuchos::RCP<NOX::Abstract::MultiVector>
 LOCA::BorderedSolver::TpetraHouseholder::createBlockMV(
                     const NOX::Abstract::MultiVector& v) const
 {
+  TEUCHOS_TEST_FOR_EXCEPTION(true,std::runtime_error,
+                             "ERROR: LOCA::BorderedSolver::TpetraHouseholder::createBlockMV - Support for COMPLEX systems not supported!");
+  return Teuchos::null;
+
+  /*
 #ifdef HAVE_NOX_EPETRAEXT
   const LOCA::Hopf::ComplexMultiVector& cv =
     dynamic_cast<const LOCA::Hopf::ComplexMultiVector&>(v);
@@ -1093,6 +1132,7 @@ LOCA::BorderedSolver::TpetraHouseholder::createBlockMV(
                      "Must have EpetraExt support for Hopf tracking.  Configure trilinos with --enable-epetraext");
   return Teuchos::null;
 #endif
+  */
 }
 
 void
@@ -1100,6 +1140,10 @@ LOCA::BorderedSolver::TpetraHouseholder::setBlockMV(
                        const NOX::Abstract::MultiVector& bv,
                        NOX::Abstract::MultiVector& v) const
 {
+  TEUCHOS_TEST_FOR_EXCEPTION(true,std::runtime_error,
+                             "ERROR: LOCA::BorderedSolver::TpetraHouseholder::setBlockMV - Support for COMPLEX systems not supported!");
+
+  /*
 #ifdef HAVE_NOX_EPETRAEXT
   LOCA::Hopf::ComplexMultiVector& cv =
     dynamic_cast<LOCA::Hopf::ComplexMultiVector&>(v);
@@ -1124,4 +1168,5 @@ LOCA::BorderedSolver::TpetraHouseholder::setBlockMV(
   globalData->locaErrorCheck->throwError("LOCA::BorderedSolver::TpetraHouseholder::setBlockMV()",
                      "Must have EpetraExt support for Hopf tracking.  Configure trilinos with --enable-epetraext");
 #endif
+  */
 }
