@@ -7,6 +7,8 @@
 #include "Tpetra_Vector_fwd.hpp"
 #include "Tpetra_Export_fwd.hpp"
 #include "Tpetra_Import_fwd.hpp"
+#include "Tpetra_RowGraph_fwd.hpp"
+#include "Tpetra_RowMatrix_fwd.hpp"
 #include "Tpetra_CrsGraph_fwd.hpp"
 #include "Tpetra_CrsMatrix_fwd.hpp"
 #include "Tpetra_Operator_fwd.hpp"
@@ -26,6 +28,8 @@ namespace NOX {
   using TExport = Tpetra::Export<LocalOrdinal,GlobalOrdinal,NodeType>;
   using TVector = Tpetra::Vector<Scalar,LocalOrdinal,GlobalOrdinal,NodeType>;
   using TMultiVector = Tpetra::MultiVector<Scalar,LocalOrdinal,GlobalOrdinal,NodeType>;
+  using TRowGraph = Tpetra::RowGraph< LocalOrdinal, GlobalOrdinal, NodeType>;
+  using TRowMatrix = Tpetra::RowMatrix< Scalar, LocalOrdinal, GlobalOrdinal, NodeType>;
   using TCrsGraph = Tpetra::CrsGraph< LocalOrdinal, GlobalOrdinal, NodeType>;
   using TCrsMatrix = Tpetra::CrsMatrix< Scalar, LocalOrdinal, GlobalOrdinal, NodeType>;
   using TOperator =  Tpetra::Operator<Scalar, LocalOrdinal, GlobalOrdinal, NodeType>;
