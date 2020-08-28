@@ -5,7 +5,7 @@
 #define LOCA_TPETRA_LOW_RANK_UPDATE_ROW_MATRIX_HPP
 
 #include "Tpetra_RowMatrix.hpp" // base class
-#incldue "Tpetra_Operator.hpp" // base class
+#include "Tpetra_Operator.hpp" // base class
 #include "NOX_TpetraTypedefs.hpp"
 #include "Kokkos_ArithTraits.hpp"
 
@@ -67,6 +67,9 @@ namespace LOCA {
 
       virtual ~LowRankUpdateRowMatrix() = default;
 
+      //***************************************
+      // Derived from Tpetra::RowMatrix interface
+      //***************************************
       virtual Teuchos::RCP<const Teuchos::Comm<int> > getComm() const override;
       virtual Teuchos::RCP<const NOX::TMap> getRowMap() const override;
       virtual Teuchos::RCP<const NOX::TMap> getColMap() const override;
@@ -106,31 +109,44 @@ namespace LOCA {
                        Teuchos::ArrayView<const NOX::LocalOrdinal>& indices,
                        Teuchos::ArrayView<const NOX::Scalar>& values) const override;
 
-      // ROGER - this is not pure virtual!
-      virtual NOX::LocalOrdinal
-      getLocalRowViewRaw (const NOX::LocalOrdinal lclRow,
-                          NOX::LocalOrdinal& numEnt,
-                          const NOX::LocalOrdinal*& lclColInds,
-                          const NOX::Scalar*& vals) const;
+      // Use the default implementation!
+      // virtual NOX::LocalOrdinal
+      // getLocalRowViewRaw (const NOX::LocalOrdinal lclRow,
+      //                     NOX::LocalOrdinal& numEnt,
+      //                     const NOX::LocalOrdinal*& lclColInds,
+      //                     const NOX::Scalar*& vals) const;
 
       virtual void getLocalDiagCopy (NOX::TVector& diag) const override;
       virtual void leftScale (const NOX::TVector& x) override;
       virtual void rightScale (const NOX::TVector& x) override;
       virtual mag_type getFrobeniusNorm() const override;
 
-      // ROGER - this is not pure virtual!
-      virtual Teuchos::RCP<NOX::TRowMatrix>
-      add (const NOX::Scalar& alpha,
-           const NOX::TRowMatrix& A,
-           const NOX::Scalar& beta,
-           const Teuchos::RCP<const NOX::TMap>& domainMap = Teuchos::null,
-           const Teuchos::RCP<const NOX::TMap>& rangeMap = Teuchos::null,
-           const Teuchos::RCP<Teuchos::ParameterList>& params = Teuchos::null) const;
+      // Use the default implementation!
+      // virtual Teuchos::RCP<NOX::TRowMatrix>
+      // add (const NOX::Scalar& alpha,
+      //      const NOX::TRowMatrix& A,
+      //      const NOX::Scalar& beta,
+      //      const Teuchos::RCP<const NOX::TMap>& domainMap = Teuchos::null,
+      //      const Teuchos::RCP<const NOX::TMap>& rangeMap = Teuchos::null,
+      //      const Teuchos::RCP<Teuchos::ParameterList>& params = Teuchos::null) const;
+
+      //***************************************
+      // Derived from Tpetra::Operator interface
+      //***************************************
+      virtual Teuchos::RCP<const NOX::TMap> getDomainMap() const;
+      virtual Teuchos::RCP<const NOX::TMap> getRangeMap() const;
+      virtual void apply(const NOX::TMultiVector &X,
+                         NOX::TMultiVector &Y,
+                         Teuchos::ETransp mode = Teuchos::NO_TRANS,
+                         NOX::Scalar alpha = Teuchos::ScalarTraits<NOX::Scalar>::one(),
+                         NOX::Scalar beta = Teuchos::ScalarTraits<NOX::Scalar>::zero()) const;
 
     protected:
 
-      //! Compute \c MyRow, \c MyCol entry of \f$U V^T\f$.
-      double computeUV(int MyRow, int MyCol) const;
+      //! Compute \c MyRow, \c MyCol entry of \f$U V^T\f$. Views are local Kokkos view types.
+      template<typename ViewType>
+      KOKKOS_INLINE_FUNCTION
+      NOX::Scalar computeUV(int MyRow, int MyCol) const;
 
     protected:
 
@@ -142,6 +158,12 @@ namespace LOCA {
 
       //! Stores pointer to non-const V
       Teuchos::RCP<NOX::TMultiVector> nonconst_V;
+
+      //! View of U
+      const typename NOX::TMultiVector::dual_view_type::t_host U_DeviceView;
+
+      //! View of V
+      const typename NOX::TMultiVector::dual_view_type::t_host V_DeviceView;
 
       //! Flag indicating whether to include U*V^T terms
       bool includeUV;
@@ -157,6 +179,12 @@ namespace LOCA {
 
       //! Row map for J
       const NOX::TMap& row_map;
+
+      //! Temporary workspace
+      mutable Teuchos::RCP<NOX::TMultiVector> tmpMat;
+
+      //! Locally replicated map
+      Teuchos::RCP<NOX::TMap> local_map;
 
     }; // class LowRankUpdateRowMatrix
 
