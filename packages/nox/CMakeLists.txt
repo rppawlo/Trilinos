@@ -19,11 +19,13 @@ OPTION(${PACKAGE_NAME}_BUILD_PRERELEASE
 IF(NOX_BUILD_PRERELEASE)
   SET(WITH_PRERELEASE TRUE)
 ENDIF()
+MESSAGE(STATUS "Experimental code: ${NOX_BUILD_PRERELEASE}")
 
 # LOCA support
 OPTION(${PACKAGE_NAME}_ENABLE_LOCA
   "Enable parameter LOCA support"
   ON )
+MESSAGE(STATUS "LOCA: ${NOX_ENABLE_LOCA}")
 
 # MF support
 SET(NOX_ENABLE_MF_default OFF)
@@ -102,6 +104,7 @@ COMBINED_OPTION( NOX_ENABLE_ABSTRACT_IMPLEMENTATION_EPETRA
     " Vector classes.  Defaults to ON if Epetra, AztecOO, and Ifpack are"
     " enabled, otherwise defaults to OFF."
   )
+MESSAGE(STATUS "Epetra Abstractions: ${NOX_ENABLE_ABSTRACT_IMPLEMENTATION_EPETRA}")
 
 # Thyra
 COMBINED_OPTION( NOX_ENABLE_ABSTRACT_IMPLEMENTATION_THYRA
@@ -110,6 +113,7 @@ COMBINED_OPTION( NOX_ENABLE_ABSTRACT_IMPLEMENTATION_THYRA
     " and Vector classes.  Defaults to ON if Thyra is enabled,"
     " otherwise defaults to OFF"
   )
+MESSAGE(STATUS "Thyra Abstractions: ${NOX_ENABLE_ABSTRACT_IMPLEMENTATION_THYRA}")
 
 IF(NOX_ENABLE_ABSTRACT_IMPLEMENTATION_THYRA)
   SET(HAVE_NOX_THYRA ON)
@@ -141,6 +145,7 @@ COMBINED_OPTION( NOX_ENABLE_KOKKOS_SOLVER_STACK
     " Defaults to ON if the Thyra, Tpetra, Stratimikos, Belos, Amesos2, Ifpack2, and MueLu are all enabled,"
     " otherwise defaults to OFF."
   )
+MESSAGE(STATUS "Kokkos Solver Stack: ${NOX_ENABLE_KOKKOS_SOLVER_STACK}")
 
 # PETSc
 COMBINED_OPTION( NOX_ENABLE_ABSTRACT_IMPLEMENTATION_PETSC
@@ -149,6 +154,7 @@ COMBINED_OPTION( NOX_ENABLE_ABSTRACT_IMPLEMENTATION_PETSC
     " Vector classes.  Defaults to ON if NOX_ENABLE_PETSC is"
     " enabled, otherwise defaults to OFF."
   )
+MESSAGE(STATUS "PETSc Abstractions: ${NOX_ENABLE_ABSTRACT_IMPLEMENTATION_PETSC}")
 
 ###################################################
 ###################################################
@@ -163,6 +169,7 @@ COMBINED_OPTION( NOX_ENABLE_ABSTRACT_IMPLEMENTATION_PETSC
 ADD_SUBDIRECTORY(src)
 ADD_SUBDIRECTORY(src-lapack)
 ADD_SUBDIRECTORY(src-epetra)
+ADD_SUBDIRECTORY(src-tpetra)
 ADD_SUBDIRECTORY(src-thyra)
 ADD_SUBDIRECTORY(src-petsc)
 ADD_SUBDIRECTORY(src-loca)

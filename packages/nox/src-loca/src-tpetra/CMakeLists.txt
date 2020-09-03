@@ -6,7 +6,6 @@ INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/../src-thyra)
 
 # Base library
 APPEND_SET(HEADERS
-  NOX_TpetraTypedefs.hpp
   LOCA_Tpetra_Factory.hpp
   LOCA_BorderedSolver_TpetraHouseholder.hpp
   LOCA_Tpetra_LowRankUpdateRowMatrix.hpp
@@ -18,7 +17,7 @@ APPEND_SET(SOURCES
   LOCA_Tpetra_LowRankUpdateRowMatrix.cpp
   )
 
-IF (NOX_ENABLE_ABSTRACT_IMPLEMENTATION_EPETRA AND NOX_ENABLE_LOCA)
+IF (NOX_ENABLE_LOCA AND NOX_ENABLE_KOKKOS_SOLVER_STACK)
   TRIBITS_ADD_LIBRARY(
     locatpetra
     HEADERS ${HEADERS}
