@@ -73,10 +73,18 @@ namespace LOCA {
 
     public:
 
-      //! Constructor
+      //! Constructor (internally constructs nox group)
       Group(const Teuchos::RCP<LOCA::GlobalData>& global_data,
         const NOX::Thyra::Vector& initial_guess,
         const Teuchos::RCP< ::Thyra::ModelEvaluator<double> >& model,
+        const LOCA::ParameterVector& p,
+        int p_index,
+        bool implement_dfdp = false,
+        const Teuchos::RCP<const ::Thyra::VectorBase<double> >& weight_vector = Teuchos::null);
+
+      //! Constructor (copy constructs nox group)
+      Group(const Teuchos::RCP<LOCA::GlobalData>& global_data,
+        const NOX::Thyra::Group& nox_group,
         const LOCA::ParameterVector& p,
         int p_index,
         bool implement_dfdp = false,

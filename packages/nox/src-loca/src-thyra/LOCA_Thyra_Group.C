@@ -79,6 +79,25 @@ LOCA::Thyra::Group::Group(
   updateThyraParamView();
   updateThyraXDot();
 }
+LOCA::Thyra::Group::Group(
+        const Teuchos::RCP<LOCA::GlobalData>& global_data,
+        const NOX::Thyra::Group& nox_group,
+        const LOCA::ParameterVector& p,
+        int p_index,
+        bool impl_dfdp,
+        const Teuchos::RCP<const ::Thyra::VectorBase<double> >& weight_vector) :
+  NOX::Thyra::Group(nox_group),
+  LOCA::Abstract::Group(global_data),
+  globalData(global_data),
+  params(p),
+  param_index(p_index),
+  saveDataStrategy(),
+  implement_dfdp(impl_dfdp),
+  weight_vec_(weight_vector)
+{
+  updateThyraParamView();
+  updateThyraXDot();
+}
 
 LOCA::Thyra::Group::Group(const LOCA::Thyra::Group& source,
                NOX::CopyType type) :
