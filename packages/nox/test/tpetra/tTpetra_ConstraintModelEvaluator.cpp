@@ -67,6 +67,8 @@
 #include "ME_Tpetra_1DFEM.hpp"
 
 #include "LOCA_Tpetra_ConstraintModelEvaluator.hpp"
+#include "NOX_Thyra_Vector.H"
+#include "NOX_Thyra_MultiVector.H"
 #include "NOX_TpetraTypedefs.hpp"
 
 TEUCHOS_UNIT_TEST(NOX_Tpetra_1DFEM, Responses)
@@ -87,44 +89,39 @@ TEUCHOS_UNIT_TEST(NOX_Tpetra_1DFEM, Responses)
   Teuchos::RCP<EvaluatorTpetra1DFEM<Scalar,LO,GO,Node> > model =
     evaluatorTpetra1DFEM<Scalar,LO,GO,Node>(comm, numGlobalElements, x00, x01);
 
-  auto g_thyra = ::Thyra::createMember(*model->get_g_space(0),"g");
-  auto DfDp_thyra = Teuchos::rcp_dynamic_cast<::Thyra::MultiVectorBase<Scalar>>(model->create_DfDp_op(0),true);
-  auto DgDx_thyra = Teuchos::rcp_dynamic_cast<::Thyra::MultiVectorBase<Scalar>>(model->create_DgDx_op(0),true);
-  auto DgDp_thyra = Teuchos::rcp_dynamic_cast<::Thyra::MultiVectorBase<Scalar>>(model->create_DgDp_op(0,0),true);
+  LOCA::ParameterVector p_vec;
+  p_vec.addParameter("k",1.0);
+  std::vector<std::string> g_names;
+  g_names.push_back(model->get_g_names(0)[0]);
+  auto x_thyra = ::Thyra::createMember(model->get_x_space(),"x");
+  NOX::Thyra::Vector x(x_thyra);
+  LOCA::MultiContinuation::ConstraintModelEvaluator constraints(model,p_vec,g_names,x);
 
-  auto inArgs = model->createInArgs();
-  auto x = ::Thyra::createMember(model->get_x_space(),"x");
-  ::Thyra::assign(x.ptr(),1.0);
-  inArgs.set_x(x);
-  auto outArgs = model->createOutArgs();
+  // Set inputs
+  x.init(1.0);
+  constraints.setX(x);
+  constraints.setParam(0,1.0);
 
-
-  outArgs.set_g(0,::Thyra::ModelEvaluatorBase::Evaluation<::Thyra::VectorBase<Scalar>>(g_thyra));
-  outArgs.set_DfDp(0,::Thyra::ModelEvaluatorBase::Derivative<Scalar>(DfDp_thyra));
-  outArgs.set_DgDx(0,::Thyra::ModelEvaluatorBase::Derivative<Scalar>(DgDx_thyra));
-  outArgs.set_DgDp(0,0,::Thyra::ModelEvaluatorBase::Derivative<Scalar>(DgDp_thyra));
-
-  model->evalModel(inArgs,outArgs);
-
-  TEST_EQUALITY(model->Np(),1);
-  TEST_EQUALITY(model->Ng(),1);
-
-  auto g = converter::getTpetraMultiVector(g_thyra);
-  auto DfDp = converter::getTpetraMultiVector(DfDp_thyra);
-  auto DgDx = converter::getTpetraMultiVector(DgDx_thyra);
-  auto DgDp = converter::getTpetraMultiVector(DgDp_thyra);
-
-  // g = T(Zmax) - 2.0
-  // x=1.0
-  // g= -1.0
-  g->sync_host();
-  auto g_host = g->getLocalViewHost();
-  out << "g = " << g_host(0,0) << std::endl;
+  // Compute constraints
+  out << "Checking constraints:\n";
+  constraints.computeConstraints();
+  auto g = constraints.getConstraints();
+  out << "g = " << g(0,0) << std::endl;
   auto tol = std::numeric_limits<Scalar>::epsilon()*100.0;
-  TEST_FLOATING_EQUALITY(g_host(0,0),-1.0,tol);
+  TEST_FLOATING_EQUALITY(g(0,0),-1.0,tol);
 
-  // DgDx: Right end node is -1, the rest of the vector is zero.
-  out << "DgDx:\n";
+
+  // Compute DX
+  out << "\nChecking DgDx:\n";
+  constraints.computeDX();
+  auto input = x.createMultiVector(1,NOX::ShapeCopy);
+  input->init(1.0);
+  auto result = x.createMultiVector(1,NOX::ShapeCopy);
+  NOX::Abstract::MultiVector::DenseMatrix b(1,1);
+  b(0,0) = 1.0;
+  constraints.addDX(Teuchos::NO_TRANS,1.0,b,0.0,*result);
+  auto result_thyra = Teuchos::rcp_dynamic_cast<NOX::Thyra::MultiVector>(result)->getThyraMultiVector();
+  auto DgDx = converter::getTpetraMultiVector(result_thyra);
   DgDx->sync_host();
   DgDx->describe(out,Teuchos::VERB_EXTREME);
   auto DgDx_host = DgDx->getLocalViewHost();
@@ -135,29 +132,37 @@ TEUCHOS_UNIT_TEST(NOX_Tpetra_1DFEM, Responses)
   DgDx->norm2(norms);
   TEST_FLOATING_EQUALITY(norms[0],1.0,tol);
 
-  // DfDp
-  out << "DfDp:\n";
-  DfDp->sync_host();
-  DfDp->describe(out,Teuchos::VERB_EXTREME);
-  auto DfDp_host = DfDp->getLocalViewHost();
-  auto rank = comm->getRank();
-  auto size = comm->getSize();
-  for (size_t i=0; i < DfDp_host.extent(0); ++i) {
-    if ((rank == 0) && (i == 0)) { // left end
-      TEST_FLOATING_EQUALITY(DfDp_host(0,0),0.0,tol);
-    }
-    else if (rank == (size - 1) && (i==(DfDp_host.extent(0)-1))) { // right end
-      TEST_FLOATING_EQUALITY(DfDp_host(DfDp_host.extent(0)-1,0),0.005,tol);
-    }
-    else { // interior nodes
-      out << "rank=" << rank << ", i=" << i <<std::endl;
-      TEST_FLOATING_EQUALITY(DfDp_host(i,0),0.01,tol);
-    }
-  }
+  // Compute g and DgDp
+  out << "\nChecking DgDp:\n";
+  NOX::Abstract::MultiVector::DenseMatrix dgdp(2,1,true); // first col is g
+  std::vector<int> paramIDs(1);
+  paramIDs[0] = 0;
+  constraints.computeDP(paramIDs,dgdp,false);
+  TEST_FLOATING_EQUALITY(dgdp(0,0),-1.0,tol);
+  TEST_FLOATING_EQUALITY(dgdp(1,0),0.0,tol);
 
-  out << "DgDp:\n";
-  DgDp->sync_host();
-  DgDp->describe(out,Teuchos::VERB_EXTREME);
-  auto DgDp_host = DgDp->getLocalViewHost();
-  TEST_FLOATING_EQUALITY(DgDp_host(0,0),0.0,tol);
+  // Test clone/copy
+  out << "\nChecking clone and copy methods:\n";
+  TEST_ASSERT(constraints.isConstraints());
+  TEST_ASSERT(constraints.isDX());
+
+  // Shape copy does not copy values, not equal
+  auto constraints_clone = constraints.clone(NOX::ShapeCopy);
+  TEST_ASSERT(constraints_clone->isConstraints() != constraints.isConstraints());
+  TEST_ASSERT(constraints_clone->isDX() != constraints.isDX());
+
+  // Copy method should now make them equal
+  constraints_clone->copy(constraints);
+  TEST_ASSERT(constraints_clone->isConstraints() == constraints.isConstraints());
+  TEST_ASSERT(constraints_clone->isDX() == constraints.isDX());
+
+  // Let's change the solution so everyhting is invalid in the clone
+  constraints_clone->setParam(0,0.0);
+  TEST_ASSERT(constraints_clone->isConstraints() != constraints.isConstraints());
+  TEST_ASSERT(constraints_clone->isDX() != constraints.isDX());
+
+  // Deep copy should make everything equal
+  constraints_clone = constraints.clone(NOX::DeepCopy);
+  TEST_ASSERT(constraints_clone->isConstraints() == constraints.isConstraints());
+  TEST_ASSERT(constraints_clone->isDX() == constraints.isDX());
 }

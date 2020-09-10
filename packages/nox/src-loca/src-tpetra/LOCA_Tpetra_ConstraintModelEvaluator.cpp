@@ -82,8 +82,8 @@ namespace LOCA {
         *x_ = *src.x_;
         pVec_ = src.pVec_;
         constraints_ = src.constraints_;
-        isValidConstraints_ = src.isValidConstraints_;
         *dgdx_ = *src.dgdx_;
+        isValidConstraints_ = src.isValidConstraints_;
         isValidDx_ = src.isValidDx_;
       }
     }
@@ -97,9 +97,11 @@ namespace LOCA {
         *x_ = *src.x_;
         pVec_ = src.pVec_;
         constraints_ = src.constraints_;
-        isValidConstraints_ = src.isValidConstraints_;
         *dgdx_ = *src.dgdx_;
+        isValidConstraints_ = src.isValidConstraints_;
         isValidDx_ = src.isValidDx_;
+        meParameterIndices_ = src.meParameterIndices_;
+        meResponseIndices_ = src.meResponseIndices_;
       }
     }
 
@@ -143,11 +145,11 @@ namespace LOCA {
       auto x_thyra = Teuchos::rcp_dynamic_cast<NOX::Thyra::Vector>(x_)->getThyraRCPVector();
       inArgs.set_x(x_thyra);
       for (int i=0; i < pVec_.length(); ++i)
-        inArgs.set_p(i,me_p_[i]);
+        inArgs.set_p(meParameterIndices_[i],me_p_[i]);
 
       auto outArgs = model_->createOutArgs();
       for (size_t i=0; i < me_g_.size(); ++i)
-        outArgs.set_g(i,::Thyra::ModelEvaluatorBase::Evaluation<::Thyra::VectorBase<double>>(me_g_[i]));
+        outArgs.set_g(meResponseIndices_[i],::Thyra::ModelEvaluatorBase::Evaluation<::Thyra::VectorBase<double>>(me_g_[i]));
 
       model_->evalModel(inArgs,outArgs);
 
@@ -171,11 +173,13 @@ namespace LOCA {
       auto x_thyra = Teuchos::rcp_dynamic_cast<NOX::Thyra::Vector>(x_)->getThyraRCPVector();
       inArgs.set_x(x_thyra);
       for (int i=0; i < pVec_.length(); ++i)
-        inArgs.set_p(i,me_p_[i]);
+        inArgs.set_p(meParameterIndices_[i],me_p_[i]);
 
       auto outArgs = model_->createOutArgs();
       for (size_t i=0; i < me_dgdx_.size(); ++i)
-        outArgs.set_DgDx(i,::Thyra::ModelEvaluatorBase::Derivative<NOX::Scalar>(me_dgdx_[i]));
+        outArgs.set_DgDx(meResponseIndices_[i],::Thyra::ModelEvaluatorBase::Derivative<NOX::Scalar>(me_dgdx_[i]));
+
+      model_->evalModel(inArgs,outArgs);
 
       // Aggregate derivative columns into a single
       // multivector. Copies entries out of temporary me_dgdx_ into
@@ -185,7 +189,6 @@ namespace LOCA {
         (*dgdx_)[i] = tmp[0];
       }
 
-      model_->evalModel(inArgs,outArgs);
       isValidDx_ = true;
       return NOX::Abstract::Group::Ok;
     }
@@ -195,16 +198,31 @@ namespace LOCA {
                                         NOX::Abstract::MultiVector::DenseMatrix& dgdp,
                                         bool isValidG)
     {
+      if (!isValidG) {
+        if (!this->isConstraints())
+          this->computeConstraints();
+            
+        for (size_t i=0; i < me_g_.size(); ++i)
+          dgdp(i,0) = constraints_(i,0);
+      }
+
       auto inArgs = model_->createInArgs();
       auto x_thyra = Teuchos::rcp_dynamic_cast<NOX::Thyra::Vector>(x_)->getThyraRCPVector();
       inArgs.set_x(x_thyra);
-      for (int i=0; i < pVec_.length(); ++i)
-        inArgs.set_p(i,me_p_[i]);
 
+      // Set all parameters from the parameter vector
+      for (int i=0; i < pVec_.length(); ++i)
+        inArgs.set_p(meParameterIndices_[i],me_p_[i]);
+
+      // Only request derivatives for the incoming paramIDs. NOTE:
+      // this could be, and most likely is, a subset of the total
+      // number of parameters in the pVec_.
+      TEUCHOS_ASSERT(size_t(dgdp.numRows()) == (1 + me_dgdp_.size()));
+      TEUCHOS_ASSERT(size_t(dgdp.numCols()) == paramIDs.size());
       auto outArgs = model_->createOutArgs();
       for (size_t j=0; j < me_dgdp_.size(); ++j) {
-        for (size_t l=0; l < me_dgdp_[j].size(); ++l) {
-          outArgs.set_DgDp(j,l,me_dgdp_[j][l]);
+        for (auto& l : paramIDs) {
+          outArgs.set_DgDp(meResponseIndices_[j],l,me_dgdp_[j][l]);
         }
       }
 
@@ -214,12 +232,12 @@ namespace LOCA {
       // aggregated object for loca.
       using extractor = ::Thyra::TpetraOperatorVectorExtraction<NOX::Scalar,NOX::LocalOrdinal,NOX::GlobalOrdinal,NOX::NodeType>;
       for (size_t j=0; j < me_dgdp_.size(); ++j) {
-        const auto& row = me_dgdp_[j];
-        for (size_t l=0; l < row.size(); ++l) {
-          auto tmp = extractor::getTpetraMultiVector(me_dgdp_[j][l]);
+        for (size_t l=0; l < paramIDs.size(); ++l) {
+          auto tmp = extractor::getTpetraMultiVector(me_dgdp_[j][paramIDs[l]]);
           tmp->sync_host();
           auto val = tmp->getLocalViewHost();
-          dgdp(j,l) = val(0,0);
+          // first col contains g, so we shift the columns by one
+          dgdp(j+1,l) = val(0,0);
         }
       }
 
