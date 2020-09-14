@@ -81,8 +81,8 @@ LOCA::Tpetra::Factory::createBorderedSolverStrategy(
   if (strategyName == "Householder") {
     strategy =
       Teuchos::rcp(new LOCA::BorderedSolver::TpetraHouseholder(globalData,
-                                   topParams,
-                                   solverParams));
+                                                               topParams,
+                                                               solverParams));
     return true;
   }
   else

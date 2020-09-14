@@ -518,6 +518,7 @@ evalModel(const Thyra::ModelEvaluatorBase::InArgs<Scalar> &inArgs,
     }
     if (fill_DgDx) {
       auto DgDx_tpetra = tpetra_extract::getTpetraMultiVector(DgDx_out);
+      DgDx_tpetra->putScalar(0.0);
       DgDx_tpetra->sync_host();
       DgDx_tpetra->modify_host();
 
@@ -529,6 +530,7 @@ evalModel(const Thyra::ModelEvaluatorBase::InArgs<Scalar> &inArgs,
     }
     if (fill_DfDp) {
       auto DfDp_tpetra = tpetra_extract::getTpetraMultiVector(DfDp_out);
+      DfDp_tpetra->putScalar(0.0);
       DfDp_tpetra->sync_device();
       DfDp_tpetra->modify_device();
 
@@ -538,6 +540,7 @@ evalModel(const Thyra::ModelEvaluatorBase::InArgs<Scalar> &inArgs,
     }
     if (fill_DgDp) {
       auto DgDp_tpetra = tpetra_extract::getTpetraMultiVector(DgDp_out);
+      DgDp_tpetra->putScalar(0.0);
     }
   }
 }

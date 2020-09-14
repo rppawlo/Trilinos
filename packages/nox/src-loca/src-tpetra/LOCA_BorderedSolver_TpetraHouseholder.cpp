@@ -358,15 +358,15 @@ LOCA::BorderedSolver::TpetraHouseholder::initForSolve()
       scale_vals.resize(numConstraints);
       double sn = std::sqrt( static_cast<double>(Bblock->length()) );
       for (int i=0; i<numConstraints; i++) {
-    scale_vals[i] = (*Bblock)[i].norm() / sn;
-    double t = 0.0;
-    for (int j=0; j<numConstraints; j++)
-      t += (*C)(i,j) * (*C)(i,j);
-    scale_vals[i] += std::sqrt(t);
-    scale_vals[i] = 1.0 / scale_vals[i];
-    (*Bscaled)[i].scale(scale_vals[i]);
-    for (int j=0; j<numConstraints; j++)
-      (*Cscaled)(i,j) *= scale_vals[i];
+        scale_vals[i] = (*Bblock)[i].norm() / sn;
+        double t = 0.0;
+        for (int j=0; j<numConstraints; j++)
+          t += (*C)(i,j) * (*C)(i,j);
+        scale_vals[i] += std::sqrt(t);
+        scale_vals[i] = 1.0 / scale_vals[i];
+        (*Bscaled)[i].scale(scale_vals[i]);
+        for (int j=0; j<numConstraints; j++)
+          (*Cscaled)(i,j) *= scale_vals[i];
       }
     }
 

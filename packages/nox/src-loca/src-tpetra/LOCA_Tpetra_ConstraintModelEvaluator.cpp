@@ -15,7 +15,7 @@ namespace LOCA {
       model_(model),
       pVec_(pVec),
       gNames_(constraintResponseNames),
-      constraints_(constraintResponseNames.size(),pVec_.length()),
+      constraints_(constraintResponseNames.size(),1),
       isValidConstraints_(false),
       isValidDx_(false)
     {
@@ -25,6 +25,7 @@ namespace LOCA {
       TEUCHOS_ASSERT(constraintResponseNames.size() == size_t(pVec_.length()));
 
       // Get the parameter indices
+      meParameterIndices_.clear();
       const auto pNames = pVec_.getNamesVector();
       for (size_t i=0; i < pNames.size(); ++i) {
         const auto& p_name = pNames[i];
@@ -40,6 +41,7 @@ namespace LOCA {
       TEUCHOS_ASSERT(pNames.size() == meParameterIndices_.size());
 
       // Get the response indices
+      meResponseIndices_.clear();
       for (size_t i=0; i < gNames_.size(); ++i) {
         const auto& g_name = gNames_[i];
         for (int j=0; j < model_->Ng(); ++j) {
@@ -113,7 +115,7 @@ namespace LOCA {
 
     int ConstraintModelEvaluator::numConstraints() const
     {
-      return int(meResponseIndices_.size());
+      return int(constraints_.numRows());
     }
 
     void ConstraintModelEvaluator::setX(const NOX::Abstract::Vector& x)
@@ -217,8 +219,8 @@ namespace LOCA {
       // Only request derivatives for the incoming paramIDs. NOTE:
       // this could be, and most likely is, a subset of the total
       // number of parameters in the pVec_.
-      TEUCHOS_ASSERT(size_t(dgdp.numRows()) == (1 + me_dgdp_.size()));
-      TEUCHOS_ASSERT(size_t(dgdp.numCols()) == paramIDs.size());
+      TEUCHOS_ASSERT(size_t(dgdp.numRows()) == me_dgdp_.size());
+      TEUCHOS_ASSERT(size_t(dgdp.numCols()) == (1+paramIDs.size()));
       auto outArgs = model_->createOutArgs();
       for (size_t j=0; j < me_dgdp_.size(); ++j) {
         for (auto& l : paramIDs) {
@@ -237,7 +239,7 @@ namespace LOCA {
           tmp->sync_host();
           auto val = tmp->getLocalViewHost();
           // first col contains g, so we shift the columns by one
-          dgdp(j+1,l) = val(0,0);
+          dgdp(j,l+1) = val(0,0);
         }
       }
 

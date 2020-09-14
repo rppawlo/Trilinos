@@ -134,12 +134,12 @@ TEUCHOS_UNIT_TEST(NOX_Tpetra_1DFEM, Responses)
 
   // Compute g and DgDp
   out << "\nChecking DgDp:\n";
-  NOX::Abstract::MultiVector::DenseMatrix dgdp(2,1,true); // first col is g
+  NOX::Abstract::MultiVector::DenseMatrix dgdp(1,2,true); // first col is g
   std::vector<int> paramIDs(1);
   paramIDs[0] = 0;
   constraints.computeDP(paramIDs,dgdp,false);
   TEST_FLOATING_EQUALITY(dgdp(0,0),-1.0,tol);
-  TEST_FLOATING_EQUALITY(dgdp(1,0),0.0,tol);
+  TEST_FLOATING_EQUALITY(dgdp(0,1),0.0,tol);
 
   // Test clone/copy
   out << "\nChecking clone and copy methods:\n";

@@ -73,8 +73,11 @@
 #include "NOX_TpetraTypedefs.hpp"
 #include "LOCA_Tpetra_Factory.hpp"
 #include "LOCA_Thyra_Group.H"
+#include "LOCA_MultiContinuation_ConstrainedGroup.H"
+#include "LOCA_Tpetra_ConstraintModelEvaluator.hpp"
+#include "LOCA_Parameter_SublistParser.H"
 
-TEUCHOS_UNIT_TEST(NOX_Tpetra_1DFEM, AnalyticJacobian_Ifpack2Prec)
+TEUCHOS_UNIT_TEST(NOX_Tpetra_Householder, BasicSolve)
 {
   Teuchos::RCP<const Teuchos::Comm<int> > comm = Tpetra::getDefaultComm();
 
@@ -91,45 +94,41 @@ TEUCHOS_UNIT_TEST(NOX_Tpetra_1DFEM, AnalyticJacobian_Ifpack2Prec)
   Teuchos::RCP<EvaluatorTpetra1DFEM<Scalar,LO,GO,Node> > model =
     evaluatorTpetra1DFEM<Scalar,LO,GO,Node>(comm, numGlobalElements, x00, x01);
 
-  Stratimikos::DefaultLinearSolverBuilder builder;
-  typedef Thyra::PreconditionerFactoryBase<Scalar> Base;
-  typedef Thyra::Ifpack2PreconditionerFactory<Tpetra::CrsMatrix<Scalar, LO, GO, Node> > Impl;
-  builder.setPreconditioningStrategyFactory(Teuchos::abstractFactoryStd<Base, Impl>(), "Ifpack2");
+  // Create the linear solver and register on model evaluator
+  {
+    Stratimikos::DefaultLinearSolverBuilder builder;
+    typedef Thyra::PreconditionerFactoryBase<Scalar> Base;
+    typedef Thyra::Ifpack2PreconditionerFactory<Tpetra::CrsMatrix<Scalar, LO, GO, Node> > Impl;
+    builder.setPreconditioningStrategyFactory(Teuchos::abstractFactoryStd<Base, Impl>(), "Ifpack2");
 
-  Teuchos::RCP<Teuchos::ParameterList> p = Teuchos::parameterList();
-  p->set("Linear Solver Type", "Belos");
-  Teuchos::ParameterList& belosList = p->sublist("Linear Solver Types").sublist("Belos");
-  belosList.set("Solver Type", "Pseudo Block GMRES");
-  belosList.sublist("Solver Types").sublist("Pseudo Block GMRES").set<int>("Maximum Iterations", 200);
-  belosList.sublist("Solver Types").sublist("Pseudo Block GMRES").set<int>("Num Blocks", 200);
-  belosList.sublist("Solver Types").sublist("Pseudo Block GMRES").set("Verbosity", Belos::Errors+Belos::IterationDetails);
-  belosList.sublist("Solver Types").sublist("Pseudo Block GMRES").set("Output Frequency", 100);
-  belosList.sublist("VerboseObject").set("Verbosity Level", "medium");
-  p->set("Preconditioner Type", "Ifpack2");
-  Teuchos::ParameterList& ifpackList = p->sublist("Preconditioner Types").sublist("Ifpack2");
-  ifpackList.set("Prec Type", "ILUT");
+    Teuchos::RCP<Teuchos::ParameterList> p = Teuchos::parameterList();
+    p->set("Linear Solver Type", "Belos");
+    Teuchos::ParameterList& belosList = p->sublist("Linear Solver Types").sublist("Belos");
+    belosList.set("Solver Type", "Pseudo Block GMRES");
+    belosList.sublist("Solver Types").sublist("Pseudo Block GMRES").set<int>("Maximum Iterations", 200);
+    belosList.sublist("Solver Types").sublist("Pseudo Block GMRES").set<int>("Num Blocks", 200);
+    belosList.sublist("Solver Types").sublist("Pseudo Block GMRES").set("Verbosity", Belos::Errors+Belos::IterationDetails);
+    belosList.sublist("Solver Types").sublist("Pseudo Block GMRES").set("Output Frequency", 100);
+    belosList.sublist("VerboseObject").set("Verbosity Level", "medium");
+    p->set("Preconditioner Type", "Ifpack2");
+    Teuchos::ParameterList& ifpackList = p->sublist("Preconditioner Types").sublist("Ifpack2");
+    ifpackList.set("Prec Type", "ILUT");
 
-  builder.setParameterList(p);
+    builder.setParameterList(p);
 
-  Teuchos::RCP<Thyra::LinearOpWithSolveFactoryBase<Scalar> >
-    lowsFactory = builder.createLinearSolveStrategy("");
+    Teuchos::RCP<Thyra::LinearOpWithSolveFactoryBase<Scalar> >
+      lowsFactory = builder.createLinearSolveStrategy("");
 
-  model->set_W_factory(lowsFactory);
+    model->set_W_factory(lowsFactory);
+  }
 
   // Create the initial guess
   Teuchos::RCP<Thyra::VectorBase<Scalar> >
     initial_guess = model->getNominalValues().get_x()->clone_v();
   Thyra::V_S(initial_guess.ptr(),Teuchos::ScalarTraits<Scalar>::one());
 
-  // Create nox/local solver parameter list
+  // Create top level nox/loca solver parameter list
   Teuchos::RCP<Teuchos::ParameterList> pList = Teuchos::parameterList("Top Level");
-  
-  // Create LOCA sublist
-  auto locaParamsList = pList->sublist("LOCA");
-  
-  // Create the constraints list
-  auto constraintsList = locaParamsList.sublist("Constraints");
-  constraintsList.set("Bordered Solver Method", "Householder");
 
   // Create nox parameter list
   auto nl_params = pList->sublist("NOX");
@@ -152,22 +151,54 @@ TEUCHOS_UNIT_TEST(NOX_Tpetra_1DFEM, AnalyticJacobian_Ifpack2Prec)
   // Create the LOCA Group
   Teuchos::RCP<NOX::Thyra::Group> nox_group =
     Teuchos::rcp(new NOX::Thyra::Group(*initial_guess, model, model->create_W_op(),
-                                       lowsFactory, Teuchos::null, Teuchos::null,
+                                       model->get_W_factory(), Teuchos::null, Teuchos::null,
                                        Teuchos::null));
 
   Teuchos::RCP<LOCA::Abstract::Factory> tpetra_factory = Teuchos::rcp(new LOCA::Tpetra::Factory);
 
   Teuchos::RCP<LOCA::GlobalData> global_data = LOCA::createGlobalData(pList, tpetra_factory);
 
-  Teuchos::RCP<LOCA::ParameterVector> p_vector = Teuchos::rcp(new LOCA::ParameterVector);
-  p_vector->addParameter("k",1.0); // Source term multiplier
+  Teuchos::RCP<LOCA::ParameterVector> p_vec = Teuchos::rcp(new LOCA::ParameterVector);
+  p_vec->addParameter("k", 1.0); // Source term multiplier
 
   Teuchos::RCP<LOCA::Thyra::Group> loca_group = Teuchos::rcp(new LOCA::Thyra::Group(global_data,
                                                                                     *nox_group,
-                                                                                    *p_vector,
+                                                                                    *p_vec,
                                                                                     0));
 
-  loca_group->computeF();
+  auto g_names = Teuchos::rcp(new std::vector<std::string>);
+  g_names->push_back(model->get_g_names(0)[0]);
+  auto x_thyra = ::Thyra::createMember(model->get_x_space(),"x");
+  NOX::Thyra::Vector x(x_thyra);
+  auto constraints = Teuchos::rcp(new LOCA::MultiContinuation::ConstraintModelEvaluator(model,*p_vec,*g_names,x));
+
+  // Set initial conditions
+  x.init(1.0);
+  constraints->setX(x);
+  constraints->setParam(0,1.0);
+
+  // Create the constraints list
+  auto locaParamsList = pList->sublist("LOCA");
+  auto constraint_list = locaParamsList.sublist("Constraints");
+  constraint_list.set("Bordered Solver Method", "Householder");
+  constraint_list.set("Constraint Object", constraints);
+  constraint_list.set("Constraint Parameter Names", g_names);
+
+  auto loca_parser = Teuchos::rcp(new LOCA::Parameter::SublistParser(global_data));
+  loca_parser->parseSublists(pList);
+
+  std::vector<int> param_ids(1,0);
+  auto constraint_list_ptr = Teuchos::rcpFromRef(constraint_list);
+  Teuchos::RCP<LOCA::MultiContinuation::ConstrainedGroup> loca_constrained_group =
+    Teuchos::rcp(new LOCA::MultiContinuation::ConstrainedGroup(global_data,
+                                                               loca_parser,
+                                                               constraint_list_ptr,
+                                                               loca_group,
+                                                               constraints,
+                                                               param_ids,
+                                                               false));
+
+  loca_constrained_group->computeF();
 
   // Create the NOX status tests and the solver
   // Create the convergence tests
@@ -190,15 +221,19 @@ TEUCHOS_UNIT_TEST(NOX_Tpetra_1DFEM, AnalyticJacobian_Ifpack2Prec)
   combo->addStatusTest(maxiters);
 
   // Create the solver
-  // Teuchos::RCP<NOX::Solver::Generic> solver =
-  //   NOX::Solver::buildSolver(nox_group, combo, nl_params);
-  // NOX::StatusTest::StatusType solvStatus = solver->solve();
+  auto solver = NOX::Solver::buildSolver(loca_constrained_group, combo, Teuchos::rcpFromRef(pList->sublist("NOX")));
+  // auto solver = NOX::Solver::buildSolver(loca_constrained_group, combo, pList);
+  // auto solver = NOX::Solver::buildSolver(nox_group, combo, pList);
+  NOX::StatusTest::StatusType solvStatus = solver->solve();
 
-  // TEST_ASSERT(solvStatus == NOX::StatusTest::Converged);
+  // Output
+  {
+    Teuchos::TimeMonitor::getStackedTimer()->stopBaseTimer();
+    Teuchos::StackedTimer::OutputOptions options;
+    options.output_fraction = true;
+    options.output_minmax = true;
+    Teuchos::TimeMonitor::getStackedTimer()->report(out,comm,options);
+  }
 
-  Teuchos::TimeMonitor::getStackedTimer()->stopBaseTimer();
-  Teuchos::StackedTimer::OutputOptions options;
-  options.output_fraction = true;
-  options.output_minmax = true;
-  Teuchos::TimeMonitor::getStackedTimer()->report(out,comm,options);
+  TEST_ASSERT(solvStatus == NOX::StatusTest::Converged);
 }
