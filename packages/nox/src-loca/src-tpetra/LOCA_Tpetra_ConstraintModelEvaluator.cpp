@@ -59,7 +59,7 @@ namespace LOCA {
       // parameters and responses are treated as separate objects.
       me_p_.resize(pVec_.length());
       for (size_t l=0; l < me_p_.size(); ++l)
-        me_p_[l] = ::Thyra::createMember(*model->get_p_space(l),"p_l");
+        me_p_[l] = ::Thyra::createMember(*model->get_p_space(meParameterIndices_[l]),"p_l");
 
       const auto numResponses = gNames_.size();
       me_g_.resize(numResponses);
@@ -68,10 +68,12 @@ namespace LOCA {
       for (auto& i : me_dgdp_)
         i.resize(me_p_.size());
       for (size_t j=0; j < numResponses; ++j) {
-        me_g_[j] = ::Thyra::createMember(*model->get_g_space(j),"g_j");
-        me_dgdx_[j] = Teuchos::rcp_dynamic_cast<::Thyra::MultiVectorBase<double>>(model->create_DgDx_op(j),true);
+        me_g_[j] = ::Thyra::createMember(*model->get_g_space(meResponseIndices_[j]),"g_j");
+        me_dgdx_[j] = Teuchos::rcp_dynamic_cast<::Thyra::MultiVectorBase<double>>(model->create_DgDx_op(meResponseIndices_[j]),true);
         for (size_t l=0; l < me_p_.size(); ++l)
-          me_dgdp_[j][l] = Teuchos::rcp_dynamic_cast<::Thyra::MultiVectorBase<double>>(model->create_DgDp_op(j,l),true);
+          me_dgdp_[j][l] = Teuchos::rcp_dynamic_cast<::Thyra::MultiVectorBase<double>>(model->create_DgDp_op(meResponseIndices_[j],
+                                                                                                             meParameterIndices_[l]),
+                                                                                       true);
       }
 
     }

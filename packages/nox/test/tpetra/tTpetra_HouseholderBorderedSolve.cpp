@@ -131,12 +131,10 @@ TEUCHOS_UNIT_TEST(NOX_Tpetra_Householder, BasicSolve)
   Teuchos::RCP<Teuchos::ParameterList> pList = Teuchos::parameterList("Top Level");
 
   // Create nox parameter list
-  auto nl_params = pList->sublist("NOX");
+  auto& nl_params = pList->sublist("NOX");
   nl_params.set("Nonlinear Solver", "Line Search Based");
   nl_params.sublist("Direction").sublist("Newton").sublist("Linear Solver").set("Tolerance", 1.0e-4);
-
-  // Set output parameters
-  auto output_list = nl_params.sublist("Printing").sublist("Output Information");
+  auto& output_list = nl_params.sublist("Printing").sublist("Output Information");
   output_list.set("Debug",true);
   output_list.set("Warning",true);
   output_list.set("Error",true);
@@ -178,8 +176,8 @@ TEUCHOS_UNIT_TEST(NOX_Tpetra_Householder, BasicSolve)
   constraints->setParam(0,1.0);
 
   // Create the constraints list
-  auto locaParamsList = pList->sublist("LOCA");
-  auto constraint_list = locaParamsList.sublist("Constraints");
+  auto& locaParamsList = pList->sublist("LOCA");
+  auto& constraint_list = locaParamsList.sublist("Constraints");
   constraint_list.set("Bordered Solver Method", "Householder");
   constraint_list.set("Constraint Object", constraints);
   constraint_list.set("Constraint Parameter Names", g_names);
@@ -221,9 +219,10 @@ TEUCHOS_UNIT_TEST(NOX_Tpetra_Householder, BasicSolve)
   combo->addStatusTest(maxiters);
 
   // Create the solver
+  // auto solver = NOX::Solver::buildSolver(nox_group, combo, Teuchos::rcpFromRef(pList->sublist("NOX")));
+  // auto solver = NOX::Solver::buildSolver(loca_group, combo, Teuchos::rcpFromRef(pList->sublist("NOX")));
   auto solver = NOX::Solver::buildSolver(loca_constrained_group, combo, Teuchos::rcpFromRef(pList->sublist("NOX")));
-  // auto solver = NOX::Solver::buildSolver(loca_constrained_group, combo, pList);
-  // auto solver = NOX::Solver::buildSolver(nox_group, combo, pList);
+
   NOX::StatusTest::StatusType solvStatus = solver->solve();
 
   // Output
