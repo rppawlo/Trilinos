@@ -427,6 +427,16 @@ NOX::Thyra::Group::getPreconditioner() const
   return prec_;
 }
 
+void NOX::Thyra::Group::setJacobianOperator(const Teuchos::RCP<::Thyra::LinearOpBase<double>>& op)
+{
+  lop_ = op;
+  losb_ = Teuchos::rcp(new ::Thyra::DefaultLinearOpSource<double>(lop_));
+}
+
+void NOX::Thyra::Group::setPreconditionerOperator(const Teuchos::RCP<::Thyra::PreconditionerBase<double>>& op)
+{
+  prec_ = op;
+}
 
 void NOX::Thyra::Group::setX(const NOX::Abstract::Vector& y)
 {

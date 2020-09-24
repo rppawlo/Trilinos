@@ -126,7 +126,7 @@ TEUCHOS_UNIT_TEST(NOX_Tpetra_1DFEM, Responses)
   DgDx->describe(out,Teuchos::VERB_EXTREME);
   auto DgDx_host = DgDx->getLocalViewHost();
   if (comm->getRank() == (comm->getSize()-1)) {
-    TEST_FLOATING_EQUALITY(DgDx_host(DgDx_host.extent(0)-1,0),-1.0,tol);
+    TEST_FLOATING_EQUALITY(DgDx_host(DgDx_host.extent(0)-1,0),1.0,tol);
   }
   Teuchos::Array<NOX::TMultiVector::mag_type> norms(1);
   DgDx->norm2(norms);

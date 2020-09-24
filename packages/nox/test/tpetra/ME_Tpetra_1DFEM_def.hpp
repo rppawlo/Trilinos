@@ -514,7 +514,7 @@ evalModel(const Thyra::ModelEvaluatorBase::InArgs<Scalar> &inArgs,
       Teuchos::broadcast(*comm_,comm_->getSize()-1,&T_right);
       auto g_host = g_tpetra->getLocalViewHost();
       g_host(0,0) = T_right - 2.0;
-      std::cout << "evalModel: g=" << g_host(0,0) << " T_right = " << T_right << std::endl;
+      std::cout << "\nevalModel: g=" << g_host(0,0) << " T_right = " << T_right << std::endl;
     }
     if (fill_DgDx) {
       auto DgDx_tpetra = tpetra_extract::getTpetraMultiVector(DgDx_out);
@@ -525,7 +525,7 @@ evalModel(const Thyra::ModelEvaluatorBase::InArgs<Scalar> &inArgs,
       // Right most value
       if (comm_->getRank() == (comm_->getSize()-1)) {
         auto DgDx_host = DgDx_tpetra->getLocalViewHost();
-        DgDx_host(DgDx_host.extent(0)-1,0) = - 1.0;
+        DgDx_host(DgDx_host.extent(0)-1,0) = 1.0;
       }
     }
     if (fill_DfDp) {

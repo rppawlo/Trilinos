@@ -441,7 +441,7 @@ namespace LOCA {
        */
       void updateJacobianForPreconditioner(const NOX::Abstract::MultiVector& U,
                                            const NOX::Abstract::MultiVector& V,
-                                           Epetra_CrsMatrix& jac) const;
+                                           NOX::TCrsMatrix& jac) const;
 
       Teuchos::RCP<NOX::Abstract::MultiVector>
       createBlockMV(const NOX::Abstract::MultiVector& v) const;
@@ -547,8 +547,11 @@ namespace LOCA {
       //! Pointer to linear system
       Teuchos::RCP<NOX::Epetra::LinearSystem> linSys;
 
-      //! Pointer to Tpetra operator
+      //! Pointer to Tpetra J operator
       Teuchos::RCP<NOX::TOperator> tpetraOp;
+
+      //! Pointer to Tpetra Preconditioner operator
+      Teuchos::RCP<NOX::TRowMatrix> tpetraPrecOp;
 
       //! Pointer to base map for block vectors
       Teuchos::RCP<const Epetra_BlockMap> baseMap;

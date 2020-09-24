@@ -77,6 +77,11 @@
 #include "LOCA_Tpetra_ConstraintModelEvaluator.hpp"
 #include "LOCA_Parameter_SublistParser.H"
 
+// For solution io
+#include "Thyra_TpetraVector.hpp"
+#include <iostream>
+#include <fstream>
+
 TEUCHOS_UNIT_TEST(NOX_Tpetra_Householder, BasicSolve)
 {
   Teuchos::RCP<const Teuchos::Comm<int> > comm = Tpetra::getDefaultComm();
@@ -107,10 +112,11 @@ TEUCHOS_UNIT_TEST(NOX_Tpetra_Householder, BasicSolve)
     belosList.set("Solver Type", "Pseudo Block GMRES");
     belosList.sublist("Solver Types").sublist("Pseudo Block GMRES").set<int>("Maximum Iterations", 200);
     belosList.sublist("Solver Types").sublist("Pseudo Block GMRES").set<int>("Num Blocks", 200);
-    belosList.sublist("Solver Types").sublist("Pseudo Block GMRES").set("Verbosity", Belos::Errors+Belos::IterationDetails);
-    belosList.sublist("Solver Types").sublist("Pseudo Block GMRES").set("Output Frequency", 100);
+    belosList.sublist("Solver Types").sublist("Pseudo Block GMRES").set("Verbosity", Belos::Errors+Belos::IterationDetails+Belos::FinalSummary);
+    belosList.sublist("Solver Types").sublist("Pseudo Block GMRES").set("Output Frequency", 5);
     belosList.sublist("VerboseObject").set("Verbosity Level", "medium");
     p->set("Preconditioner Type", "Ifpack2");
+    // p->set("Preconditioner Type", "None");
     Teuchos::ParameterList& ifpackList = p->sublist("Preconditioner Types").sublist("Ifpack2");
     ifpackList.set("Prec Type", "ILUT");
 
@@ -134,6 +140,8 @@ TEUCHOS_UNIT_TEST(NOX_Tpetra_Householder, BasicSolve)
   auto& nl_params = pList->sublist("NOX");
   nl_params.set("Nonlinear Solver", "Line Search Based");
   nl_params.sublist("Direction").sublist("Newton").sublist("Linear Solver").set("Tolerance", 1.0e-4);
+  auto& ls_params = nl_params.sublist("Line Search");
+  ls_params.set("Method","Full Step");
   auto& output_list = nl_params.sublist("Printing").sublist("Output Information");
   output_list.set("Debug",true);
   output_list.set("Warning",true);
@@ -146,10 +154,23 @@ TEUCHOS_UNIT_TEST(NOX_Tpetra_Householder, BasicSolve)
   output_list.set("Outer Iteration",true);
   output_list.set("Outer Iteration StatusTest",true);
 
-  // Create the LOCA Group
+  // Create the LOCA Group:
+  // (NOX::Thyra::Group-->LOCA::Thyra::Group-->LOCA::Constrained::Group)
+  // For Tpetra Householder, we need to actively set the
+  // preconditioner and preconditioner factory so that it uses the
+  // precOp separate from the Jacobian operator. Householder replaces
+  // the Jacobian operator with a matrix-free version that has the
+  // uv^T tacked on.
+  auto explicit_jacobian = model->create_W_op();
+  auto prec_matrix = Teuchos::rcp(new Thyra::DefaultPreconditioner<NOX::Scalar>(Teuchos::null,explicit_jacobian));
+  TEST_ASSERT(nonnull(model->get_W_factory()->getPreconditionerFactory()));
   Teuchos::RCP<NOX::Thyra::Group> nox_group =
-    Teuchos::rcp(new NOX::Thyra::Group(*initial_guess, model, model->create_W_op(),
-                                       model->get_W_factory(), Teuchos::null, Teuchos::null,
+    Teuchos::rcp(new NOX::Thyra::Group(*initial_guess,
+                                       model,
+                                       explicit_jacobian,
+                                       model->get_W_factory(),
+                                       prec_matrix, // Reuse Jac for approx preconditioner
+                                       model->get_W_factory()->getPreconditionerFactory(),
                                        Teuchos::null));
 
   Teuchos::RCP<LOCA::Abstract::Factory> tpetra_factory = Teuchos::rcp(new LOCA::Tpetra::Factory);
@@ -170,8 +191,7 @@ TEUCHOS_UNIT_TEST(NOX_Tpetra_Householder, BasicSolve)
   NOX::Thyra::Vector x(x_thyra);
   auto constraints = Teuchos::rcp(new LOCA::MultiContinuation::ConstraintModelEvaluator(model,*p_vec,*g_names,x));
 
-  // Set initial conditions
-  x.init(1.0);
+  // Set initial parameter conditions
   constraints->setX(x);
   constraints->setParam(0,1.0);
 
@@ -209,7 +229,7 @@ TEUCHOS_UNIT_TEST(NOX_Tpetra_Householder, BasicSolve)
   converged->addStatusTest(absresid);
   converged->addStatusTest(wrms);
   Teuchos::RCP<NOX::StatusTest::MaxIters> maxiters =
-    Teuchos::rcp(new NOX::StatusTest::MaxIters(20));
+    Teuchos::rcp(new NOX::StatusTest::MaxIters(200));
   Teuchos::RCP<NOX::StatusTest::FiniteValue> fv =
     Teuchos::rcp(new NOX::StatusTest::FiniteValue);
   Teuchos::RCP<NOX::StatusTest::Combo> combo =
@@ -232,6 +252,40 @@ TEUCHOS_UNIT_TEST(NOX_Tpetra_Householder, BasicSolve)
     options.output_fraction = true;
     options.output_minmax = true;
     Teuchos::TimeMonitor::getStackedTimer()->report(out,comm,options);
+  }
+
+  // Check final values
+  {
+    const auto& group = solver->getSolutionGroup();
+    const auto& c_group = dynamic_cast<const LOCA::MultiContinuation::ConstrainedGroup&>(group);
+    const double tol = 1.0e-3;
+    TEST_FLOATING_EQUALITY(c_group.getParam(0),-0.5993277206,tol);
+    out << "\nFinal Parameter Value = " << std::setprecision(10) << c_group.getParam(0) << std::endl;
+  }
+
+  // Write solution to file
+  const bool printSolution = true;
+  if (printSolution) {
+    for (int i=0; i < comm->getSize(); ++i) {
+      if (comm->getRank() == i) {
+        std::ofstream file;
+        if (comm->getRank() == 0)
+          file.open("householder_solution.txt",std::ios::trunc);
+        else
+          file.open("householder_solution.txt",std::ios::app);
+        
+        const auto& final_x = solver->getSolutionGroup().getX();
+        const auto& final_x_nox = *(dynamic_cast<const LOCA::MultiContinuation::ExtendedVector&>(final_x).getXVec());
+        const auto& final_x_thyra = dynamic_cast<const NOX::Thyra::Vector&>(final_x_nox).getThyraVector();
+        const auto& final_x_tpetra_const = *(dynamic_cast<const ::Thyra::TpetraVector<NOX::Scalar,NOX::LocalOrdinal,NOX::GlobalOrdinal,NOX::NodeType>&>(final_x_thyra).getConstTpetraVector());
+        auto& final_x_tpetra = const_cast<::Tpetra::Vector<NOX::Scalar,NOX::LocalOrdinal,NOX::GlobalOrdinal,NOX::NodeType>&>(final_x_tpetra_const);
+        final_x_tpetra.sync_host();
+        const auto& final_x_view = final_x_tpetra.getLocalViewHost();
+        for (size_t j=0; j < final_x_view.extent(0); ++j)
+          file << final_x_view(j,0) << std::endl;
+      }
+      comm->barrier();
+    }
   }
 
   TEST_ASSERT(solvStatus == NOX::StatusTest::Converged);
