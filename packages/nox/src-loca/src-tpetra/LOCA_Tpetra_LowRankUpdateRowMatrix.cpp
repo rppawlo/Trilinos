@@ -54,7 +54,6 @@ namespace LOCA {
     LowRankUpdateRowMatrix::getGraph() const
     {return J_rowMatrix->getGraph();}
 
-
     ::Tpetra::global_size_t LowRankUpdateRowMatrix::getGlobalNumRows() const
     {return J_rowMatrix->getGlobalNumRows();}
 

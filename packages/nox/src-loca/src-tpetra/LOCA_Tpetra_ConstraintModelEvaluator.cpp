@@ -96,7 +96,7 @@ namespace LOCA {
 
     void ConstraintModelEvaluator::copy(const ConstraintInterface& source)
     {
-      const auto& src = dynamic_cast<const LOCA::MultiContinuation::ConstraintModelEvaluator&>(source); 
+      const auto& src = dynamic_cast<const LOCA::MultiContinuation::ConstraintModelEvaluator&>(source);
       if (this != &src) {
         *x_ = *src.x_;
         pVec_ = src.pVec_;
@@ -205,7 +205,7 @@ namespace LOCA {
       if (!isValidG) {
         if (!this->isConstraints())
           this->computeConstraints();
-            
+
         for (size_t i=0; i < me_g_.size(); ++i)
           dgdp(i,0) = constraints_(i,0);
       }

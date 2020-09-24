@@ -49,11 +49,6 @@
 //@HEADER
 
 #include "LOCA_BorderedSolver_TpetraHouseholder.hpp"
-#include "Epetra_Vector.h"
-#include "Epetra_MultiVector.h"
-#include "Epetra_RowMatrix.h"
-#include "Epetra_CrsMatrix.h"
-#include "NOX_Epetra_MultiVector.H"
 #include "LOCA_GlobalData.H"
 #include "LOCA_ErrorCheck.H"
 #include "LOCA_MultiContinuation_ConstraintInterfaceMVDX.H"
@@ -65,13 +60,6 @@
 #include "Thyra_TpetraLinearOp.hpp"
 #include "LOCA_Tpetra_LowRankUpdateRowMatrix.hpp"
 
-#include "LOCA_Epetra_Group.H"
-#include "LOCA_Epetra_CompactWYOp.H"
-#include "LOCA_Epetra_LowRankUpdateOp.H"
-#include "LOCA_Epetra_LowRankUpdateRowMatrix.H"
-#include "LOCA_Epetra_TransposeLinearSystem_AbstractStrategy.H"
-#include "LOCA_Epetra_TransposeLinearSystem_Factory.H"
-
 #include "Teuchos_ParameterList.hpp"
 #include "LOCA_BorderedSolver_LowerTriangularBlockElimination.H"
 #include "LOCA_BorderedSolver_UpperTriangularBlockElimination.H"
@@ -79,12 +67,6 @@
 #include "LOCA_BorderedSolver_JacobianOperator.H"
 #include "LOCA_BorderedSolver_ComplexOperator.H"
 #include "LOCA_Hopf_ComplexMultiVector.H"
-
-#ifdef HAVE_NOX_EPETRAEXT
-#include "EpetraExt_BlockCrsMatrix.h"
-#include "EpetraExt_BlockVector.h"
-#include "EpetraExt_BlockMultiVector.h"
-#endif
 
 // Utility for extracting tpetra vector from nox vector
 using ST = NOX::Scalar;
@@ -151,10 +133,10 @@ TpetraHouseholder(const Teuchos::RCP<LOCA::GlobalData>& global_data,
   Ascaled(),
   Bscaled(),
   Cscaled(),
-  linSys(),
+  // linSys(),
   tpetraOp(),
-  baseMap(),
-  globalMap(),
+  // baseMap(),
+  // globalMap(),
   numConstraints(0),
   isZeroA(true),
   isZeroB(true),
@@ -267,7 +249,7 @@ setMatrixBlocks(const Teuchos::RCP<const LOCA::BorderedSolver::AbstractOperator>
 
     isComplex = false;
 
-    // Group must be an Epetra group
+    // Group must be a Thyra (Tpetra) group
     Teuchos::RCP<const LOCA::Thyra::Group> constGrp =
       Teuchos::rcp_dynamic_cast<const LOCA::Thyra::Group>(jacOp->getGroup());
     if (constGrp.get() == NULL)
@@ -677,7 +659,7 @@ LOCA::BorderedSolver::TpetraHouseholder::solve(
            std::string(" factorizations.  Call initForSolve() first."));
 
   Teuchos::RCP<const NOX::Abstract::MultiVector> cRHS;
-  
+
   if (!isZeroG) {
 
     Teuchos::RCP<NOX::Abstract::MultiVector> tmp_x = X.clone(NOX::ShapeCopy);
@@ -714,20 +696,7 @@ LOCA::BorderedSolver::TpetraHouseholder::solve(
   else
     cRHS = Teuchos::rcp(F, false);
 
-
-  // Get solution vec
-  // const NOX::Thyra::Vector& solution_vec =
-  //   dynamic_cast<const NOX::Thyra::Vector&>(grp->getX());
-
   // Create operator for P = J + U*V^T
-  // Teuchos::RCP<NOX::Epetra::MultiVector> nox_epetra_U =
-  //   Teuchos::rcp_dynamic_cast<NOX::Epetra::MultiVector>(U);
-  // Teuchos::RCP<Epetra_MultiVector> epetra_U =
-  //   Teuchos::rcp(&(nox_epetra_U->getEpetraMultiVector()), false);
-  // Teuchos::RCP<NOX::Epetra::MultiVector> nox_epetra_V =
-  //   Teuchos::rcp_dynamic_cast<NOX::Epetra::MultiVector>(V);
-  // Teuchos::RCP<Epetra_MultiVector> epetra_V =
-  //   Teuchos::rcp(&(nox_epetra_V->getEpetraMultiVector()), false);
   auto tpetra_U = NOX::Tpetra::getTpetraMultiVector(U);
   auto tpetra_V = NOX::Tpetra::getTpetraMultiVector(V);
 
@@ -782,12 +751,11 @@ LOCA::BorderedSolver::TpetraHouseholder::solve(
   //     grp->computeJacobian();
   // }
 
-
   // Set operator for P as Jacobian in solver
   auto save_original_jacobian = grp->getNonconstJacobianOperator();
   auto P_thyra = Teuchos::rcp(new ::Thyra::TpetraLinearOp<ST,LO,GO,NT>);
-  auto range_space = ::Thyra::tpetraVectorSpace<ST,LO,GO,NT>(tmpOp->getRangeMap()); 
-  auto domain_space = ::Thyra::tpetraVectorSpace<ST,LO,GO,NT>(tmpOp->getDomainMap()); 
+  auto range_space = ::Thyra::tpetraVectorSpace<ST,LO,GO,NT>(tmpOp->getRangeMap());
+  auto domain_space = ::Thyra::tpetraVectorSpace<ST,LO,GO,NT>(tmpOp->getDomainMap());
   P_thyra->initialize(range_space,domain_space,tmpOp);
   grp->setJacobianOperator(P_thyra);
 
@@ -821,7 +789,7 @@ LOCA::BorderedSolver::TpetraHouseholder::solve(
                                                              finalStatus,
                                                              callingFunction);
   }
-  
+
   qrFact.applyCompactWY(house_p, *house_x, T, Y, X, isZeroG, false, false);
 
   // Set original operators in linear system

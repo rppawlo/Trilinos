@@ -57,9 +57,6 @@
 #include "Teuchos_BLAS.hpp"                        // class data element
 
 // forward declarations
-class Epetra_Operator;
-class Epetra_CrsMatrix;
-class Epetra_BlockMap;
 namespace LOCA {
   class GlobalData;
   namespace Parameter {
@@ -68,20 +65,9 @@ namespace LOCA {
   namespace MultiContinuation {
     class ConstraintInterfaceMVDX;
   }
-  namespace Epetra {
-    class Group;
-  }
   namespace Thyra {
     class Group;
   }
-}
-namespace NOX {
-  namespace Epetra {
-    class LinearSystem;
-  }
-}
-namespace EpetraExt {
-  class BlockMultiVector;
 }
 
 namespace LOCA {
@@ -227,8 +213,8 @@ namespace LOCA {
      * Comput., Vol. 10, No. 1, pp. 53-57, January 1989).
      *
      * The operator representing \f$P\f$ is encapsulated in the class
-     * LOCA::Epetra::LowRankUpdateRowMatrix if \f$J\f$ is an Epetra_RowMatrix
-     * and LOCA::Epetra::LowRankUpdateOp otherwise.  If the row matrix
+     * LOCA::Tpetra::LowRankUpdateRowMatrix if \f$J\f$ is an Tpetra::RowMatrix
+     * and LOCA::Tpetra::LowRankUpdateOp otherwise.  If the row matrix
      * version is available \f$P\f$ can be scaled and also used to
      * construct a preconditioner.  If "Include UV In Preconditioner"
      * is true as discussed below, the \f$U\f$ and \f$V\f$ terms will
@@ -256,14 +242,14 @@ namespace LOCA {
      *      preconditioner method.
      * <li> "Use P For Preconditioner" -- [bool] (default: false) -
      *      Flag indicating whether to use the representation of \f$P\f$ as
-     *      a LOCA::Epetra::LowRankUpdateRowMatrix for computing the
+     *      a LOCA::Tpetra::LowRankUpdateRowMatrix for computing the
      *      preconditioner when using the "Jacobian" preconditioner method.
      *      This is valid only for preconditioners that accept an
-     *      Epetra_RowMatrix interface.
+     *      Tpetra::RowMatrix interface.
      * <li> "Transpose Solver Method" -- [string]
      *      (default: "Transpose Preconditioner") Method for preconditioning
      *      the transpose linear system.  See
-     *      LOCA::Epetra::TransposeLinearSystem::Factory for available choices.
+     *      LOCA::Tpetra::TransposeLinearSystem::Factory for available choices.
      * </ul>
      */
     class TpetraHouseholder : public LOCA::BorderedSolver::AbstractStrategy {
@@ -368,7 +354,7 @@ namespace LOCA {
                      const NOX::Abstract::MultiVector::DenseMatrix& Y,
                      NOX::Abstract::MultiVector& U,
                      NOX::Abstract::MultiVector::DenseMatrix& V) const;
-      
+
       /*!
        * \brief Solves the extended system using the technique described
        * above.
@@ -529,10 +515,10 @@ namespace LOCA {
       //! V matrix in low-rank update form P = J + U*V^T for transposed system
       Teuchos::RCP<NOX::Abstract::MultiVector> V_trans;
 
-      //! Pointer to A block as an Epetra multivector
+      //! Pointer to A block as an Tpetra multivector
       Teuchos::RCP<const NOX::Abstract::MultiVector> Ablock;
 
-      //! Pointer to B block as an Epetra multivector
+      //! Pointer to B block as an Tpetra multivector
       Teuchos::RCP<const NOX::Abstract::MultiVector> Bblock;
 
       //! Pointer to scaled A block
@@ -544,20 +530,11 @@ namespace LOCA {
       //! Pointer to scaled C block
       Teuchos::RCP<NOX::Abstract::MultiVector::DenseMatrix> Cscaled;
 
-      //! Pointer to linear system
-      Teuchos::RCP<NOX::Epetra::LinearSystem> linSys;
-
       //! Pointer to Tpetra J operator
       Teuchos::RCP<NOX::TOperator> tpetraOp;
 
       //! Pointer to Tpetra Preconditioner operator
       Teuchos::RCP<NOX::TRowMatrix> tpetraPrecOp;
-
-      //! Pointer to base map for block vectors
-      Teuchos::RCP<const Epetra_BlockMap> baseMap;
-
-      //! Pointer to global map for block vectors
-      Teuchos::RCP<const Epetra_BlockMap> globalMap;
 
       //! Number of constraint equations
       int numConstraints;

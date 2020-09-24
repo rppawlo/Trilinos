@@ -48,8 +48,8 @@
 // ************************************************************************
 //@HEADER
 
-#ifndef LOCA_EPETRA_FACTORY_H
-#define LOCA_EPETRA_FACTORY_H
+#ifndef LOCA_TPETRA_FACTORY_H
+#define LOCA_TPETRA_FACTORY_H
 
 #include "LOCA_Abstract_Factory.H"    // base class
 #include "LOCA_GlobalData.H"
@@ -66,7 +66,7 @@ namespace LOCA {
 
   namespace Tpetra {
 
-    //! Implementation of the LOCA::Abstract::Factory for Epetra groups.
+    //! Implementation of the LOCA::Abstract::Factory for Tpetra groups.
     class Factory : public LOCA::Abstract::Factory {
 
     public:

@@ -32,7 +32,7 @@ namespace LOCA {
                                const LOCA::ParameterVector& pVec,
                                const std::vector<std::string>& constraintResponseNames,
                                const NOX::Abstract::Vector& cloneVec);
-      
+
       ConstraintModelEvaluator(const LOCA::MultiContinuation::ConstraintModelEvaluator& cme,
                                NOX::CopyType type = NOX::DeepCopy);
 
@@ -51,7 +51,7 @@ namespace LOCA {
 
       void setParams(const std::vector<int>& paramIDs,
                      const NOX::Abstract::MultiVector::DenseMatrix& vals);
-      
+
       NOX::Abstract::Group::ReturnType computeConstraints();
 
       NOX::Abstract::Group::ReturnType computeDX();
@@ -60,14 +60,14 @@ namespace LOCA {
       computeDP(const std::vector<int>& paramIDs,
                 NOX::Abstract::MultiVector::DenseMatrix& dgdp,
                 bool isValidG);
-      
+
       bool isConstraints() const;
-      
+
       bool isDX() const;
-      
+
       const NOX::Abstract::MultiVector::DenseMatrix&
       getConstraints() const;
-      
+
       bool isDXZero() const;
 
       NOX::Abstract::MultiVector * getDX () const;
@@ -82,11 +82,11 @@ namespace LOCA {
 
       // Name of responses in model evaluator.
       std::vector<std::string> gNames_;
-      
+
       // The indices used to set the parameters in the ModelEvalautor inArgs.
       std::vector<int> meParameterIndices_;
 
-      // The indices used to set the responses in the ModelEvalutor outArgs. 
+      // The indices used to set the responses in the ModelEvalutor outArgs.
       std::vector<int> meResponseIndices_;
 
       // LOCA data
@@ -98,7 +98,7 @@ namespace LOCA {
 
       // Model Evaluator parameter/response objects
       std::vector<Teuchos::RCP<::Thyra::VectorBase<double>>> me_p_;
-      std::vector<Teuchos::RCP<::Thyra::VectorBase<double>>> me_g_; 
+      std::vector<Teuchos::RCP<::Thyra::VectorBase<double>>> me_g_;
       std::vector<Teuchos::RCP<::Thyra::MultiVectorBase<double>>> me_dgdx_;
       std::vector<std::vector<Teuchos::RCP<::Thyra::MultiVectorBase<double>>>> me_dgdp_;
 
