@@ -102,6 +102,7 @@ namespace LOCA {
       std::vector<Teuchos::RCP<::Thyra::MultiVectorBase<double>>> me_dgdx_;
       std::vector<std::vector<Teuchos::RCP<::Thyra::MultiVectorBase<double>>>> me_dgdp_;
 
+      bool printDebug_;
     };
 
   } // namespace MultiContinuation

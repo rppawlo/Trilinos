@@ -92,10 +92,10 @@ TEUCHOS_UNIT_TEST(NOX_Tpetra_1DFEM, Responses)
   Teuchos::RCP<EvaluatorTpetra1DFEM<Scalar,LO,GO,Node> > model =
     evaluatorTpetra1DFEM<Scalar,LO,GO,Node>(comm, numGlobalElements, x00, x01);
 
-  auto g_thyra = ::Thyra::createMember(*model->get_g_space(0),"g");
-  auto DfDp_thyra = Teuchos::rcp_dynamic_cast<::Thyra::MultiVectorBase<Scalar>>(model->create_DfDp_op(0),true);
-  auto DgDx_thyra = Teuchos::rcp_dynamic_cast<::Thyra::MultiVectorBase<Scalar>>(model->create_DgDx_op(0),true);
-  auto DgDp_thyra = Teuchos::rcp_dynamic_cast<::Thyra::MultiVectorBase<Scalar>>(model->create_DgDp_op(0,0),true);
+  auto g_thyra = ::Thyra::createMember(*model->get_g_space(4),"g");
+  auto DfDp_thyra = Teuchos::rcp_dynamic_cast<::Thyra::MultiVectorBase<Scalar>>(model->create_DfDp_op(2),true);
+  auto DgDx_thyra = Teuchos::rcp_dynamic_cast<::Thyra::MultiVectorBase<Scalar>>(model->create_DgDx_op(4),true);
+  auto DgDp_thyra = Teuchos::rcp_dynamic_cast<::Thyra::MultiVectorBase<Scalar>>(model->create_DgDp_op(4,2),true);
 
   auto inArgs = model->createInArgs();
   auto x = ::Thyra::createMember(model->get_x_space(),"x");
@@ -103,16 +103,15 @@ TEUCHOS_UNIT_TEST(NOX_Tpetra_1DFEM, Responses)
   inArgs.set_x(x);
   auto outArgs = model->createOutArgs();
 
-
-  outArgs.set_g(0,::Thyra::ModelEvaluatorBase::Evaluation<::Thyra::VectorBase<Scalar>>(g_thyra));
-  outArgs.set_DfDp(0,::Thyra::ModelEvaluatorBase::Derivative<Scalar>(DfDp_thyra));
-  outArgs.set_DgDx(0,::Thyra::ModelEvaluatorBase::Derivative<Scalar>(DgDx_thyra));
-  outArgs.set_DgDp(0,0,::Thyra::ModelEvaluatorBase::Derivative<Scalar>(DgDp_thyra));
+  outArgs.set_g(4,::Thyra::ModelEvaluatorBase::Evaluation<::Thyra::VectorBase<Scalar>>(g_thyra));
+  outArgs.set_DfDp(2,::Thyra::ModelEvaluatorBase::Derivative<Scalar>(DfDp_thyra));
+  outArgs.set_DgDx(4,::Thyra::ModelEvaluatorBase::Derivative<Scalar>(DgDx_thyra));
+  outArgs.set_DgDp(4,2,::Thyra::ModelEvaluatorBase::Derivative<Scalar>(DgDp_thyra));
 
   model->evalModel(inArgs,outArgs);
 
-  TEST_EQUALITY(model->Np(),1);
-  TEST_EQUALITY(model->Ng(),1);
+  TEST_EQUALITY(model->Np(),5);
+  TEST_EQUALITY(model->Ng(),5);
 
   auto g = converter::getTpetraMultiVector(g_thyra);
   auto DfDp = converter::getTpetraMultiVector(DfDp_thyra);

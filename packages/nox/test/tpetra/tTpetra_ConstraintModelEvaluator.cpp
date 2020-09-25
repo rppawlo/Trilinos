@@ -92,7 +92,7 @@ TEUCHOS_UNIT_TEST(NOX_Tpetra_1DFEM, Responses)
   LOCA::ParameterVector p_vec;
   p_vec.addParameter("k",1.0);
   std::vector<std::string> g_names;
-  g_names.push_back(model->get_g_names(0)[0]);
+  g_names.push_back("Constraint: T_right=2");
   auto x_thyra = ::Thyra::createMember(model->get_x_space(),"x");
   NOX::Thyra::Vector x(x_thyra);
   LOCA::MultiContinuation::ConstraintModelEvaluator constraints(model,p_vec,g_names,x);

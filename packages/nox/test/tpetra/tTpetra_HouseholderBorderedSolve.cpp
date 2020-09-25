@@ -76,6 +76,7 @@
 #include "LOCA_MultiContinuation_ConstrainedGroup.H"
 #include "LOCA_Tpetra_ConstraintModelEvaluator.hpp"
 #include "LOCA_Parameter_SublistParser.H"
+#include "NOX_SolverStats.hpp"
 
 // For solution io
 #include "Thyra_TpetraVector.hpp"
@@ -180,13 +181,17 @@ TEUCHOS_UNIT_TEST(NOX_Tpetra_Householder, BasicSolve)
   Teuchos::RCP<LOCA::ParameterVector> p_vec = Teuchos::rcp(new LOCA::ParameterVector);
   p_vec->addParameter("k", 1.0); // Source term multiplier
 
+  // Teuchos::RCP<LOCA::Thyra::Group> loca_group = Teuchos::rcp(new LOCA::Thyra::Group(global_data,
+  //                                                                                   *nox_group,
+  //                                                                                   *p_vec,
+  //                                                                                   0));
   Teuchos::RCP<LOCA::Thyra::Group> loca_group = Teuchos::rcp(new LOCA::Thyra::Group(global_data,
                                                                                     *nox_group,
                                                                                     *p_vec,
-                                                                                    0));
+                                                                                    2));
 
   auto g_names = Teuchos::rcp(new std::vector<std::string>);
-  g_names->push_back(model->get_g_names(0)[0]);
+  g_names->push_back("Constraint: T_right=2");
   auto x_thyra = ::Thyra::createMember(model->get_x_space(),"x");
   NOX::Thyra::Vector x(x_thyra);
   auto constraints = Teuchos::rcp(new LOCA::MultiContinuation::ConstraintModelEvaluator(model,*p_vec,*g_names,x));
@@ -229,7 +234,7 @@ TEUCHOS_UNIT_TEST(NOX_Tpetra_Householder, BasicSolve)
   converged->addStatusTest(absresid);
   converged->addStatusTest(wrms);
   Teuchos::RCP<NOX::StatusTest::MaxIters> maxiters =
-    Teuchos::rcp(new NOX::StatusTest::MaxIters(200));
+    Teuchos::rcp(new NOX::StatusTest::MaxIters(10));
   Teuchos::RCP<NOX::StatusTest::FiniteValue> fv =
     Teuchos::rcp(new NOX::StatusTest::FiniteValue);
   Teuchos::RCP<NOX::StatusTest::Combo> combo =
@@ -252,15 +257,6 @@ TEUCHOS_UNIT_TEST(NOX_Tpetra_Householder, BasicSolve)
     options.output_fraction = true;
     options.output_minmax = true;
     Teuchos::TimeMonitor::getStackedTimer()->report(out,comm,options);
-  }
-
-  // Check final values
-  {
-    const auto& group = solver->getSolutionGroup();
-    const auto& c_group = dynamic_cast<const LOCA::MultiContinuation::ConstrainedGroup&>(group);
-    const double tol = 1.0e-3;
-    TEST_FLOATING_EQUALITY(c_group.getParam(0),-0.5993277206,tol);
-    out << "\nFinal Parameter Value = " << std::setprecision(10) << c_group.getParam(0) << std::endl;
   }
 
   // Write solution to file
@@ -288,5 +284,14 @@ TEUCHOS_UNIT_TEST(NOX_Tpetra_Householder, BasicSolve)
     }
   }
 
+  // Check final values
+  {
+    const auto& group = solver->getSolutionGroup();
+    const auto& c_group = dynamic_cast<const LOCA::MultiContinuation::ConstrainedGroup&>(group);
+    out << "\nFinal Parameter Value = " << std::setprecision(10) << c_group.getParam(0) << std::endl;
+    const double tol = 1.0e-3;
+    TEST_FLOATING_EQUALITY(c_group.getParam(0),-0.5993277206,tol);
+  }
   TEST_ASSERT(solvStatus == NOX::StatusTest::Converged);
+  TEST_EQUALITY(solver->getSolverStatistics()->numNonlinearIterations,5);
 }

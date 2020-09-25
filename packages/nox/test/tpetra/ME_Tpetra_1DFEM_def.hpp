@@ -44,7 +44,12 @@ EvaluatorTpetra1DFEM(const Teuchos::RCP<const Teuchos::Comm<int> >& comm,
   numGlobalElements_(numGlobalElements),
   zMin_(zMin),
   zMax_(zMax),
-  showGetInvalidArg_(false)
+  Np_(5),
+  Ng_(5),
+  printDebug_(false),
+  showGetInvalidArg_(false),
+  pNames_(Np_),
+  gNames_(Ng_)
 {
   typedef ::Thyra::ModelEvaluatorBase MEB;
   typedef Teuchos::ScalarTraits<scalar_type> ST;
@@ -110,7 +115,7 @@ EvaluatorTpetra1DFEM(const Teuchos::RCP<const Teuchos::Comm<int> >& comm,
   MEB::InArgsSetup<Scalar> inArgs;
   inArgs.setModelEvalDescription(this->description());
   inArgs.setSupports(MEB::IN_ARG_x);
-  inArgs.set_Np_Ng(1,1);
+  inArgs.set_Np_Ng(Np_,Ng_);
   prototypeInArgs_ = inArgs;
 
   MEB::OutArgsSetup<Scalar> outArgs;
@@ -118,10 +123,10 @@ EvaluatorTpetra1DFEM(const Teuchos::RCP<const Teuchos::Comm<int> >& comm,
   outArgs.setSupports(MEB::OUT_ARG_f);
   outArgs.setSupports(MEB::OUT_ARG_W_op);
   outArgs.setSupports(MEB::OUT_ARG_W_prec);
-  outArgs.set_Np_Ng(1,1);
-  outArgs.setSupports(MEB::OUT_ARG_DfDp,0,MEB::DerivativeSupport(MEB::DERIV_MV_JACOBIAN_FORM));
-  outArgs.setSupports(MEB::OUT_ARG_DgDx,0,MEB::DerivativeSupport(MEB::DERIV_MV_JACOBIAN_FORM));
-  outArgs.setSupports(MEB::OUT_ARG_DgDp,0,0,MEB::DerivativeSupport(MEB::DERIV_MV_JACOBIAN_FORM));
+  outArgs.set_Np_Ng(Np_,Ng_);
+  outArgs.setSupports(MEB::OUT_ARG_DfDp,2,MEB::DerivativeSupport(MEB::DERIV_MV_JACOBIAN_FORM));
+  outArgs.setSupports(MEB::OUT_ARG_DgDx,4,MEB::DerivativeSupport(MEB::DERIV_MV_JACOBIAN_FORM));
+  outArgs.setSupports(MEB::OUT_ARG_DgDp,4,2,MEB::DerivativeSupport(MEB::DERIV_MV_JACOBIAN_FORM));
   prototypeOutArgs_ = outArgs;
 
   nominalValues_ = inArgs;
@@ -131,15 +136,26 @@ EvaluatorTpetra1DFEM(const Teuchos::RCP<const Teuchos::Comm<int> >& comm,
   jacTimer_ = Teuchos::TimeMonitor::getNewCounter("Model Evaluator: Jacobian Evaluation");
 
   // Parameter and response support. There exists one parameter and one response.
-  pNames_ = Teuchos::rcp(new Teuchos::Array<std::string>);
-  pNames_->push_back("k");
+  for (auto& p : pNames_)
+    p = Teuchos::rcp(new Teuchos::Array<std::string>);
+  pNames_[0]->push_back("Dummy p(0)");
+  pNames_[1]->push_back("Dummy p(1)");
+  pNames_[2]->push_back("k");
+  pNames_[3]->push_back("Dummy p(3)");
+  pNames_[4]->push_back("Dummy p(4)");
   pMap_ = Teuchos::rcp(new const tpetra_map(1, 0, comm_, Tpetra::LocallyReplicated));
   pSpace_ = ::Thyra::createVectorSpace<Scalar, LO, GO, Node>(pMap_);
-  p0_ = ::Thyra::createMember(pSpace_);
-  V_S(p0_.ptr(),1.0);
-  nominalValues_.set_p(0,p0_);
+  p2_ = ::Thyra::createMember(pSpace_);
+  V_S(p2_.ptr(),1.0);
+  nominalValues_.set_p(2,p2_);
 
-  gNames_.push_back("Constrint Equation 0");
+  for (auto& g : gNames_)
+    g.resize(1);
+  gNames_[0].push_back("Dummy g(0)");
+  gNames_[1].push_back("Dummy g(1)");
+  gNames_[2].push_back("Dummy g(2)");
+  gNames_[3].push_back("Dummy g(3)");
+  gNames_[4].push_back("Constraint: T_right=2");
   gMap_ = Teuchos::rcp(new const tpetra_map(1, 0, comm_, Tpetra::LocallyReplicated));
   gSpace_ = ::Thyra::createVectorSpace<Scalar, LO, GO, Node>(gMap_);
   dgdpMap_ = Teuchos::rcp(new const tpetra_map(1, 0, comm_, Tpetra::LocallyReplicated));
@@ -271,17 +287,16 @@ EvaluatorTpetra1DFEM<Scalar, LO, GO, Node>::create_W_prec() const
 
 template<class Scalar, class LO, class GO, class Node>
 int EvaluatorTpetra1DFEM<Scalar, LO, GO, Node>::Np() const
-{return 1;}
+{return Np_;}
 
 template<class Scalar, class LO, class GO, class Node>
 int EvaluatorTpetra1DFEM<Scalar, LO, GO, Node>::Ng() const
-{return 1;}
+{return Ng_;}
 
 template<class Scalar, class LO, class GO, class Node>
 Teuchos::RCP<const ::Thyra::VectorSpaceBase<Scalar> >
 EvaluatorTpetra1DFEM<Scalar, LO, GO, Node>::get_p_space(int l) const
 {
-  TEUCHOS_ASSERT(l == 0);
   return pSpace_;
 }
 
@@ -289,15 +304,13 @@ template<class Scalar, class LO, class GO, class Node>
 Teuchos::RCP<const Teuchos::Array<std::string> >
 EvaluatorTpetra1DFEM<Scalar, LO, GO, Node>::get_p_names(int l) const
 {
-  TEUCHOS_ASSERT(l == 0);
-  return pNames_;
+  return pNames_[l];
 }
 
 template<class Scalar, class LO, class GO, class Node>
 Teuchos::RCP<const ::Thyra::VectorSpaceBase<Scalar> >
 EvaluatorTpetra1DFEM<Scalar, LO, GO, Node>::get_g_space(int j) const
 {
-  TEUCHOS_ASSERT(j == 0);
   return gSpace_;
 }
 
@@ -305,15 +318,14 @@ template<class Scalar, class LO, class GO, class Node>
 Teuchos::ArrayView<const std::string>
 EvaluatorTpetra1DFEM<Scalar, LO, GO, Node>::get_g_names(int j) const
 {
-  TEUCHOS_ASSERT(j == 0);
-  return gNames_;
+  return gNames_[j];
 }
 
 template<class Scalar, class LO, class GO, class Node>
 Teuchos::RCP<::Thyra::LinearOpBase<Scalar>>
 EvaluatorTpetra1DFEM<Scalar, LO, GO, Node>::create_DfDp_op(int l) const
 {
-  TEUCHOS_ASSERT(l == 0);
+  TEUCHOS_ASSERT(l == 2);
   return ::Thyra::createMembers(xSpace_,1,"LOCA::DgDx");
 }
 
@@ -321,7 +333,7 @@ template<class Scalar, class LO, class GO, class Node>
 Teuchos::RCP<::Thyra::LinearOpBase<Scalar> >
 EvaluatorTpetra1DFEM<Scalar, LO, GO, Node>::create_DgDx_op(int j) const
 {
-  TEUCHOS_ASSERT(j == 0);
+  TEUCHOS_ASSERT(j == 4);
   return ::Thyra::createMembers(xSpace_,1,"LOCA::DgDx");
 }
 
@@ -329,7 +341,7 @@ template<class Scalar, class LO, class GO, class Node>
 Teuchos::RCP<::Thyra::LinearOpBase<Scalar> >
 EvaluatorTpetra1DFEM<Scalar, LO, GO, Node>::create_DgDx_dot_op(int j) const
 {
-  TEUCHOS_ASSERT(j == 0);
+  TEUCHOS_ASSERT(j == 4);
   return ::Thyra::createMembers(xSpace_,1,"LOCA::DgDx_dot");
 }
 
@@ -337,8 +349,8 @@ template<class Scalar, class LO, class GO, class Node>
 ::Teuchos::RCP<::Thyra::LinearOpBase<Scalar> >
 EvaluatorTpetra1DFEM<Scalar, LO, GO, Node>::create_DgDp_op( int j, int l ) const
 {
-  TEUCHOS_ASSERT(j == 0);
-  TEUCHOS_ASSERT(l == 0);
+  TEUCHOS_ASSERT(j == 4);
+  TEUCHOS_ASSERT(l == 2);
   // Instead of using a dense serial matrix, we use a locally
   // replicated multivector since it provides thyra wrappers.
   return ::Thyra::createMembers(gSpace_,1,"LOCA::DgDp");
@@ -376,10 +388,10 @@ evalModel(const Thyra::ModelEvaluatorBase::InArgs<Scalar> &inArgs,
   const Teuchos::RCP<thyra_vec> f_out = outArgs.get_f();
   const Teuchos::RCP<thyra_op> W_out = outArgs.get_W_op();
   const Teuchos::RCP<thyra_prec> W_prec_out = outArgs.get_W_prec();
-  const Teuchos::RCP<thyra_vec> g_out = outArgs.get_g(0);
-  const Teuchos::RCP<thyra_mvec> DgDx_out = outArgs.get_DgDx(0).getMultiVector();
-  const Teuchos::RCP<thyra_mvec> DfDp_out = outArgs.get_DfDp(0).getMultiVector();
-  const Teuchos::RCP<thyra_mvec> DgDp_out = outArgs.get_DgDp(0,0).getMultiVector();
+  const Teuchos::RCP<thyra_vec> g_out = outArgs.get_g(4);
+  const Teuchos::RCP<thyra_mvec> DgDx_out = outArgs.get_DgDx(4).getMultiVector();
+  const Teuchos::RCP<thyra_mvec> DfDp_out = outArgs.get_DfDp(2).getMultiVector();
+  const Teuchos::RCP<thyra_mvec> DgDp_out = outArgs.get_DgDp(4,2).getMultiVector();
 
   const bool fill_f = nonnull(f_out);
   const bool fill_W = nonnull(W_out);
@@ -388,6 +400,17 @@ evalModel(const Thyra::ModelEvaluatorBase::InArgs<Scalar> &inArgs,
   const bool fill_DgDx = nonnull(DgDx_out);
   const bool fill_DfDp = nonnull(DfDp_out);
   const bool fill_DgDp = nonnull(DgDp_out);
+
+  if (printDebug_) {
+    std::cout << "DEBUG: In evalModel: f=" << fill_f
+              << ",W=" << fill_W
+              << ",W_prec=" << fill_W_prec
+              << ",g=" << fill_g
+              << ",DgDx=" << fill_DgDx
+              << ",DfDp=" << fill_DfDp
+              << ",DgDp=" << fill_DgDp
+              << std::endl;
+  }
 
   using tpetra_op = Tpetra::Operator<Scalar,LO,GO,Node>;
   using tpetra_extract = ::Thyra::TpetraOperatorVectorExtraction<Scalar,LO,GO,Node>;
@@ -450,13 +473,19 @@ evalModel(const Thyra::ModelEvaluatorBase::InArgs<Scalar> &inArgs,
     uPtr_->sync_device();
 
     // Get parameter, default is from nominal values
-    auto k_tpetra = tpetra_extract::getConstTpetraMultiVector(nominalValues_.get_p(0));
-    if (nonnull(inArgs.get_p(0)))
-      k_tpetra = tpetra_extract::getConstTpetraMultiVector(inArgs.get_p(0));
-    if (k_tpetra->need_sync_host()) {
+    auto k_tpetra = tpetra_extract::getConstTpetraMultiVector(nominalValues_.get_p(2));
+    if (nonnull(inArgs.get_p(2)))
+      k_tpetra = tpetra_extract::getConstTpetraMultiVector(inArgs.get_p(2));
+    if (k_tpetra->need_sync_host())
       Teuchos::rcp_const_cast<NOX::TMultiVector>(k_tpetra)->sync_host();
-    }
     Scalar k_val = (k_tpetra->getLocalViewHost())(0,0);
+
+    if (printDebug_) {
+      if (nonnull(inArgs.get_p(2)))
+        std::cout << "*** k (NOT nominal)=" << k_val << std::endl;
+      else
+        std::cout << "*** k (IS nominal)=" << k_val << std::endl;
+    }
 
     // Residual fill
     if (fill_f) {
@@ -514,7 +543,8 @@ evalModel(const Thyra::ModelEvaluatorBase::InArgs<Scalar> &inArgs,
       Teuchos::broadcast(*comm_,comm_->getSize()-1,&T_right);
       auto g_host = g_tpetra->getLocalViewHost();
       g_host(0,0) = T_right - 2.0;
-      std::cout << "\nevalModel: g=" << g_host(0,0) << " T_right = " << T_right << std::endl;
+      if (printDebug_)
+        std::cout << "evalModel: g(4)=" << g_host(0,0) << " T_right = " << T_right << std::endl;
     }
     if (fill_DgDx) {
       auto DgDx_tpetra = tpetra_extract::getTpetraMultiVector(DgDx_out);

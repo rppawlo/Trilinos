@@ -40,11 +40,22 @@ evaluatorTpetra1DFEM(const Teuchos::RCP<const Teuchos::Comm<int> >& comm,
       T' = 0.0 @ z = zMax
       k = 1.0 (independent parameter)
 
-   For LOCA testing, a response is used to evaluate a contraint
-   equation. The parameter k is the unknown variable used to enforce
-   the response:
+   For LOCA testing, parameters and responses are used to evaluate a
+   contraint equation. The parameter k is the unknown variable used to
+   enforce the response. We add in dummy responses for unit testing
+   correct offsets in LOCA parameter handling code.:
 
-      g = T(xMax) - 2.0
+      p(0) is a dummy parameter (throws if queried)
+      p(1) is a dummy parameter (throws if queried)
+      p(2) is a constant "k" multiplier on the source term
+      p(3) is a dummy parameter (throws if queried)
+      p(4) is a dummy parameter (throws if queried)
+
+      g(0) is a dummy response (throws if queried)
+      g(1) is a dummy response (throws if queried)
+      g(2) is a dummy response (throws if queried)
+      g(3) is a dummy response (throws if queried)
+      g(4) = T(zMax) - 2.0
 
  \endverbatim
 
@@ -145,6 +156,9 @@ private: // data members
   const Tpetra::global_size_t numGlobalElements_;
   const Scalar zMin_;
   const Scalar zMax_;
+  const int Np_; // Number of parameters
+  const int Ng_; // Number of responses
+  const bool printDebug_;
 
   Teuchos::RCP<const thyra_vec_space> xSpace_;
   Teuchos::RCP<const tpetra_map>   xOwnedMap_;
@@ -175,14 +189,14 @@ private: // data members
   mutable Teuchos::RCP<Teuchos::Time> jacTimer_;
 
   // Optional parameter and response support for LOCA
-  Teuchos::RCP<Teuchos::Array<std::string>> pNames_;
-  std::vector<std::string> gNames_;
-  Teuchos::RCP<const tpetra_map>   pMap_; // locally replicated scalar
+  std::vector<Teuchos::RCP<Teuchos::Array<std::string>>> pNames_;
+  std::vector<std::vector<std::string>> gNames_;
+  Teuchos::RCP<const tpetra_map> pMap_; // locally replicated scalar
   Teuchos::RCP<const thyra_vec_space> pSpace_;
-  Teuchos::RCP<thyra_vec> p0_; // k value in equation
-  Teuchos::RCP<const tpetra_map>   gMap_; // locally replicated scalar
+  Teuchos::RCP<thyra_vec> p2_; // k value in equation
+  Teuchos::RCP<const tpetra_map> gMap_; // locally replicated scalar
   Teuchos::RCP<const thyra_vec_space> gSpace_;
-  Teuchos::RCP<const tpetra_map>   dgdpMap_; // locally replicated dense matrix
+  Teuchos::RCP<const tpetra_map> dgdpMap_; // locally replicated dense matrix
   Teuchos::RCP<const thyra_vec_space> dgdpSpace_;
 };
 

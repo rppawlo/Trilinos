@@ -1,6 +1,7 @@
 #include "LOCA_Tpetra_ConstraintModelEvaluator.hpp" // class declaration
 #include "Thyra_ModelEvaluator.hpp"
 #include "Thyra_TpetraThyraWrappers.hpp"
+#include "Thyra_VectorStdOps.hpp"
 #include "NOX_Thyra_MultiVector.H"
 #include "NOX_Thyra_Vector.H"
 #include "NOX_TpetraTypedefs.hpp"
@@ -17,7 +18,8 @@ namespace LOCA {
       gNames_(constraintResponseNames),
       constraints_(constraintResponseNames.size(),1),
       isValidConstraints_(false),
-      isValidDx_(false)
+      isValidDx_(false),
+      printDebug_(false)
     {
       x_ = cloneVec.clone(NOX::ShapeCopy);
       dgdx_ = cloneVec.createMultiVector(constraintResponseNames.size(),NOX::ShapeCopy);
@@ -85,10 +87,13 @@ namespace LOCA {
       if (type == NOX::DeepCopy) {
         *x_ = *src.x_;
         pVec_ = src.pVec_;
+        for (int i=0; i < pVec_.length(); ++i)
+          ::Thyra::V_S(me_p_[i].ptr(),pVec_[i]);
         constraints_ = src.constraints_;
         *dgdx_ = *src.dgdx_;
         isValidConstraints_ = src.isValidConstraints_;
         isValidDx_ = src.isValidDx_;
+        printDebug_ = src.printDebug_;
       }
     }
 
@@ -100,12 +105,15 @@ namespace LOCA {
       if (this != &src) {
         *x_ = *src.x_;
         pVec_ = src.pVec_;
+        for (int i=0; i < pVec_.length(); ++i)
+          ::Thyra::V_S(me_p_[i].ptr(),pVec_[i]);
         constraints_ = src.constraints_;
         *dgdx_ = *src.dgdx_;
         isValidConstraints_ = src.isValidConstraints_;
         isValidDx_ = src.isValidDx_;
         meParameterIndices_ = src.meParameterIndices_;
         meResponseIndices_ = src.meResponseIndices_;
+        printDebug_ = src.printDebug_;
       }
     }
 
@@ -130,6 +138,7 @@ namespace LOCA {
     void ConstraintModelEvaluator::setParam(int paramID, double val)
     {
       (pVec_)[paramID] = val;
+      ::Thyra::V_S(me_p_[paramID].ptr(),val);
       isValidConstraints_ = false;
       isValidDx_ = false;
     }
@@ -137,8 +146,10 @@ namespace LOCA {
     void ConstraintModelEvaluator::setParams(const std::vector<int>& paramIDs,
                                              const NOX::Abstract::MultiVector::DenseMatrix& vals)
     {
-      for (unsigned int i=0; i<paramIDs.size(); i++)
+      for (unsigned int i=0; i<paramIDs.size(); i++) {
         (pVec_)[paramIDs[i]] = vals(i,0);
+        ::Thyra::V_S(me_p_[paramIDs[i]].ptr(),vals(i,0));
+      }
       isValidConstraints_ = false;
       isValidDx_ = false;
     }
@@ -165,6 +176,8 @@ namespace LOCA {
         tmp->sync_host();
         auto val = tmp->getLocalViewHost();
         constraints_(i,0) = val(0,0);
+        if (printDebug_)
+          std::cout << "LOCA::ConstraintME: constraints_(" << i << ")=" << val(0,0) << std::endl;
       }
 
       isValidConstraints_ = true;
@@ -191,6 +204,11 @@ namespace LOCA {
       for (size_t i=0; i < me_dgdx_.size(); ++i) {
         auto tmp = NOX::Thyra::MultiVector(me_dgdx_[i]);
         (*dgdx_)[i] = tmp[0];
+
+        if (printDebug_) {
+          std::cout << "LOCA::ConstraintME: computeDX:" << std::endl;
+          me_dgdx_[i]->describe(std::cout,Teuchos::VERB_EXTREME);
+        }
       }
 
       isValidDx_ = true;
@@ -208,6 +226,11 @@ namespace LOCA {
 
         for (size_t i=0; i < me_g_.size(); ++i)
           dgdp(i,0) = constraints_(i,0);
+
+        if (printDebug_) {
+          for (size_t i=0; i < me_g_.size(); ++i)
+            std::cout << "LOCA::ConstraintME: computeDP: dgdp_(" << i << ",0)=" << dgdp(i,0) << std::endl;
+        }
       }
 
       auto inArgs = model_->createInArgs();
@@ -226,7 +249,12 @@ namespace LOCA {
       auto outArgs = model_->createOutArgs();
       for (size_t j=0; j < me_dgdp_.size(); ++j) {
         for (auto& l : paramIDs) {
-          outArgs.set_DgDp(meResponseIndices_[j],l,me_dgdp_[j][l]);
+          outArgs.set_DgDp(meResponseIndices_[j],meParameterIndices_[l],me_dgdp_[j][l]);
+
+          if (printDebug_) {
+            std::cout << "LOCA::ConstraintME: computeDP: dgdp_(" << j << "," << l << "):" << std::endl;
+            me_dgdp_[j][l]->describe(std::cout,Teuchos::VERB_EXTREME);
+          }
         }
       }
 
