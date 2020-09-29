@@ -445,236 +445,216 @@ evalModel(const Thyra::ModelEvaluatorBase::InArgs<Scalar> &inArgs,
   using tpetra_op = Tpetra::Operator<Scalar,LO,GO,Node>;
   using tpetra_extract = ::Thyra::TpetraOperatorVectorExtraction<Scalar,LO,GO,Node>;
 
-  if ( fill_f || fill_W || fill_W_prec || fill_g4 || fill_g6 || fill_Dg4Dx || fill_Dg6Dx || fill_DfDp2 || fill_DfDp4 || fill_Dg4Dp2 || fill_Dg4Dp4 || fill_Dg6Dp2 || fill_Dg6Dp4) {
+  // Create ghosted objects
+  if (is_null(uPtr_))
+    uPtr_ = Teuchos::rcp(new tpetra_vec(xGhostedMap_));
 
-    // Get the underlying tpetra objects
-    Teuchos::RCP<tpetra_vec> f;
-    if (fill_f) {
-      f = tpetra_extract::getTpetraVector(f_out);
-    }
+  uPtr_->doImport(*(tpetra_extract::getConstTpetraVector(inArgs.get_x())), *importer_, Tpetra::REPLACE);
 
-    Teuchos::RCP<tpetra_matrix> J;
-    if (fill_W) {
-      Teuchos::RCP<tpetra_op> W_tpetra = tpetra_extract::getTpetraOperator(W_out);
-      J = Teuchos::rcp_dynamic_cast<tpetra_matrix>(W_tpetra);
-      TEUCHOS_ASSERT(nonnull(J));
-      J->resumeFill();
-    }
+  if (is_null(xPtr_)) {
+    xPtr_ = Teuchos::rcp(new tpetra_vec(xGhostedMap_));
+    xPtr_->doImport(*nodeCoordinates_, *importer_, Tpetra::INSERT);
+  }
 
-    Teuchos::RCP<tpetra_matrix> M_inv;
-    if (fill_W_prec) {
-      Teuchos::RCP<tpetra_op> M_tpetra = tpetra_extract::getTpetraOperator(W_prec_out->getNonconstRightPrecOp());
-      M_inv = Teuchos::rcp_dynamic_cast<tpetra_matrix>(M_tpetra);
-      TEUCHOS_ASSERT(nonnull(M_inv));
-      M_inv->resumeFill();
+  xPtr_->sync_device();
+  uPtr_->sync_device();
 
-      if (is_null(J_diagonal_))
-        J_diagonal_ = Teuchos::rcp(new tpetra_vec(xOwnedMap_));
-    }
+  // Sizes for functors
+  int myRank = comm_->getRank();
+  std::size_t numMyElements = xGhostedMap_->getNodeNumElements()-1;
 
-    // Create ghosted objects
-    if (is_null(uPtr_))
-      uPtr_ = Teuchos::rcp(new tpetra_vec(xGhostedMap_));
+  // Get parameters, default is from nominal values
+  auto k_tpetra = tpetra_extract::getConstTpetraMultiVector(nominalValues_.get_p(2));
+  if (nonnull(inArgs.get_p(2)))
+    k_tpetra = tpetra_extract::getConstTpetraMultiVector(inArgs.get_p(2));
+  if (k_tpetra->need_sync_host())
+    Teuchos::rcp_const_cast<NOX::TMultiVector>(k_tpetra)->sync_host();
+  Scalar k_val = (k_tpetra->getLocalViewHost())(0,0);
 
-    uPtr_->doImport(*(tpetra_extract::getConstTpetraVector(inArgs.get_x())), *importer_, Tpetra::REPLACE);
+  auto p4_tpetra = tpetra_extract::getConstTpetraMultiVector(nominalValues_.get_p(4));
+  if (nonnull(inArgs.get_p(4)))
+    p4_tpetra = tpetra_extract::getConstTpetraMultiVector(inArgs.get_p(4));
+  if (p4_tpetra->need_sync_host())
+    Teuchos::rcp_const_cast<NOX::TMultiVector>(p4_tpetra)->sync_host();
+  Scalar p4_val = (p4_tpetra->getLocalViewHost())(0,0);
 
-    if (is_null(xPtr_)) {
-      xPtr_ = Teuchos::rcp(new tpetra_vec(xGhostedMap_));
-      xPtr_->doImport(*nodeCoordinates_, *importer_, Tpetra::INSERT);
-    }
-
-    // Zero out the objects that will be filled
-    if (fill_f) {
-      f->putScalar(0.0);
-    }
-    if (fill_W) {
-      J->setAllToScalar(0.0);
-    }
-    if (fill_W_prec) {
-      M_inv->setAllToScalar(0.0);
-      J_diagonal_->putScalar(0.0);
-    }
-
-    // Get local Views of data
-    int myRank = comm_->getRank();
-    std::size_t numMyElements = xGhostedMap_->getNodeNumElements()-1;
-
-    xPtr_->sync_device();
-    uPtr_->sync_device();
-
-    // Get parameters, default is from nominal values
-    auto k_tpetra = tpetra_extract::getConstTpetraMultiVector(nominalValues_.get_p(2));
+  if (printDebug_) {
     if (nonnull(inArgs.get_p(2)))
-      k_tpetra = tpetra_extract::getConstTpetraMultiVector(inArgs.get_p(2));
-    if (k_tpetra->need_sync_host())
-      Teuchos::rcp_const_cast<NOX::TMultiVector>(k_tpetra)->sync_host();
-    Scalar k_val = (k_tpetra->getLocalViewHost())(0,0);
-
-    auto p4_tpetra = tpetra_extract::getConstTpetraMultiVector(nominalValues_.get_p(4));
+      std::cout << "*** p2: k (NOT nominal)=" << k_val << std::endl;
+    else
+      std::cout << "*** p2: k (IS nominal)=" << k_val << std::endl;
     if (nonnull(inArgs.get_p(4)))
-      p4_tpetra = tpetra_extract::getConstTpetraMultiVector(inArgs.get_p(4));
-    if (p4_tpetra->need_sync_host())
-      Teuchos::rcp_const_cast<NOX::TMultiVector>(p4_tpetra)->sync_host();
-    Scalar p4_val = (p4_tpetra->getLocalViewHost())(0,0);
+      std::cout << "*** p4: T_left (NOT nominal)=" << p4_val << std::endl;
+    else
+      std::cout << "*** p4: T_left (IS nominal)=" << p4_val << std::endl;
+  }
 
-    if (printDebug_) {
-      if (nonnull(inArgs.get_p(2)))
-        std::cout << "*** p2: k (NOT nominal)=" << k_val << std::endl;
-      else
-        std::cout << "*** p2: k (IS nominal)=" << k_val << std::endl;
-      if (nonnull(inArgs.get_p(4)))
-        std::cout << "*** p4: T_left (NOT nominal)=" << p4_val << std::endl;
-      else
-        std::cout << "*** p4: T_left (IS nominal)=" << p4_val << std::endl;
-    }
-
-    // Residual fill
-    if (fill_f) {
-      Teuchos::TimeMonitor timer(*residTimer_);
-      f->sync_device();
-      f->modify_device();
-
-      ResidualEvaluatorFunctor<tpetra_vec> functor(*f, *xPtr_, *uPtr_, myRank, k_val, p4_val);
-      Kokkos::parallel_for("residual evaluation", numMyElements, functor);
-      Kokkos::fence();
-    }
-
-    // Jacobian fill
-    if (fill_W) {
-      Teuchos::TimeMonitor timer(*jacTimer_);
-      JacobianEvaluatorFunctor<tpetra_vec, tpetra_matrix> functor(*J, *xPtr_, *uPtr_, myRank, k_val);
-      Kokkos::parallel_for("jacobian evaluation", numMyElements, functor);
-      Kokkos::fence();
-    }
-
-    // Preconditioner fill
-    if (fill_W_prec) {
-      PreconditionerEvaluatorFunctor<tpetra_vec, tpetra_matrix> functor(*M_inv, *xPtr_, *uPtr_, myRank, k_val);
-      Kokkos::parallel_for("prec evaluation", numMyElements, functor);
-    }
-
-    if (fill_W) {
-      J->fillComplete();
-    }
-
-    if (fill_W_prec) {
-      // Invert the Jacobian diagonal for the preconditioner
-      // For some reason the matrix must be fill complete before calling rightScale
-      M_inv->fillComplete();
-      tpetra_vec& diag = *J_diagonal_;
-      M_inv->getLocalDiagCopy(diag);
-      diag.reciprocal(diag);
-      M_inv->rightScale(diag);
-      M_inv->rightScale(diag);
-    }
-
-    // Fill Responses. These are so small, we will do it on host. Don't
-    // waste time with parallel dispatch.
-
-    auto x = tpetra_extract::getConstTpetraVector(inArgs.get_x())->getLocalViewHost();
-
-    if (fill_g4) {
-      // g4 is locally replicated.
-      auto g4_tpetra = tpetra_extract::getTpetraMultiVector(g4_out);
-      g4_tpetra->sync_host();
-      g4_tpetra->modify_host();
-
-      // g4 = T(Zmax) - 2.0
-      Scalar T_right = x(x.extent(0)-1,0);
-      Teuchos::broadcast(*comm_,comm_->getSize()-1,&T_right);
-      auto g4_host = g4_tpetra->getLocalViewHost();
-      g4_host(0,0) = T_right - 2.0;
-      if (printDebug_)
-        std::cout << "evalModel: g(4)= T_right - 2.0 =" << g4_host(0,0) << " T_right=" << T_right << std::endl;
-    }
-    if (fill_g6) {
-      Scalar T_left = x(0,0);
-      Teuchos::broadcast(*comm_,0,&T_left);
-
-      Scalar T_right = x(x.extent(0)-1,0);
-      Teuchos::broadcast(*comm_,comm_->getSize()-1,&T_right);
-
-      // g6 = 2* T(Zmin) - T(Zmax)
-      // g6 is locally replicated.
-      auto g6_tpetra = tpetra_extract::getTpetraMultiVector(g6_out);
-      g6_tpetra->sync_host();
-      g6_tpetra->modify_host();
-      auto g6_host = g6_tpetra->getLocalViewHost();
-      g6_host(0,0) = 2.0 * T_left - T_right;
-      if (printDebug_)
-        std::cout << "evalModel: g(6)= 2 * T_left - T_right =" << g6_host(0,0) << " T_left=" << T_left << " T_right=" 
-                  <<  T_right << std::endl;
-    }
-    if (fill_Dg4Dx) {
-      auto Dg4Dx_tpetra = tpetra_extract::getTpetraMultiVector(Dg4Dx_out);
-      Dg4Dx_tpetra->putScalar(0.0);
-      Dg4Dx_tpetra->sync_host();
-      Dg4Dx_tpetra->modify_host();
-
-      // Right most value
-      if (comm_->getRank() == (comm_->getSize()-1)) {
-        auto Dg4Dx_host = Dg4Dx_tpetra->getLocalViewHost();
-        Dg4Dx_host(Dg4Dx_host.extent(0)-1,0) = 1.0;
-      }
-    }
-    if (fill_Dg6Dx) {
-      auto Dg6Dx_tpetra = tpetra_extract::getTpetraMultiVector(Dg6Dx_out);
-      Dg6Dx_tpetra->putScalar(0.0);
-      Dg6Dx_tpetra->sync_host();
-      Dg6Dx_tpetra->modify_host();
-
-      // Left most value
-      if (comm_->getRank() == 0) {
-        auto Dg6Dx_host = Dg6Dx_tpetra->getLocalViewHost();
-        Dg6Dx_host(0,0) = 2.0;
-      }
-      // Right most value
-      if (comm_->getRank() == (comm_->getSize()-1)) {
-        auto Dg6Dx_host = Dg6Dx_tpetra->getLocalViewHost();
-        Dg6Dx_host(Dg6Dx_host.extent(0)-1,0) = -1.0;
-      }
-    }
-    if (fill_DfDp2) {
-      auto DfDp2_tpetra = tpetra_extract::getTpetraMultiVector(DfDp2_out);
-      DfDp2_tpetra->putScalar(0.0);
-      DfDp2_tpetra->sync_device();
-      DfDp2_tpetra->modify_device();
-
-      DfDp2EvaluatorFunctor<NOX::TMultiVector> functor(*DfDp2_tpetra, *xPtr_, *uPtr_, myRank, k_val);
-      Kokkos::parallel_for("DfDp2 evaluation", numMyElements, functor);
-      Kokkos::fence();
-    }
-    if (fill_DfDp4) {
-      auto DfDp4_tpetra = tpetra_extract::getTpetraMultiVector(DfDp4_out);
-      DfDp4_tpetra->putScalar(0.0);
-      DfDp4_tpetra->sync_host();
-      DfDp4_tpetra->modify_host();
-
-      // Dirichlet BC on left is the equation:
-      // f(0) = T_left - p(4)
-      if (comm_->getRank() == 0) {
-        auto DfDp4_host = DfDp4_tpetra->getLocalViewHost();
-        DfDp4_host(0,0) = -1.0;
-      }
-    }
-    if (fill_Dg4Dp2) {
-      auto Dg4Dp2_tpetra = tpetra_extract::getTpetraMultiVector(Dg4Dp2_out);
-      Dg4Dp2_tpetra->putScalar(0.0);
-    }
-    if (fill_Dg4Dp4) {
-      auto Dg4Dp4_tpetra = tpetra_extract::getTpetraMultiVector(Dg4Dp4_out);
-      Dg4Dp4_tpetra->putScalar(0.0);
-    }
-    if (fill_Dg6Dp2) {
-      auto Dg6Dp2_tpetra = tpetra_extract::getTpetraMultiVector(Dg6Dp2_out);
-      Dg6Dp2_tpetra->putScalar(0.0);
-    }
-    if (fill_Dg6Dp4) {
-      auto Dg6Dp4_tpetra = tpetra_extract::getTpetraMultiVector(Dg6Dp4_out);
-      Dg6Dp4_tpetra->putScalar(0.0);
-    }
+  // Residual fill
+  if (fill_f) {
+    Teuchos::TimeMonitor timer(*residTimer_);
+    Teuchos::RCP<tpetra_vec> f = tpetra_extract::getTpetraVector(f_out);
+    f->putScalar(0.0);
+    f->sync_device();
+    f->modify_device();
+    ResidualEvaluatorFunctor<tpetra_vec> functor(*f, *xPtr_, *uPtr_, myRank, k_val, p4_val);
+    Kokkos::parallel_for("residual evaluation", numMyElements, functor);
     NOX::DeviceSpace().fence();
   }
+
+  // Jacobian fill
+  if (fill_W) {
+    Teuchos::TimeMonitor timer(*jacTimer_);
+    Teuchos::RCP<tpetra_op> W_tpetra = tpetra_extract::getTpetraOperator(W_out);
+    Teuchos::RCP<tpetra_matrix> J = Teuchos::rcp_dynamic_cast<tpetra_matrix>(W_tpetra);
+    TEUCHOS_ASSERT(nonnull(J));
+    J->resumeFill();
+    J->setAllToScalar(0.0);
+    JacobianEvaluatorFunctor<tpetra_vec, tpetra_matrix> functor(*J, *xPtr_, *uPtr_, myRank, k_val);
+    Kokkos::parallel_for("jacobian evaluation", numMyElements, functor);
+    NOX::DeviceSpace().fence();
+    J->fillComplete();
+  }
+
+  // Preconditioner fill
+  if (fill_W_prec) {
+    Teuchos::RCP<tpetra_matrix> M_inv;
+    Teuchos::RCP<tpetra_op> M_tpetra = tpetra_extract::getTpetraOperator(W_prec_out->getNonconstRightPrecOp());
+    M_inv = Teuchos::rcp_dynamic_cast<tpetra_matrix>(M_tpetra);
+    TEUCHOS_ASSERT(nonnull(M_inv));
+    M_inv->resumeFill();
+    if (is_null(J_diagonal_))
+      J_diagonal_ = Teuchos::rcp(new tpetra_vec(xOwnedMap_));
+
+    M_inv->setAllToScalar(0.0);
+    J_diagonal_->putScalar(0.0);
+    PreconditionerEvaluatorFunctor<tpetra_vec, tpetra_matrix> functor(*M_inv, *xPtr_, *uPtr_, myRank, k_val);
+    Kokkos::parallel_for("prec evaluation", numMyElements, functor);
+    NOX::DeviceSpace().fence();
+
+    // Invert the Jacobian diagonal for the preconditioner
+    // For some reason the matrix must be fill complete before calling rightScale
+    M_inv->fillComplete();
+    tpetra_vec& diag = *J_diagonal_;
+    M_inv->getLocalDiagCopy(diag);
+    diag.reciprocal(diag);
+    M_inv->rightScale(diag);
+    M_inv->rightScale(diag);
+  }
+
+  // Fill Responses. These are so small, we will do it on host. Don't
+  // waste time with parallel dispatch.
+  auto x = tpetra_extract::getConstTpetraVector(inArgs.get_x())->getLocalViewHost();
+
+  if (fill_g4) {
+    // g4 is locally replicated.
+    auto g4_tpetra = tpetra_extract::getTpetraMultiVector(g4_out);
+    g4_tpetra->sync_host();
+    g4_tpetra->modify_host();
+
+    // g4 = T(Zmax) - 2.0
+    Scalar T_right = x(x.extent(0)-1,0);
+    Teuchos::broadcast(*comm_,comm_->getSize()-1,&T_right);
+    auto g4_host = g4_tpetra->getLocalViewHost();
+    g4_host(0,0) = T_right - 2.0;
+    if (printDebug_)
+      std::cout << "evalModel: g(4)= T_right - 2.0 =" << g4_host(0,0) << " T_right=" << T_right << std::endl;
+  }
+
+  if (fill_g6) {
+    Scalar T_left = x(0,0);
+    Teuchos::broadcast(*comm_,0,&T_left);
+
+    Scalar T_right = x(x.extent(0)-1,0);
+    Teuchos::broadcast(*comm_,comm_->getSize()-1,&T_right);
+
+    // g6 = 2* T(Zmin) - T(Zmax)
+    // g6 is locally replicated.
+    auto g6_tpetra = tpetra_extract::getTpetraMultiVector(g6_out);
+    g6_tpetra->sync_host();
+    g6_tpetra->modify_host();
+    auto g6_host = g6_tpetra->getLocalViewHost();
+    g6_host(0,0) = 2.0 * T_left - T_right;
+    if (printDebug_)
+      std::cout << "evalModel: g(6)= 2 * T_left - T_right =" << g6_host(0,0) << " T_left=" << T_left << " T_right="
+                <<  T_right << std::endl;
+  }
+
+  if (fill_Dg4Dx) {
+    auto Dg4Dx_tpetra = tpetra_extract::getTpetraMultiVector(Dg4Dx_out);
+    Dg4Dx_tpetra->putScalar(0.0);
+    Dg4Dx_tpetra->sync_host();
+    Dg4Dx_tpetra->modify_host();
+
+    // Right most value
+    if (comm_->getRank() == (comm_->getSize()-1)) {
+      auto Dg4Dx_host = Dg4Dx_tpetra->getLocalViewHost();
+      Dg4Dx_host(Dg4Dx_host.extent(0)-1,0) = 1.0;
+    }
+  }
+
+  if (fill_Dg6Dx) {
+    auto Dg6Dx_tpetra = tpetra_extract::getTpetraMultiVector(Dg6Dx_out);
+    Dg6Dx_tpetra->putScalar(0.0);
+    Dg6Dx_tpetra->sync_host();
+    Dg6Dx_tpetra->modify_host();
+
+    // Left most value
+    if (comm_->getRank() == 0) {
+      auto Dg6Dx_host = Dg6Dx_tpetra->getLocalViewHost();
+      Dg6Dx_host(0,0) = 2.0;
+    }
+    // Right most value
+    if (comm_->getRank() == (comm_->getSize()-1)) {
+      auto Dg6Dx_host = Dg6Dx_tpetra->getLocalViewHost();
+      Dg6Dx_host(Dg6Dx_host.extent(0)-1,0) = -1.0;
+    }
+  }
+
+  if (fill_DfDp2) {
+    auto DfDp2_tpetra = tpetra_extract::getTpetraMultiVector(DfDp2_out);
+    DfDp2_tpetra->putScalar(0.0);
+    DfDp2_tpetra->sync_device();
+    DfDp2_tpetra->modify_device();
+
+    DfDp2EvaluatorFunctor<NOX::TMultiVector> functor(*DfDp2_tpetra, *xPtr_, *uPtr_, myRank, k_val);
+    Kokkos::parallel_for("DfDp2 evaluation", numMyElements, functor);
+    NOX::DeviceSpace().fence();
+  }
+
+  if (fill_DfDp4) {
+    auto DfDp4_tpetra = tpetra_extract::getTpetraMultiVector(DfDp4_out);
+    DfDp4_tpetra->putScalar(0.0);
+    DfDp4_tpetra->sync_host();
+    DfDp4_tpetra->modify_host();
+
+    // Dirichlet BC on left is the equation:
+    // f(0) = T_left - p(4)
+    if (comm_->getRank() == 0) {
+      auto DfDp4_host = DfDp4_tpetra->getLocalViewHost();
+      DfDp4_host(0,0) = -1.0;
+    }
+  }
+
+  if (fill_Dg4Dp2) {
+    auto Dg4Dp2_tpetra = tpetra_extract::getTpetraMultiVector(Dg4Dp2_out);
+    Dg4Dp2_tpetra->putScalar(0.0);
+  }
+
+  if (fill_Dg4Dp4) {
+    auto Dg4Dp4_tpetra = tpetra_extract::getTpetraMultiVector(Dg4Dp4_out);
+    Dg4Dp4_tpetra->putScalar(0.0);
+  }
+
+  if (fill_Dg6Dp2) {
+    auto Dg6Dp2_tpetra = tpetra_extract::getTpetraMultiVector(Dg6Dp2_out);
+    Dg6Dp2_tpetra->putScalar(0.0);
+  }
+
+  if (fill_Dg6Dp4) {
+    auto Dg6Dp4_tpetra = tpetra_extract::getTpetraMultiVector(Dg6Dp4_out);
+    Dg6Dp4_tpetra->putScalar(0.0);
+  }
+
 }
 
 template<class Scalar, class LO, class GO, class Node>
