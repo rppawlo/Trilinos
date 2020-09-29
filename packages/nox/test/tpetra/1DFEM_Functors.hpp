@@ -268,19 +268,22 @@ struct ResidualEvaluatorFunctor
   const local_map_type col_map_;
   const int myRank_;
   const scalar_type k_;
+  const scalar_type p4_;
 
   ResidualEvaluatorFunctor(const TpetraVectorType& f,
                            const TpetraVectorType& x,
                            const TpetraVectorType& u,
                            const int& myRank,
-                           const typename TpetraVectorType::impl_scalar_type& k) :
+                           const typename TpetraVectorType::impl_scalar_type& k,
+                           const typename TpetraVectorType::impl_scalar_type& p4) :
     f_view_(f.getLocalViewDevice()),
     x_view_(x.getLocalViewDevice()),
     u_view_(u.getLocalViewDevice()),
     row_map_(f.getMap()->getLocalMap()),
     col_map_(u.getMap()->getLocalMap()),
     myRank_(myRank),
-    k_(k)
+    k_(k),
+    p4_(p4)
   {}
 
   // Adds the contribution from element elt to the residual vector
@@ -318,7 +321,7 @@ struct ResidualEvaluatorFunctor
 
     // Correct for Dirichlet BCs
     if ((myRank_ == 0) && (elt == 0)) {
-      scalar_type value = u_view_(0,0) - 1.0;
+      scalar_type value = u_view_(0,0) - p4_;
       Kokkos::atomic_exchange(&f_view_(0,0), value);
     }
 
@@ -505,7 +508,7 @@ struct PreconditionerEvaluatorFunctor
 //==================================================================
 
 template <class TpetraVectorType>
-struct DfDpEvaluatorFunctor
+struct DfDp2EvaluatorFunctor
 {
   typedef typename TpetraVectorType::impl_scalar_type scalar_type;
   typedef typename TpetraVectorType::local_ordinal_type local_ordinal_type;
@@ -522,11 +525,11 @@ struct DfDpEvaluatorFunctor
   const int myRank_;
   const scalar_type k_;
 
-  DfDpEvaluatorFunctor(const TpetraVectorType& f,
-                       const TpetraVectorType& x,
-                       const TpetraVectorType& u,
-                       const int& myRank,
-                       const typename TpetraVectorType::impl_scalar_type& k) :
+  DfDp2EvaluatorFunctor(const TpetraVectorType& f,
+                        const TpetraVectorType& x,
+                        const TpetraVectorType& u,
+                        const int& myRank,
+                        const typename TpetraVectorType::impl_scalar_type& k) :
     f_view_(f.getLocalViewDevice()),
     x_view_(x.getLocalViewDevice()),
     u_view_(u.getLocalViewDevice()),

@@ -180,18 +180,19 @@ TEUCHOS_UNIT_TEST(NOX_Tpetra_Householder, BasicSolve)
 
   Teuchos::RCP<LOCA::ParameterVector> p_vec = Teuchos::rcp(new LOCA::ParameterVector);
   p_vec->addParameter("k", 1.0); // Source term multiplier
+  p_vec->addParameter("T_left", 1.2); // Source term multiplier
 
-  // Teuchos::RCP<LOCA::Thyra::Group> loca_group = Teuchos::rcp(new LOCA::Thyra::Group(global_data,
-  //                                                                                   *nox_group,
-  //                                                                                   *p_vec,
-  //                                                                                   0));
+  std::vector<int> me_p_indices;
+  me_p_indices.push_back(2);
+  me_p_indices.push_back(4);
   Teuchos::RCP<LOCA::Thyra::Group> loca_group = Teuchos::rcp(new LOCA::Thyra::Group(global_data,
                                                                                     *nox_group,
                                                                                     *p_vec,
-                                                                                    2));
+                                                                                    me_p_indices));
 
   auto g_names = Teuchos::rcp(new std::vector<std::string>);
   g_names->push_back("Constraint: T_right=2");
+  g_names->push_back("Constraint: 2*T_left=T_right");
   auto x_thyra = ::Thyra::createMember(model->get_x_space(),"x");
   NOX::Thyra::Vector x(x_thyra);
   auto constraints = Teuchos::rcp(new LOCA::MultiContinuation::ConstraintModelEvaluator(model,*p_vec,*g_names,x));
@@ -199,6 +200,7 @@ TEUCHOS_UNIT_TEST(NOX_Tpetra_Householder, BasicSolve)
   // Set initial parameter conditions
   constraints->setX(x);
   constraints->setParam(0,1.0);
+  constraints->setParam(1,1.2);
 
   // Create the constraints list
   auto& locaParamsList = pList->sublist("LOCA");
@@ -210,7 +212,9 @@ TEUCHOS_UNIT_TEST(NOX_Tpetra_Householder, BasicSolve)
   auto loca_parser = Teuchos::rcp(new LOCA::Parameter::SublistParser(global_data));
   loca_parser->parseSublists(pList);
 
-  std::vector<int> param_ids(1,0);
+  std::vector<int> param_ids(2);
+  param_ids[0] = 0;
+  param_ids[1] = 1;
   auto constraint_list_ptr = Teuchos::rcpFromRef(constraint_list);
   Teuchos::RCP<LOCA::MultiContinuation::ConstrainedGroup> loca_constrained_group =
     Teuchos::rcp(new LOCA::MultiContinuation::ConstrainedGroup(global_data,
@@ -284,14 +288,19 @@ TEUCHOS_UNIT_TEST(NOX_Tpetra_Householder, BasicSolve)
     }
   }
 
+  TEST_ASSERT(solvStatus == NOX::StatusTest::Converged);
+  TEST_EQUALITY(solver->getSolverStatistics()->numNonlinearIterations,5);
+
   // Check final values
   {
     const auto& group = solver->getSolutionGroup();
     const auto& c_group = dynamic_cast<const LOCA::MultiContinuation::ConstrainedGroup&>(group);
-    out << "\nFinal Parameter Value = " << std::setprecision(10) << c_group.getParam(0) << std::endl;
+
+    out << "\nFinal Parameter Value for \"k\" = " << std::setprecision(10) << c_group.getParam(0) << std::endl;
+    out << "Final Parameter Value for \"T_left\" = " << std::setprecision(10) << c_group.getParam(1) << std::endl;
+
     const double tol = 1.0e-3;
     TEST_FLOATING_EQUALITY(c_group.getParam(0),-0.5993277206,tol);
+    TEST_FLOATING_EQUALITY(c_group.getParam(1),1.0,tol);
   }
-  TEST_ASSERT(solvStatus == NOX::StatusTest::Converged);
-  TEST_EQUALITY(solver->getSolverStatistics()->numNonlinearIterations,5);
 }

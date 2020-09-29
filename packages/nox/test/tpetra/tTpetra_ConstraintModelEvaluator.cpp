@@ -91,8 +91,10 @@ TEUCHOS_UNIT_TEST(NOX_Tpetra_1DFEM, Responses)
 
   LOCA::ParameterVector p_vec;
   p_vec.addParameter("k",1.0);
+  p_vec.addParameter("T_left",1.0);
   std::vector<std::string> g_names;
   g_names.push_back("Constraint: T_right=2");
+  g_names.push_back("Constraint: 2*T_left=T_right");
   auto x_thyra = ::Thyra::createMember(model->get_x_space(),"x");
   NOX::Thyra::Vector x(x_thyra);
   LOCA::MultiContinuation::ConstraintModelEvaluator constraints(model,p_vec,g_names,x);
@@ -101,32 +103,48 @@ TEUCHOS_UNIT_TEST(NOX_Tpetra_1DFEM, Responses)
   x.init(1.0);
   constraints.setX(x);
   constraints.setParam(0,1.0);
+  constraints.setParam(1,1.2);
 
   // Compute constraints
   out << "Checking constraints:\n";
   constraints.computeConstraints();
   auto g = constraints.getConstraints();
-  out << "g = " << g(0,0) << std::endl;
   auto tol = std::numeric_limits<Scalar>::epsilon()*100.0;
+  out << "g(0) = " << g(0,0) << std::endl;
   TEST_FLOATING_EQUALITY(g(0,0),-1.0,tol);
-
+  out << "g(1) = " << g(1,0) << std::endl;
+  TEST_FLOATING_EQUALITY(g(1,0),1.0,tol);
 
   // Compute DX
   out << "\nChecking DgDx:\n";
   constraints.computeDX();
   auto input = x.createMultiVector(1,NOX::ShapeCopy);
   input->init(1.0);
-  auto result = x.createMultiVector(1,NOX::ShapeCopy);
-  NOX::Abstract::MultiVector::DenseMatrix b(1,1);
+  auto result = x.createMultiVector(2,NOX::ShapeCopy);
+  NOX::Abstract::MultiVector::DenseMatrix b(2,2);
   b(0,0) = 1.0;
+  b(0,1) = 0.0;
+  b(1,0) = 0.0;
+  b(1,1) = 1.0;
   constraints.addDX(Teuchos::NO_TRANS,1.0,b,0.0,*result);
   auto result_thyra = Teuchos::rcp_dynamic_cast<NOX::Thyra::MultiVector>(result)->getThyraMultiVector();
   auto DgDx = converter::getTpetraMultiVector(result_thyra);
   DgDx->sync_host();
   DgDx->describe(out,Teuchos::VERB_EXTREME);
   auto DgDx_host = DgDx->getLocalViewHost();
-  if (comm->getRank() == (comm->getSize()-1)) {
-    TEST_FLOATING_EQUALITY(DgDx_host(DgDx_host.extent(0)-1,0),1.0,tol);
+  for (size_t i=0; i < DgDx_host.extent(0); ++i) {
+    if ( (comm->getRank() == 0) && (i == 0) ) {
+      TEST_FLOATING_EQUALITY(DgDx_host(0,0),0.0,tol);
+      TEST_FLOATING_EQUALITY(DgDx_host(0,1),2.0,tol);
+    }
+    else if ( (comm->getRank() == (comm->getSize()-1)) && (i == DgDx_host.extent(0)-1) ) {
+      TEST_FLOATING_EQUALITY(DgDx_host(DgDx_host.extent(0)-1,0),1.0,tol);
+      TEST_FLOATING_EQUALITY(DgDx_host(DgDx_host.extent(0)-1,1),-1.0,tol);
+    }
+    else {
+      TEST_FLOATING_EQUALITY(DgDx_host(i,0),0.0,tol);
+      TEST_FLOATING_EQUALITY(DgDx_host(i,1),0.0,tol);
+    }
   }
   Teuchos::Array<NOX::TMultiVector::mag_type> norms(1);
   DgDx->norm2(norms);
@@ -134,12 +152,17 @@ TEUCHOS_UNIT_TEST(NOX_Tpetra_1DFEM, Responses)
 
   // Compute g and DgDp
   out << "\nChecking DgDp:\n";
-  NOX::Abstract::MultiVector::DenseMatrix dgdp(1,2,true); // first col is g
-  std::vector<int> paramIDs(1);
+  NOX::Abstract::MultiVector::DenseMatrix dgdp(2,3,true); // first col is g
+  std::vector<int> paramIDs(2);
   paramIDs[0] = 0;
+  paramIDs[1] = 1;
   constraints.computeDP(paramIDs,dgdp,false);
   TEST_FLOATING_EQUALITY(dgdp(0,0),-1.0,tol);
+  TEST_FLOATING_EQUALITY(dgdp(1,0),1.0,tol);
   TEST_FLOATING_EQUALITY(dgdp(0,1),0.0,tol);
+  TEST_FLOATING_EQUALITY(dgdp(0,2),0.0,tol);
+  TEST_FLOATING_EQUALITY(dgdp(1,1),0.0,tol);
+  TEST_FLOATING_EQUALITY(dgdp(1,2),0.0,tol);
 
   // Test clone/copy
   out << "\nChecking clone and copy methods:\n";

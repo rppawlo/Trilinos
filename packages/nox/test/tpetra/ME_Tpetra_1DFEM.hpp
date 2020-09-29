@@ -49,13 +49,15 @@ evaluatorTpetra1DFEM(const Teuchos::RCP<const Teuchos::Comm<int> >& comm,
       p(1) is a dummy parameter (throws if queried)
       p(2) is a constant "k" multiplier on the source term
       p(3) is a dummy parameter (throws if queried)
-      p(4) is a dummy parameter (throws if queried)
+      p(4) is a temperature on left side node "T_left"
 
       g(0) is a dummy response (throws if queried)
       g(1) is a dummy response (throws if queried)
       g(2) is a dummy response (throws if queried)
       g(3) is a dummy response (throws if queried)
       g(4) = T(zMax) - 2.0
+      g(5) is a dummy response (throws if queried)
+      g(6) = 2.0 * T(zMin) - T(zMax)
 
  \endverbatim
 
@@ -194,6 +196,7 @@ private: // data members
   Teuchos::RCP<const tpetra_map> pMap_; // locally replicated scalar
   Teuchos::RCP<const thyra_vec_space> pSpace_;
   Teuchos::RCP<thyra_vec> p2_; // k value in equation
+  Teuchos::RCP<thyra_vec> p4_; // T_left value in equation Dirichlet BC
   Teuchos::RCP<const tpetra_map> gMap_; // locally replicated scalar
   Teuchos::RCP<const thyra_vec_space> gSpace_;
   Teuchos::RCP<const tpetra_map> dgdpMap_; // locally replicated dense matrix
