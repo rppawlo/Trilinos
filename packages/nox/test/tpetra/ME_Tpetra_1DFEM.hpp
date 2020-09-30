@@ -36,9 +36,9 @@ evaluatorTpetra1DFEM(const Teuchos::RCP<const Teuchos::Comm<int> >& comm,
    dz2
 
    subject to:
-      T  = 1.0 @ z = zMin
+      T  = p(4) = defaults to 1.0 @ z = zMin
       T' = 0.0 @ z = zMax
-      k = 1.0 (independent parameter)
+      k = p(2), defaults to 1.0 (independent parameter)
 
    For LOCA testing, parameters and responses are used to evaluate a
    contraint equation. The parameter k is the unknown variable used to
@@ -49,7 +49,7 @@ evaluatorTpetra1DFEM(const Teuchos::RCP<const Teuchos::Comm<int> >& comm,
       p(1) is a dummy parameter (throws if queried)
       p(2) is a constant "k" multiplier on the source term
       p(3) is a dummy parameter (throws if queried)
-      p(4) is a temperature on left side node "T_left"
+      p(4) is the Dirichlet BC temperature value for left side node "T_left"
 
       g(0) is a dummy response (throws if queried)
       g(1) is a dummy response (throws if queried)
