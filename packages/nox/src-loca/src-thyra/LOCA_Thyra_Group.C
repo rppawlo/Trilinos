@@ -88,7 +88,7 @@ LOCA::Thyra::Group::Group(
         const std::vector<int>& p_index,
         bool impl_dfdp,
         const Teuchos::RCP<const ::Thyra::VectorBase<double> >& weight_vector) :
-  NOX::Thyra::Group(nox_group),
+  NOX::Thyra::Group(nox_group, NOX::DeepCopy),
   LOCA::Abstract::Group(global_data),
   globalData(global_data),
   params(p),

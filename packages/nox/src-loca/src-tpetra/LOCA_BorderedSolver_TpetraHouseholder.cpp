@@ -68,6 +68,9 @@
 #include "LOCA_BorderedSolver_ComplexOperator.H"
 #include "LOCA_Hopf_ComplexMultiVector.H"
 
+// To suppress unreachable return warnings on cuda
+#include "Teuchos_CompilerCodeTweakMacros.hpp"
+
 // Utility for extracting tpetra vector from nox vector
 using ST = NOX::Scalar;
 using LO = NOX::LocalOrdinal;
@@ -999,7 +1002,7 @@ LOCA::BorderedSolver::TpetraHouseholder::solveTranspose(
 
   // Temporary dummy return to quiet warnings. Remove when the code
   // above gets fixed.
-  return NOX::Abstract::Group::Failed;
+  TEUCHOS_UNREACHABLE_RETURN(NOX::Abstract::Group::Failed);
 }
 
 NOX::Abstract::Group::ReturnType
@@ -1101,7 +1104,8 @@ LOCA::BorderedSolver::TpetraHouseholder::createBlockMV(
 {
   TEUCHOS_TEST_FOR_EXCEPTION(true,std::runtime_error,
                              "ERROR: LOCA::BorderedSolver::TpetraHouseholder::createBlockMV - Support for COMPLEX systems not supported!");
-  return Teuchos::null;
+
+  TEUCHOS_UNREACHABLE_RETURN(Teuchos::null);
 
   /*
 #ifdef HAVE_NOX_EPETRAEXT

@@ -140,7 +140,7 @@ TEUCHOS_UNIT_TEST(NOX_Tpetra_Householder, BasicSolve)
   // Create nox parameter list
   auto& nl_params = pList->sublist("NOX");
   nl_params.set("Nonlinear Solver", "Line Search Based");
-  nl_params.sublist("Direction").sublist("Newton").sublist("Linear Solver").set("Tolerance", 1.0e-4);
+  nl_params.sublist("Direction").sublist("Newton").sublist("Linear Solver").set("Tolerance", 1.0e-8);
   auto& ls_params = nl_params.sublist("Line Search");
   ls_params.set("Method","Full Step");
   auto& output_list = nl_params.sublist("Printing").sublist("Output Information");
