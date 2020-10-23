@@ -110,6 +110,15 @@
 
 #include <Panzer_NodeType.hpp>
 
+// HACKED for Constraints testing
+#include "NOX_TpetraTypedefs.hpp"
+#include "LOCA_Tpetra_Factory.hpp"
+#include "LOCA_Thyra_Group.H"
+#include "LOCA_MultiContinuation_ConstrainedGroup.H"
+#include "LOCA_Tpetra_ConstraintModelEvaluator.hpp"
+#include "LOCA_Parameter_SublistParser.H"
+
+
 namespace panzer_stk {
 
   template<typename ScalarT>
@@ -576,9 +585,9 @@ namespace panzer_stk {
 
     // build worksets
     //////////////////////////////////////////////////////////////
-   
+
     // build up needs array for workset container
-    std::map<std::string,panzer::WorksetNeeds> needs;  
+    std::map<std::string,panzer::WorksetNeeds> needs;
     for(std::size_t i=0;i<physicsBlocks.size();i++)
       needs[physicsBlocks[i]->elementBlockID()] = physicsBlocks[i]->getWorksetNeeds();
 
@@ -598,7 +607,7 @@ namespace panzer_stk {
       max_wksets = std::max(max_wksets,works->size());
     }
     user_data_params.set<std::size_t>("Max Worksets",max_wksets);
-    wkstContainer->clear(); 
+    wkstContainer->clear();
 
     // Setup lagrangian type coordinates
     /////////////////////////////////////////////////////////////
@@ -751,7 +760,7 @@ namespace panzer_stk {
       // For now just remove Global MMS Parameters, if it exists
       const Teuchos::ParameterList& models = p.sublist("Closure Models");
       Teuchos::ParameterList cl_models(models.name());
-      for (Teuchos::ParameterList::ConstIterator model_it=models.begin(); 
+      for (Teuchos::ParameterList::ConstIterator model_it=models.begin();
            model_it!=models.end(); ++model_it) {
            std::string key = model_it->first;
            if (model_it->first != "Global MMS Parameters")
@@ -1227,6 +1236,110 @@ namespace panzer_stk {
       piro_params->sublist("NOX").sublist("Printing").set<Teuchos::RCP<std::ostream> >("Error Stream",global_data->os);
       piro_params->sublist("NOX").sublist("Printing").set<int>("Output Processor",global_data->os->getOutputToRootOnly());
     }
+    else if (solver=="NOX-Constrained") {
+      auto initial_guess = thyra_me->getNominalValues().get_x();
+
+      Teuchos::RCP<NOX::Thyra::Group> nox_group =
+        Teuchos::rcp(new NOX::Thyra::Group(*initial_guess,
+                                           thyra_me,
+                                           Teuchos::null, Teuchos::null, Teuchos::null,
+                                           false));
+
+      Teuchos::RCP<LOCA::Abstract::Factory> tpetra_factory = Teuchos::rcp(new LOCA::Tpetra::Factory);
+
+      auto top_params = Teuchos::sublist(this->getNonconstParameterList(),"Solution Control",true);
+      Teuchos::RCP<LOCA::GlobalData> loca_global_data = LOCA::createGlobalData(top_params, tpetra_factory);
+
+
+
+      for (int i=0; i < thyra_me->Np(); ++i) {
+        auto p_names = thyra_me->get_p_names(i);
+        for (int j=0; j < p_names->size(); ++j)
+          *(global_data->os) << "Parameter(" << i << ")=" << (*p_names)[j] << std::endl; 
+      }
+      for (int i=0; i < thyra_me->Ng(); ++i) {
+        auto g_names = thyra_me->get_g_names(i);
+        for (int j=0; j < g_names.size(); ++j)
+          *(global_data->os) << "Response(" << i << ")=" << (g_names)[j] << std::endl; 
+      }
+
+      Teuchos::RCP<LOCA::ParameterVector> p_vec = Teuchos::rcp(new LOCA::ParameterVector);
+      p_vec->addParameter("anodeResistorContactVoltage", 1.0); // Source term multiplier
+
+      std::vector<int> me_p_indices;
+      me_p_indices.push_back(2);
+      me_p_indices.push_back(4);
+      Teuchos::RCP<LOCA::Thyra::Group> loca_group = Teuchos::rcp(new LOCA::Thyra::Group(loca_global_data,
+                                                                                        *nox_group,
+                                                                                        *p_vec,
+                                                                                        me_p_indices));
+
+      auto g_names = Teuchos::rcp(new std::vector<std::string>);
+      g_names->push_back("anode_silicon_Current");
+      auto x_thyra = ::Thyra::createMember(thyra_me->get_x_space(),"x");
+      NOX::Thyra::Vector x(x_thyra);
+      auto constraints = Teuchos::rcp(new LOCA::MultiContinuation::ConstraintModelEvaluator(thyra_me,*p_vec,*g_names,x));
+      // Set initial parameter conditions
+      constraints->setX(x);
+      constraints->setParam(0,1.0);
+      constraints->setParam(1,1.2);
+
+      // Create the constraints list
+      auto& locaParamsList = top_params->sublist("LOCA");
+      auto& constraint_list = locaParamsList.sublist("Constraints");
+      constraint_list.set("Bordered Solver Method", "Householder");
+      constraint_list.set("Constraint Object", constraints);
+      constraint_list.set("Constraint Parameter Names", g_names);
+
+      auto loca_parser = Teuchos::rcp(new LOCA::Parameter::SublistParser(loca_global_data));
+      loca_parser->parseSublists(top_params);
+
+      std::vector<int> param_ids(2);
+      param_ids[0] = 0;
+      param_ids[1] = 1;
+      auto constraint_list_ptr = Teuchos::rcpFromRef(constraint_list);
+
+      Teuchos::RCP<LOCA::MultiContinuation::ConstrainedGroup> loca_constrained_group =
+        Teuchos::rcp(new LOCA::MultiContinuation::ConstrainedGroup(loca_global_data,
+                                                                   loca_parser,
+                                                                   constraint_list_ptr,
+                                                                   loca_group,
+                                                                   constraints,
+                                                                   param_ids,
+                                                                   false));
+
+      loca_constrained_group->computeF();
+
+      // Create the NOX status tests and the solver
+      // Create the convergence tests
+      Teuchos::RCP<NOX::StatusTest::NormF> absresid =
+        Teuchos::rcp(new NOX::StatusTest::NormF(1.0e-8));
+      Teuchos::RCP<NOX::StatusTest::NormWRMS> wrms =
+        Teuchos::rcp(new NOX::StatusTest::NormWRMS(1.0e-2, 1.0e-8));
+      Teuchos::RCP<NOX::StatusTest::Combo> converged =
+        Teuchos::rcp(new NOX::StatusTest::Combo(NOX::StatusTest::Combo::AND));
+      converged->addStatusTest(absresid);
+      converged->addStatusTest(wrms);
+      Teuchos::RCP<NOX::StatusTest::MaxIters> maxiters =
+        Teuchos::rcp(new NOX::StatusTest::MaxIters(10));
+      Teuchos::RCP<NOX::StatusTest::FiniteValue> fv =
+        Teuchos::rcp(new NOX::StatusTest::FiniteValue);
+      Teuchos::RCP<NOX::StatusTest::Combo> combo =
+        Teuchos::rcp(new NOX::StatusTest::Combo(NOX::StatusTest::Combo::OR));
+      combo->addStatusTest(fv);
+      combo->addStatusTest(converged);
+      combo->addStatusTest(maxiters);
+
+      // Create the solver
+      // auto solver = NOX::Solver::buildSolver(nox_group, combo, Teuchos::rcpFromRef(pList->sublist("NOX")));
+      // auto solver = NOX::Solver::buildSolver(loca_group, combo, Teuchos::rcpFromRef(pList->sublist("NOX")));
+      auto solver = NOX::Solver::buildSolver(loca_constrained_group, combo, Teuchos::sublist(top_params,"NOX"));
+
+      NOX::StatusTest::StatusType solvStatus = solver->solve();
+
+      std::cout << "ROGER exiting" << std::endl;
+      exit(0);
+    }
     else if (solver=="Rythmos") {
 
       TEUCHOS_TEST_FOR_EXCEPTION(Teuchos::is_null(rythmos_observer_factory), std::runtime_error,
@@ -1318,7 +1431,7 @@ namespace panzer_stk {
       fmb->writeVolumeTextDependencyFiles(graphPrefix, physicsBlocks);
       fmb->writeBCTextDependencyFiles(field_manager_prefix);
     }
-    
+
     return fmb;
   }
 
