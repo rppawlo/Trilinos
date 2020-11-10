@@ -1267,8 +1267,7 @@ namespace panzer_stk {
       p_vec->addParameter("anodeResistorContactVoltage", 1.0); // Source term multiplier
 
       std::vector<int> me_p_indices;
-      me_p_indices.push_back(2);
-      me_p_indices.push_back(4);
+      me_p_indices.push_back(0);
       Teuchos::RCP<LOCA::Thyra::Group> loca_group = Teuchos::rcp(new LOCA::Thyra::Group(loca_global_data,
                                                                                         *nox_group,
                                                                                         *p_vec,
@@ -1282,7 +1281,7 @@ namespace panzer_stk {
       // Set initial parameter conditions
       constraints->setX(x);
       constraints->setParam(0,1.0);
-      constraints->setParam(1,1.2);
+      // constraints->setParam(1,1.2);
 
       // Create the constraints list
       auto& locaParamsList = top_params->sublist("LOCA");
@@ -1294,9 +1293,8 @@ namespace panzer_stk {
       auto loca_parser = Teuchos::rcp(new LOCA::Parameter::SublistParser(loca_global_data));
       loca_parser->parseSublists(top_params);
 
-      std::vector<int> param_ids(2);
+      std::vector<int> param_ids(1);
       param_ids[0] = 0;
-      param_ids[1] = 1;
       auto constraint_list_ptr = Teuchos::rcpFromRef(constraint_list);
 
       Teuchos::RCP<LOCA::MultiContinuation::ConstrainedGroup> loca_constrained_group =
