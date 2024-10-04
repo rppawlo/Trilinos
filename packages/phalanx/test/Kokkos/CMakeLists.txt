@@ -31,12 +31,17 @@ TRIBITS_ADD_EXECUTABLE_AND_TEST(
   NUM_MPI_PROCS 1
   )
 
-TRIBITS_ADD_EXECUTABLE_AND_TEST(
-  tKokkosVirtualFunctionOnDevice
-  SOURCES tKokkosVirtualFunctionOnDevice.cpp
-  TESTONLYLIBS phalanx_unit_test_main phalanx_test_utilities
-  NUM_MPI_PROCS 1
-  )
+# SYCL does not currently support virtual functions on device. Work is
+# happening in: https://github.com/intel/llvm/pull/10540
+
+IF (NOT Kokkos_ENABLE_SYCL)
+  TRIBITS_ADD_EXECUTABLE_AND_TEST(
+    tKokkosVirtualFunctionOnDevice
+    SOURCES tKokkosVirtualFunctionOnDevice.cpp
+    TESTONLYLIBS phalanx_unit_test_main phalanx_test_utilities
+    NUM_MPI_PROCS 1
+    )
+ENDIF()
 
 TRIBITS_ADD_EXECUTABLE_AND_TEST(
   tKokkosViewOfViews
@@ -62,5 +67,12 @@ TRIBITS_ADD_EXECUTABLE_AND_TEST(
   tKokkosFencing
   SOURCES tKokkosFencing.cpp
   TESTONLYLIBS phalanx_test_utilities
+  NUM_MPI_PROCS 1
+  )
+
+TRIBITS_ADD_EXECUTABLE_AND_TEST(
+  tKokkosQueryDeviceMapping
+  SOURCES tKokkosQueryDeviceMapping.cpp
+  TESTONLYLIBS phalanx_unit_test_main phalanx_test_utilities
   NUM_MPI_PROCS 1
   )
