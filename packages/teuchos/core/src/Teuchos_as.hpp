@@ -1279,7 +1279,7 @@ public:
     // 8).
     if (sizeof (long) < sizeof (double)) {
       TEUCHOS_TEST_FOR_EXCEPTION(
-        t < minVal || t > maxVal,
+        t < static_cast<double>(minVal) || t > static_cast<double>(maxVal),
         std::range_error,
         "Teuchos::ValueTypeConversionTraits<long, double>::safeConvert: "
         "Input double t = " << t << " is out of the valid range [" << minVal
@@ -1484,7 +1484,7 @@ public:
     // we only do the test for Case 1.
     if (sizeof (int) < sizeof (float)) {
       TEUCHOS_TEST_FOR_EXCEPTION(
-        t < minVal || t > maxVal,
+        t < static_cast<double>(minVal) || t > static_cast<double>(maxVal),
         std::range_error,
         "Teuchos::ValueTypeConversionTraits<int, float>::safeConvert: "
         "Input float t = " << t << " is out of the valid range ["

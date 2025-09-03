@@ -47,7 +47,7 @@
 #include "Sacado_ELRCacheFad_DFadTraits.hpp"
 #include "Sacado_ELRCacheFad_SFadTraits.hpp"
 #include "Sacado_ELRCacheFad_SLFadTraits.hpp"
-#if !defined(__CUDACC__) && !defined(__HIPCC__ )
+#if !defined(__CUDACC__) && !defined(__HIPCC__) && !defined(__SYCL_DEVICE_ONLY__)
 #include "Sacado_Fad_DVFadTraits.hpp"
 #include "Sacado_LFad_LogicalSparseTraits.hpp"
 #include "Sacado_ScalarFlopCounterTraits.hpp"
@@ -90,7 +90,7 @@
 //
 // AD classes that won't or don't build under Cuda
 //
-#ifndef __CUDACC__
+#if !defined(__CUDACC__) && !defined(__HIPCC__) && !defined(__SYCL_DEVICE_ONLY__)
 
 // Standard forward AD classes
 #include "Sacado_Fad_DVFad.hpp"

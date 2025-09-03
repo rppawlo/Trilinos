@@ -104,21 +104,32 @@ namespace Sacado {
       }
 
       // Helper function to decide if we are using team-based parallelism
+#if defined(KOKKOS_ENABLE_CUDA) || defined(KOKKOS_ENABLE_HIP) || defined (KOKKOS_ENABLE_SYCL)
+
 #if defined(KOKKOS_ENABLE_CUDA) || defined(KOKKOS_ENABLE_HIP)
       __device__
+#endif
+
       inline bool atomics_use_team() {
 #if defined(SACADO_VIEW_CUDA_HIERARCHICAL) || defined(SACADO_VIEW_CUDA_HIERARCHICAL_DFAD)
         // It is not allowed to define SACADO_VIEW_CUDA_HIERARCHICAL or
         // SACADO_VIEW_CUDA_HIERARCHICAL_DFAD and use Sacado inside a team-based
         // kernel without Sacado hierarchical parallelism.  So use the
         // team-based version only if blockDim.x > 1 (i.e., a team policy)
+#if defined(KOKKOS_ENABLE_CUDA) || defined(KOKKOS_ENABLE_HIP)
         return (blockDim.x > 1);
+#elif defined(KOKKOS_ENABLE_SYCL)
+	// Teams in sycl use second block dimension
+	static_assert(SYCL_EXT_ONEAPI_FREE_FUNCTION_QUERIES);
+	auto query = sycl::ext::oneapi::experimental::this_nd_item<2>();
+	return (query.get_local_range().get(0) > 1);
+#endif
 #else
         return false;
 #endif
       }
 #endif
-
+      
 #if defined(KOKKOS_ENABLE_CUDA)
 
       // Our implementation of Kokkos::atomic_oper_fetch() and
@@ -328,8 +339,51 @@ namespace Sacado {
       atomic_oper_fetch_device(const Oper& op, DestPtrT dest, ValT* dest_val,
                                const Expr<T>& x)
       {
-        Kokkos::abort("Not implemented!");
-        return {};
+        typedef typename Sacado::BaseExprType< Expr<T> >::type return_type;
+        const typename Expr<T>::derived_type& val = x.derived();
+
+        auto scope = desul::MemoryScopeDevice();
+
+        if (atomics_use_team()) {
+          int go = 1;
+	  // auto sg = sycl::ext::oneapi::this_work_item::get_sub_group();
+	  auto sg = sycl::ext::oneapi::experimental::this_sub_group();
+	  while (go) {
+            if (sycl::ext::oneapi::experimental::this_nd_item<2>().get_local_id(0) == 0)
+              go = !desul::Impl::lock_address_sycl((void*)dest_val, scope);
+            // go = Kokkos::shfl(go, 0, sycl::ext::oneapi::experimental::this_nd_item<3>().get_local_range(2));
+	    go = sycl::select_from_group(sg,go,0);
+          }
+          desul::atomic_thread_fence(desul::MemoryOrderAcquire(), scope);
+          return_type return_val = op.apply(*dest, val);
+          *dest                  = return_val;
+          desul::atomic_thread_fence(desul::MemoryOrderRelease(), scope);
+          if (sycl::ext::oneapi::experimental::this_nd_item<2>().get_local_id(0) == 0)
+            desul::Impl::unlock_address_sycl((void*)dest_val, scope);
+          return return_val;
+        }
+        else {
+          return_type return_val;
+          // This is a way to avoid dead lock in a warp
+          int done                 = 0;
+	  auto sg = sycl::ext::oneapi::experimental::this_sub_group();
+	  sycl::ext::oneapi::sub_group_mask active = sycl::ext::oneapi::group_ballot(sg, 1);
+	  sycl::ext::oneapi::sub_group_mask done_active = sycl::ext::oneapi::group_ballot(sg, 0);
+          while (active != done_active) {
+            if (!done) {
+              if (desul::Impl::lock_address_sycl((void*)dest_val, scope)) {
+                desul::atomic_thread_fence(desul::MemoryOrderAcquire(), scope);
+                return_val = op.apply(*dest, val);
+                *dest      = return_val;
+                desul::atomic_thread_fence(desul::MemoryOrderRelease(), scope);
+                desul::Impl::unlock_address_sycl((void*)dest_val, scope);
+                done = 1;
+              }
+            }
+            done_active = group_ballot(sg, done);
+          }
+          return return_val;
+        }
       }
 
       template <typename Oper, typename DestPtrT, typename ValT, typename T>
@@ -337,8 +391,51 @@ namespace Sacado {
       atomic_fetch_oper_device(const Oper& op, DestPtrT dest, ValT* dest_val,
                                const Expr<T>& x)
       {
-        Kokkos::abort("Not implemented!");
-        return {};
+        typedef typename Sacado::BaseExprType< Expr<T> >::type return_type;
+        const typename Expr<T>::derived_type& val = x.derived();
+
+        auto scope = desul::MemoryScopeDevice();
+
+        if (atomics_use_team()) {
+          int go = 1;
+	  // auto sg = sycl::ext::oneapi::this_work_item::get_sub_group();
+	  auto sg = sycl::ext::oneapi::experimental::this_sub_group();
+          while (go) {
+            if (sycl::ext::oneapi::experimental::this_nd_item<2>().get_local_id(0) == 0)
+              go = !desul::Impl::lock_address_sycl((void*)dest_val, scope);
+            // go = Kokkos::shfl(go, 0, blockDim.x);
+	    go = sycl::select_from_group(sg,go,0);
+          }
+          desul::atomic_thread_fence(desul::MemoryOrderAcquire(), scope);
+          return_type return_val = *dest;
+          *dest                  = op.apply(return_val, val);
+          desul::atomic_thread_fence(desul::MemoryOrderRelease(), scope);
+          if (sycl::ext::oneapi::experimental::this_nd_item<2>().get_local_id(0) == 0)
+            desul::Impl::unlock_address_sycl((void*)dest_val, scope);
+          return return_val;
+        }
+        else {
+          return_type return_val;
+          // This is a way to (hopefully) avoid dead lock in a warp
+          int done = 0;
+	  auto sg = sycl::ext::oneapi::experimental::this_sub_group();
+	  sycl::ext::oneapi::sub_group_mask active = sycl::ext::oneapi::group_ballot(sg, 1);
+	  sycl::ext::oneapi::sub_group_mask done_active = sycl::ext::oneapi::group_ballot(sg, 0);
+          while (active != done_active) {
+            if (!done) {
+              if (desul::Impl::lock_address_sycl((void*)dest_val, scope)) {
+                desul::atomic_thread_fence(desul::MemoryOrderAcquire(), scope);
+                return_val = *dest;
+                *dest      = op.apply(return_val, val);
+                desul::atomic_thread_fence(desul::MemoryOrderRelease(), scope);
+                desul::Impl::unlock_address_sycl((void*)dest_val, scope);
+                done = 1;
+              }
+            }
+            done_active = group_ballot(sg, done);
+          }
+          return return_val;
+        }
       }
 #endif
 

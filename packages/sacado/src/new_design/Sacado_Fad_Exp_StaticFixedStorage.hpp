@@ -15,6 +15,7 @@
 
 #include "Sacado_ConfigDefs.h"
 #include "Sacado_StaticArrayTraits.hpp"
+#include <Kokkos_Abort.hpp>
 
 namespace Sacado {
 
@@ -75,9 +76,9 @@ namespace Sacado {
       StaticFixedStorage(const int sz, const T & x,
                          const DerivInit zero_out = InitDerivArray) :
         val_(x) {
-#if defined(SACADO_DEBUG) && !defined(__CUDA_ARCH__ ) && !defined(__HIP_DEVICE_COMPILE__)
+#if defined(SACADO_DEBUG)
         if (sz != Num)
-          throw "StaticFixedStorage::StaticFixedStorage() Error:  Supplied derivative dimension does not equal static length.";
+	  Kokkos::abort("StaticFixedStorage::StaticFixedStorage() Error:  Supplied derivative dimension does not equal static length.");
 #endif
         if (zero_out == InitDerivArray)
           ss_array<T>::zero(dx_, Num);
@@ -158,9 +159,9 @@ namespace Sacado {
       //! Resize the derivative array to sz
       SACADO_INLINE_FUNCTION
       void resize(int sz) {
-#if defined(SACADO_DEBUG) && !defined(__CUDA_ARCH__ ) && !defined(__HIP_DEVICE_COMPILE__)
+#if defined(SACADO_DEBUG)
         if (sz != 0 && sz != Num)
-          throw "StaticFixedStorage::resize() Error:  Cannot resize fixed storage length.";
+	  Kokkos::abort("StaticFixedStorage::resize() Error:  Cannot resize fixed storage length.");
 #endif
         // Because we don't track a "used" length and can't set the length to 0,
         // we need to instead zero out derivative components if the length
@@ -172,9 +173,9 @@ namespace Sacado {
       //! Resize the derivative array to sz
       SACADO_INLINE_FUNCTION
       void resizeAndZero(int sz) {
-#if defined(SACADO_DEBUG) && !defined(__CUDA_ARCH__ ) && !defined(__HIP_DEVICE_COMPILE__)
+#if defined(SACADO_DEBUG)
         if (sz != 0 && sz != Num)
-          throw "StaticFixedStorage::resize() Error:  Cannot resize fixed storage length.";
+	  Kokkos::abort("StaticFixedStorage::resize() Error:  Cannot resize fixed storage length.");
 #endif
         ss_array<T>::zero(dx_, Num);
       }
@@ -182,9 +183,9 @@ namespace Sacado {
       //! Expand derivative array to size sz
       SACADO_INLINE_FUNCTION
       void expand(int sz) {
-#if defined(SACADO_DEBUG) && !defined(__CUDA_ARCH__ ) && !defined(__HIP_DEVICE_COMPILE__)
+#if defined(SACADO_DEBUG)
         if (sz != Num)
-          throw "StaticFixedStorage::expand() Error:  Cannot resize fixed storage length.";
+	  Kokkos::abort("StaticFixedStorage::expand() Error:  Cannot resize fixed storage length.");
 #endif
       }
 

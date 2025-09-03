@@ -499,6 +499,128 @@ IF (Sacado_ENABLE_TeuchosCore)
 #        )
     ENDIF()
 
+    IF (Kokkos_ENABLE_SYCL)
+      IF (Sacado_ENABLE_TeuchosKokkosComm)
+        TRIBITS_ADD_EXECUTABLE_AND_TEST(
+          Fad_Kokkos_CommTests_SYCL
+          SOURCES Fad_Kokkos_CommTests_SYCL.cpp Fad_CommTests.hpp ${UTILS_SOURCES}
+          ARGS
+          COMM serial mpi
+          STANDARD_PASS_OUTPUT
+          )
+      ENDIF()
+
+      TRIBITS_ADD_EXECUTABLE_AND_TEST(
+        FadKokkosTests_SYCL
+        SOURCES Fad_KokkosTests.hpp
+                Fad_KokkosTests_SYCL.cpp
+        COMM serial mpi
+        STANDARD_PASS_OUTPUT
+        NUM_MPI_PROCS 1
+        RUN_SERIAL
+        )
+
+      #TRIBITS_ADD_EXECUTABLE_AND_TEST(
+      #  FadKokkosTests_Cuda_Hierarchical
+      #  SOURCES Fad_KokkosTests.hpp
+      #          Fad_KokkosTests_Cuda_Hierarchical.cpp
+      #  COMM serial mpi
+      #  STANDARD_PASS_OUTPUT
+      #  NUM_MPI_PROCS 1
+      #  RUN_SERIAL
+      #  )
+
+      #TRIBITS_ADD_EXECUTABLE_AND_TEST(
+      #  FadKokkosTests_Cuda_Hierarchical_SFad
+      #  SOURCES Fad_KokkosTests.hpp
+      #          Fad_KokkosTests_Cuda_Hierarchical_SFad.cpp
+      #  COMM serial mpi
+      #  STANDARD_PASS_OUTPUT
+      #  NUM_MPI_PROCS 1
+      #  RUN_SERIAL
+      #  )
+
+      #TRIBITS_ADD_EXECUTABLE_AND_TEST(
+      #  FadKokkosTests_Cuda_Hierarchical_DFad
+      #  SOURCES Fad_KokkosTests.hpp
+      #          Fad_KokkosTests_Cuda_Hierarchical_DFad.cpp
+      #  COMM serial mpi
+      #  STANDARD_PASS_OUTPUT
+      #  NUM_MPI_PROCS 1
+      #  RUN_SERIAL
+      #  )
+
+      #TRIBITS_ADD_EXECUTABLE_AND_TEST(
+      #  FadKokkosTests_NoViewSpec_Cuda
+      #  SOURCES Fad_KokkosTests.hpp
+      #          Fad_KokkosTests_NoViewSpec_Cuda.cpp
+      #  COMM serial mpi
+      #  STANDARD_PASS_OUTPUT
+      #  NUM_MPI_PROCS 1
+      #  RUN_SERIAL
+      #  )
+
+      #TRIBITS_ADD_EXECUTABLE_AND_TEST(
+      #  FadFadKokkosTests_Cuda
+      #  SOURCES Fad_Fad_KokkosTests.hpp
+      #          Fad_Fad_KokkosTests_Cuda.cpp
+      #  COMM serial mpi
+      #  STANDARD_PASS_OUTPUT
+      #  NUM_MPI_PROCS 1
+      #  RUN_SERIAL
+      #  )
+
+      #TRIBITS_ADD_EXECUTABLE_AND_TEST(
+      #  FadKokkosAtomicTests_Cuda
+      #  SOURCES Fad_KokkosAtomicTests.hpp
+      #          Fad_KokkosAtomicTests_Cuda.cpp
+      #  COMM serial mpi
+      #  STANDARD_PASS_OUTPUT
+      #  NUM_MPI_PROCS 1
+      #  RUN_SERIAL
+      #  )
+
+      #TRIBITS_ADD_EXECUTABLE_AND_TEST(
+      #  FadKokkosAtomicTests_NoViewSpec_Cuda
+      #  SOURCES Fad_KokkosAtomicTests.hpp
+      #          Fad_KokkosAtomicTests_NoViewSpec_Cuda.cpp
+      #  COMM serial mpi
+      #  STANDARD_PASS_OUTPUT
+      #  NUM_MPI_PROCS 1
+      #  RUN_SERIAL
+      #  )
+
+      #TRIBITS_ADD_EXECUTABLE_AND_TEST(
+      #  FadKokkosAtomicTests_Cuda_Hierarchical
+      #  SOURCES Fad_KokkosAtomicTests.hpp
+      #          Fad_KokkosAtomicTests_Cuda_Hierarchical.cpp
+      #  COMM serial mpi
+      #  STANDARD_PASS_OUTPUT
+      #  NUM_MPI_PROCS 1
+      #  RUN_SERIAL
+      #  )
+
+      #TRIBITS_ADD_EXECUTABLE_AND_TEST(
+      #  FadKokkosAtomicTests_Cuda_Hierarchical_SFad
+      #  SOURCES Fad_KokkosAtomicTests.hpp
+      #          Fad_KokkosAtomicTests_Cuda_Hierarchical_SFad.cpp
+      #  COMM serial mpi
+      #  STANDARD_PASS_OUTPUT
+      #  NUM_MPI_PROCS 1
+      #  RUN_SERIAL
+      #  )
+
+      #TRIBITS_ADD_EXECUTABLE_AND_TEST(
+      #  FadKokkosAtomicTests_Cuda_Hierarchical_DFad
+      #  SOURCES Fad_KokkosAtomicTests.hpp
+      #          Fad_KokkosAtomicTests_Cuda_Hierarchical_DFad.cpp
+      #  COMM serial mpi
+      #  STANDARD_PASS_OUTPUT
+      #  NUM_MPI_PROCS 1
+      #  RUN_SERIAL
+      #  )
+    ENDIF()
+
     TRIBITS_ADD_EXECUTABLE_AND_TEST(
       ViewFactoryTests
       SOURCES ViewFactoryTests.cpp

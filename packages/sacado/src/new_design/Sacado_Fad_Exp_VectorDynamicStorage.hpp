@@ -15,6 +15,7 @@
 
 #include "Sacado_Traits.hpp"
 #include "Sacado_DynamicArrayTraits.hpp"
+#include <Kokkos_Abort.hpp>
 
 namespace Sacado {
 
@@ -123,9 +124,9 @@ namespace Sacado {
           if (sz_ != x.sz_) {
             sz_ = x.sz_;
             if (x.sz_ > len_) {
-#if defined(SACADO_DEBUG) && !defined(__CUDA_ARCH__ ) && !defined(__HIP_DEVICE_COMPILE__)
+#if defined(SACADO_DEBUG)
               if (!owns_mem)
-                throw "Can\'t resize beyond original size when memory isn't owned!";
+		Kokkos::abort("Can\'t resize beyond original size when memory isn't owned!");
 #endif
               if (len_ != 0)
                 ds_array<U>::destroy_and_release(dx_, len_);
@@ -160,9 +161,9 @@ namespace Sacado {
       SACADO_INLINE_FUNCTION
       void resize(int sz) {
         if (sz > len_) {
-#if defined(SACADO_DEBUG) && !defined(__CUDA_ARCH__ ) && !defined(__HIP_DEVICE_COMPILE__)
+#if defined(SACADO_DEBUG)
           if (!owns_mem)
-              throw "Can\'t resize beyond original size when memory isn't owned!";
+	    Kokkos::abort("Can\'t resize beyond original size when memory isn't owned!");
 #endif
           if (len_ != 0)
             ds_array<U>::destroy_and_release(dx_, len_);
@@ -180,9 +181,9 @@ namespace Sacado {
       SACADO_INLINE_FUNCTION
       void resizeAndZero(int sz) {
         if (sz > len_) {
-#if defined(SACADO_DEBUG) && !defined(__CUDA_ARCH__ ) && !defined(__HIP_DEVICE_COMPILE__)
+#if defined(SACADO_DEBUG)
           if (!owns_mem)
-              throw "Can\'t resize beyond original size when memory isn't owned!";
+	    Kokkos::abort("Can\'t resize beyond original size when memory isn't owned!");
 #endif
           if (len_ != 0)
             ds_array<U>::destroy_and_release(dx_, len_);
@@ -202,9 +203,9 @@ namespace Sacado {
       SACADO_INLINE_FUNCTION
       void expand(int sz) {
         if (sz > len_) {
-#if defined(SACADO_DEBUG) && !defined(__CUDA_ARCH__ ) && !defined(__HIP_DEVICE_COMPILE__)
+#if defined(SACADO_DEBUG)
           if (!owns_mem)
-              throw "Can\'t resize beyond original size when memory isn't owned!";
+	    Kokkos::abort("Can\'t resize beyond original size when memory isn't owned!");
 #endif
           U* dx_new = ds_array<U>::get_and_fill(sz);
           ds_array<U>::copy(dx_, dx_new, sz_);

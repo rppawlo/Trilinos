@@ -10,6 +10,8 @@
 #ifndef SACADO_FAD_EXP_EXPRASSIGN_HPP
 #define SACADO_FAD_EXP_EXPRASSIGN_HPP
 
+#include <Kokkos_Abort.hpp>
+
 namespace Sacado {
 
   namespace Fad {
@@ -18,6 +20,8 @@ namespace Sacado {
 #ifndef SACADO_FAD_DERIV_LOOP
 #if defined(SACADO_VIEW_CUDA_HIERARCHICAL_DFAD) && !defined(SACADO_DISABLE_CUDA_IN_KOKKOS) && ( defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__) )
 #define SACADO_FAD_DERIV_LOOP(I,SZ) for (int I=threadIdx.x; I<SZ; I+=blockDim.x)
+#elif  defined(SACADO_VIEW_CUDA_HIERARCHICAL_DFAD) && !defined(SACADO_DISABLE_CUDA_IN_KOKKOS) && defined(__SYCL_DEVICE_ONLY__)
+#define SACADO_FAD_DERIV_LOOP(I,SZ) for (int I=sycl::ext::oneapi::experimental::this_nd_item<2>().get_local_id(0); I<SZ; I+=sycl::ext::oneapi::experimental::this_nd_item<2>().get_local_range(0))    
 #else
 #define SACADO_FAD_DERIV_LOOP(I,SZ) for (int I=0; I<SZ; ++I)
 #endif
@@ -26,6 +30,8 @@ namespace Sacado {
 #ifndef SACADO_FAD_THREAD_SINGLE
 #if (defined(SACADO_VIEW_CUDA_HIERARCHICAL) || defined(SACADO_VIEW_CUDA_HIERARCHICAL_DFAD)) && !defined(SACADO_DISABLE_CUDA_IN_KOKKOS) && ( defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__) )
 #define SACADO_FAD_THREAD_SINGLE if (threadIdx.x == 0)
+#elif (defined(SACADO_VIEW_CUDA_HIERARCHICAL) || defined(SACADO_VIEW_CUDA_HIERARCHICAL_DFAD)) && !defined(SACADO_DISABLE_CUDA_IN_KOKKOS) && defined(__SYCL_DEVICE_ONLY__)
+#define SACADO_FAD_THREAD_SINGLE if (sycl::ext::oneapi::experimental::this_nd_item<2>().get_local_id(0) == 0)
 #else
 #define SACADO_FAD_THREAD_SINGLE /* */
 #endif
@@ -83,11 +89,11 @@ namespace Sacado {
       {
         const int xsz = x.size(), sz = dst.size();
 
-#if defined(SACADO_DEBUG) && !defined(__CUDA_ARCH__ ) && !defined(__HIP_DEVICE_COMPILE__ )
+#if defined(SACADO_DEBUG)
         if ((xsz != sz) && (xsz != 0) && (sz != 0))
-          throw "Fad Error:  Attempt to assign with incompatible sizes";
+	  Kokkos::abort("Fad Error:  Attempt to assign with incompatible sizes");
 #endif
-
+	
         if (xsz) {
           if (sz) {
             if (x.hasFastAccess())
@@ -118,9 +124,9 @@ namespace Sacado {
       {
         const int xsz = x.size(), sz = dst.size();
 
-#if defined(SACADO_DEBUG) && !defined(__CUDA_ARCH__ ) && !defined(__HIP_DEVICE_COMPILE__ )
+#if defined(SACADO_DEBUG)
         if ((xsz != sz) && (xsz != 0) && (sz != 0))
-          throw "Fad Error:  Attempt to assign with incompatible sizes";
+	  Kokkos::abort("Fad Error:  Attempt to assign with incompatible sizes");
 #endif
 
         if (xsz) {
@@ -155,9 +161,9 @@ namespace Sacado {
         const value_type xval = x.val();
         const value_type v = dst.val();
 
-#if defined(SACADO_DEBUG) && !defined(__CUDA_ARCH__ ) && !defined(__HIP_DEVICE_COMPILE__ )
+#if defined(SACADO_DEBUG)
         if ((xsz != sz) && (xsz != 0) && (sz != 0))
-          throw "Fad Error:  Attempt to assign with incompatible sizes";
+	  Kokkos::abort("Fad Error:  Attempt to assign with incompatible sizes");
 #endif
 
         if (xsz) {
@@ -198,9 +204,9 @@ namespace Sacado {
         const value_type xval = x.val();
         const value_type v = dst.val();
 
-#if defined(SACADO_DEBUG) && !defined(__CUDA_ARCH__ ) && !defined(__HIP_DEVICE_COMPILE__ )
+#if defined(SACADO_DEBUG)
         if ((xsz != sz) && (xsz != 0) && (sz != 0))
-          throw "Fad Error:  Attempt to assign with incompatible sizes";
+	  Kokkos::abort("Fad Error:  Attempt to assign with incompatible sizes");
 #endif
 
         if (xsz) {
@@ -267,6 +273,24 @@ namespace Sacado {
       SACADO_INLINE_FUNCTION
       static void assign_plus_equal(DstType& dst, const SrcType& x)
       {
+
+
+
+
+
+// 	auto item = sycl::ext::oneapi::experimental::this_nd_item<3>();
+// 	sycl::ext::oneapi::experimental::printf("sycl_group_range[gridDim](%u,%u,%u), sycl_group[BlockIdx](%u,%u,%u), sycl_loca\
+// l_range[blockDim](%u,%u,%u), sycl_local_id[threadIdx](%u,%u,%u)\n",
+// 						item.get_group_range(0),item.get_group_range(1),item.get_group_range(2),
+// 						item.get_group(0),item.get_group(1),item.get_group(2),
+// 						item.get_local_range(0),item.get_local_range(1),item.get_local_range(2),
+// 						item.get_local_id(0),item.get_local_id(1),item.get_local_id(2));
+// 	Kokkos::printf("ROGER x=%i, sz=%i\n",int(x.size()),int(dst.size()));
+
+
+	
+
+	
         const int sz = dst.size();
         SACADO_FAD_DERIV_LOOP(i,sz)
           dst.fastAccessDx(i) += x.fastAccessDx(i);

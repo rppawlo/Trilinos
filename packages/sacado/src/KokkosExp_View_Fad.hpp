@@ -285,6 +285,10 @@ struct SacadoViewFill
     const size_t n5 = output.extent(5);
     const size_t n6 = output.extent(6);
 
+    
+    // Kokkos::printf("ROGER ViewFill(%u,%u,%u,%u,%u,%u,%u)\n",i0,n1,n2,n3,n4,n5,n6);
+    
+    
     for ( size_t i1 = 0 ; i1 < n1 ; ++i1 ) {
     for ( size_t i2 = 0 ; i2 < n2 ; ++i2 ) {
     for ( size_t i3 = 0 ; i3 < n3 ; ++i3 ) {
@@ -292,6 +296,7 @@ struct SacadoViewFill
     for ( size_t i5 = 0 ; i5 < n5 ; ++i5 ) {
     for ( size_t i6 = 0 ; i6 < n6 ; ++i6 ) {
       output.access(i0,i1,i2,i3,i4,i5,i6) = input ;
+      //Kokkos::printf("ROGER ViewFill SET(%lu,%lu,%lu,%lu,%lu,%lu,%lu) input= [%f(%f)], output= [%f(%f)]\n",i0,i1,i2,i3,i4,i5,i6,input.val(),input.dx(0),output.access(i0,i1,i2,i3,i4,i5,i6).val(),output.access(i0,i1,i2,i3,i4,i5,i6).dx(0));
     }}}}}}
   }
 

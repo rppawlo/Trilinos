@@ -45,10 +45,9 @@ public:
 
     scalar_type t = 0.0;
     for (size_t j=0; j<n; ++j) {
-      scalar_type bb = b(j); // fix for Intel 17.0.1 with optimization
-      t += A(i,j)*bb;
+      c(i) += A(i,j)*b(j);
     }
-    c(i) = t;
+    // c(i) = t;
   }
 };
 
@@ -127,11 +126,38 @@ int main(int argc, char* argv[]) {
     Kokkos::View<FadType*>  b("b",n,p+1);
     Kokkos::View<FadType*>  c("c",m,p+1);
 
+
+
+    std::cout << "ROGER fad_dim=" << c.extent(1) << ", rank=" << c.rank() << std::endl;
+    std::cout << "ROGER scalar_dim=" << Kokkos::dimension_scalar(c) << std::endl;
+
+
+    
     // Initialize values
     Kokkos::deep_copy( A, FadType(p, 0, 2.0) );
     Kokkos::deep_copy( b, FadType(p, 0, 3.0) );
     Kokkos::deep_copy( c, 0.0 );
 
+
+
+    std::cout << "ROGER ex0=" << b.extent(0) << ", ex1=" << b.extent(1) << ", size=" << b.size() << std::endl;
+    auto roger_host = Kokkos::create_mirror_view(b);
+    Kokkos::deep_copy(roger_host,b);
+    for (size_t i=0; i<b.extent(0); ++i) {
+      std::cout << "roger b(" << i << ") = " << roger_host(i).val() << ", [" << roger_host(i).fastAccessDx(0);
+      if (roger_host(i).size() > 1) {
+      for (size_t d=1; d < roger_host(i).size(); ++d)
+	std::cout << "," << roger_host(i).fastAccessDx(d);
+      }
+      std::cout << "]" << std::endl;
+    }
+    auto roger_A_host = Kokkos::create_mirror_view(A);
+    Kokkos::deep_copy(roger_A_host,A);
+    for (int i=0; i < roger_A_host.extent(0); ++i)
+      for (int j=0; j < roger_A_host.extent(1); ++j)
+	std::cout << "A(" << i << "," << j << ")=" << roger_A_host(i,j) <<std::endl;
+    
+    
     // Run mat-vec
     run_mat_vec(A,b,c);
 

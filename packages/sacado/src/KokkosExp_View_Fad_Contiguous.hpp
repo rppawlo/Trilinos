@@ -158,7 +158,7 @@ namespace Sacado {
 
 namespace Sacado {
 
-#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__) || defined(__SYCL_DEVICE_ONLY__)
   namespace Fad {
   namespace Exp {
     template <typename T, typename U> class DynamicStorage;
@@ -173,8 +173,15 @@ namespace Sacado {
   typename LocalScalarType< Fad::Exp::GeneralFad< Fad::Exp::DynamicStorage<T,U> >, Stride >::type
   partition_scalar(const Fad::Exp::GeneralFad< Fad::Exp::DynamicStorage<T,U> >& x) {
     typedef typename LocalScalarType< Fad::Exp::GeneralFad< Fad::Exp::DynamicStorage<T,U> >, Stride >::type ret_type;
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
     const int size = (x.size()+blockDim.x-threadIdx.x-1) / blockDim.x;
     const int offset = threadIdx.x;
+#else
+    const auto block_dim = sycl::ext::oneapi::experimental::this_nd_item<3>().get_local_range(2);
+    const auto thread_idx = sycl::ext::oneapi::experimental::this_nd_item<3>().get_local_id(2);
+    const int size = (x.size()+block_dim-thread_idx-1) / block_dim;
+    const int offset = thread_idx;    
+#endif
     ret_type xp(size, x.val());
 
     // Note:  we can't use x.dx(offset+i*Stride) if
@@ -193,8 +200,15 @@ namespace Sacado {
   typename LocalScalarType< Fad::Exp::GeneralFad< Fad::Exp::StaticStorage<T,N> >, Stride >::type
   partition_scalar(const Fad::Exp::GeneralFad< Fad::Exp::StaticStorage<T,N> >& x) {
     typedef typename LocalScalarType< Fad::Exp::GeneralFad< Fad::Exp::StaticStorage<T,N> >, Stride >::type ret_type;
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
     const int size = (x.size()+blockDim.x-threadIdx.x-1) / blockDim.x;
     const int offset = threadIdx.x;
+#else
+    const auto block_dim = sycl::ext::oneapi::experimental::this_nd_item<3>().get_local_range(2);
+    const auto thread_idx = sycl::ext::oneapi::experimental::this_nd_item<3>().get_local_id(2);
+    const int size = (x.size()+block_dim-thread_idx-1) / block_dim;
+    const int offset = thread_idx;
+#endif
     ret_type xp(size, x.val());
     for (int i=0; i<size; ++i)
       xp.fastAccessDx(i) = x.fastAccessDx(offset+i*Stride);
@@ -205,8 +219,15 @@ namespace Sacado {
   typename LocalScalarType< Fad::Exp::GeneralFad< Fad::Exp::StaticFixedStorage<T,N> >, Stride >::type
   partition_scalar(const Fad::Exp::GeneralFad< Fad::Exp::StaticFixedStorage<T,N> >& x) {
     typedef typename LocalScalarType< Fad::Exp::GeneralFad< Fad::Exp::StaticFixedStorage<T,N> >, Stride >::type ret_type;
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
     const int size = (x.size()+blockDim.x-threadIdx.x-1) / blockDim.x;
     const int offset = threadIdx.x;
+#else
+    const auto block_dim = sycl::ext::oneapi::experimental::this_nd_item<3>().get_local_range(2);
+    const auto thread_idx = sycl::ext::oneapi::experimental::this_nd_item<3>().get_local_id(2);
+    const int size = (x.size()+block_dim-thread_idx-1) / block_dim;
+    const int offset = thread_idx;
+#endif
     ret_type xp(size, x.val());
     for (int i=0; i<size; ++i)
       xp.fastAccessDx(i) = x.fastAccessDx(offset+i*Stride);
@@ -225,8 +246,15 @@ namespace Sacado {
   typename LocalScalarType< Fad::DFad<T>, Stride >::type
   partition_scalar(const Fad::DFad<T>& x) {
     typedef typename LocalScalarType< Fad::DFad<T>, Stride >::type ret_type;
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
     const int size = (x.size()+blockDim.x-threadIdx.x-1) / blockDim.x;
     const int offset = threadIdx.x;
+#else
+    const auto block_dim = sycl::ext::oneapi::experimental::this_nd_item<3>().get_local_range(2);
+    const auto thread_idx = sycl::ext::oneapi::experimental::this_nd_item<3>().get_local_id(2);
+    const int size = (x.size()+block_dim-thread_idx-1) / block_dim;
+    const int offset = thread_idx;
+#endif
     ret_type xp(size, x.val());
 
     // Note:  we can't use x.dx(offset+i*Stride) if
@@ -245,8 +273,15 @@ namespace Sacado {
   typename LocalScalarType< Fad::SLFad<T,N>, Stride >::type
   partition_scalar(const Fad::SLFad<T,N>& x) {
     typedef typename LocalScalarType< Fad::SLFad<T,N>, Stride >::type ret_type;
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
     const int size = (x.size()+blockDim.x-threadIdx.x-1) / blockDim.x;
     const int offset = threadIdx.x;
+#else
+    const auto block_dim = sycl::ext::oneapi::experimental::this_nd_item<3>().get_local_range(2);
+    const auto thread_idx = sycl::ext::oneapi::experimental::this_nd_item<3>().get_local_id(2);
+    const int size = (x.size()+block_dim-thread_idx-1) / block_dim;
+    const int offset = threadIdx.x;
+#endif
     ret_type xp(size, x.val());
     for (int i=0; i<size; ++i)
       xp.fastAccessDx(i) = x.fastAccessDx(offset+i*Stride);
@@ -257,8 +292,15 @@ namespace Sacado {
   typename LocalScalarType< Fad::SFad<T,N>, Stride >::type
   partition_scalar(const Fad::SFad<T,N>& x) {
     typedef typename LocalScalarType< Fad::SFad<T,N>, Stride >::type ret_type;
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
     const int size = (x.size()+blockDim.x-threadIdx.x-1) / blockDim.x;
     const int offset = threadIdx.x;
+#else
+    const auto block_dim = sycl::ext::oneapi::experimental::this_nd_item<3>().get_local_range(2);
+    const auto thread_idx = sycl::ext::oneapi::experimental::this_nd_item<3>().get_local_id(2);
+    const int size = (x.size()+block_dim-thread_idx-1) / block_dim;
+    const int offset = threadIdx.x;
+#endif
     ret_type xp(size, x.val());
     for (int i=0; i<size; ++i)
       xp.fastAccessDx(i) = x.fastAccessDx(offset+i*Stride);
@@ -367,6 +409,69 @@ struct SacadoViewFill<
   typename std::enable_if<
     ( Kokkos::is_view_fad_contiguous<OutputView>::value &&
       std::is_same<typename OutputView::execution_space, Kokkos::HIP>::value &&
+      !Kokkos::ViewScalarStride<OutputView>::is_unit_stride )
+    >::type
+  >
+{
+  typedef typename OutputView::const_value_type  const_value_type ;
+  typedef typename OutputView::execution_space execution_space ;
+  typedef Kokkos::TeamPolicy< execution_space> team_policy;
+  typedef typename team_policy::member_type team_impl_handle;
+  typedef typename Kokkos::ThreadLocalScalarType<OutputView>::type local_scalar_type;
+  static const unsigned stride = Kokkos::ViewScalarStride<OutputView>::stride;
+
+  const OutputView output ;
+  const_value_type input ;
+
+  KOKKOS_INLINE_FUNCTION
+  void operator()( const size_t i0 ) const
+  {
+    local_scalar_type input_stride = Sacado::partition_scalar<stride>(input);
+
+    const size_t n1 = output.extent(1);
+    const size_t n2 = output.extent(2);
+    const size_t n3 = output.extent(3);
+    const size_t n4 = output.extent(4);
+    const size_t n5 = output.extent(5);
+    const size_t n6 = output.extent(6);
+    const size_t n7 = output.extent(7);
+
+    for ( size_t i1 = 0 ; i1 < n1 ; ++i1 ) {
+    for ( size_t i2 = 0 ; i2 < n2 ; ++i2 ) {
+    for ( size_t i3 = 0 ; i3 < n3 ; ++i3 ) {
+    for ( size_t i4 = 0 ; i4 < n4 ; ++i4 ) {
+    for ( size_t i5 = 0 ; i5 < n5 ; ++i5 ) {
+    for ( size_t i6 = 0 ; i6 < n6 ; ++i6 ) {
+      output.access(i0,i1,i2,i3,i4,i5,i6) = input_stride ;
+    }}}}}}
+  }
+
+  KOKKOS_INLINE_FUNCTION
+  void operator()( const team_impl_handle& team ) const
+  {
+    const size_t i0 = team.league_rank()*team.team_size() + team.team_rank();
+    if (i0 < output.extent(0))
+      (*this)(i0);
+  }
+
+  SacadoViewFill( const OutputView & arg_out , const_value_type & arg_in )
+    : output( arg_out ), input( arg_in )
+    {
+      const size_t team_size = 256 / stride;
+      team_policy policy( (output.extent(0)+team_size-1)/team_size ,
+                          team_size , stride );
+      Kokkos::parallel_for( policy, *this );
+    }
+};
+#endif
+
+#if defined (KOKKOS_ENABLE_SYCL) && defined(SACADO_VIEW_CUDA_HIERARCHICAL)
+template< class OutputView >
+struct SacadoViewFill<
+  OutputView,
+  typename std::enable_if<
+    ( Kokkos::is_view_fad_contiguous<OutputView>::value &&
+      std::is_same<typename OutputView::execution_space, Kokkos::Experimental::SYCL>::value &&
       !Kokkos::ViewScalarStride<OutputView>::is_unit_stride )
     >::type
   >
@@ -596,6 +701,9 @@ public:
 #elif defined(KOKKOS_ENABLE_HIP)
   typedef typename Sacado::LocalScalarType< fad_type, unsigned(PartitionedFadStride) >::type strided_scalar_type;
   typedef typename std::conditional< std::is_same<typename Traits::execution_space, Kokkos::HIP>::value, strided_scalar_type, fad_type >::type thread_local_scalar_type;
+#elif defined(KOKKOS_ENABLE_SYCL)
+  typedef typename Sacado::LocalScalarType< fad_type, unsigned(PartitionedFadStride) >::type strided_scalar_type;
+  typedef typename std::conditional< std::is_same<typename Traits::execution_space, Kokkos::Experimental::SYCL>::value, strided_scalar_type, fad_type >::type thread_local_scalar_type;
 #else
   typedef fad_type thread_local_scalar_type;
 #endif
@@ -709,6 +817,12 @@ public:
   KOKKOS_FORCEINLINE_FUNCTION constexpr unsigned dimension_scalar() const
 #if defined(SACADO_VIEW_CUDA_HIERARCHICAL) && ( defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__) )
     { return PartitionedFadStaticDimension ? PartitionedFadStaticDimension+1 : (m_fad_size.value+blockDim.x-threadIdx.x-1) / blockDim.x + 1; }
+#elif defined(SACADO_VIEW_CUDA_HIERARCHICAL) && defined(__SYCL_DEVICE_ONLY__)
+    {
+      const auto block_dim = sycl::ext::oneapi::experimental::this_nd_item<3>().get_local_range(2);
+      const auto thread_idx = sycl::ext::oneapi::experimental::this_nd_item<3>().get_local_id(2);
+      return PartitionedFadStaticDimension ? PartitionedFadStaticDimension+1 : (m_fad_size.value+block_dim-thread_idx-1) / block_dim + 1;
+    }
 #else
     { return m_fad_size.value+1; }
 #endif
@@ -720,7 +834,7 @@ public:
   //----------------------------------------
   // Range of mapping
 
-#if defined(SACADO_VIEW_CUDA_HIERARCHICAL) && ( defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__) )
+#if defined(SACADO_VIEW_CUDA_HIERARCHICAL) && ( defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__) || defined(__SYCL_DEVICE_ONLY__) )
   // Return type of reference operators
   // this only works if you are using a team-parallel operation on Cuda or HIP!
   // typedef typename
@@ -746,8 +860,10 @@ public:
 
   /** \brief Raw data access */
   KOKKOS_INLINE_FUNCTION constexpr pointer_type data() const
-#if defined(SACADO_VIEW_CUDA_HIERARCHICAL) && (defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__) )
+#if defined(SACADO_VIEW_CUDA_HIERARCHICAL) && ( defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__) )
     { return m_impl_handle + threadIdx.x; }
+#elif defined(SACADO_VIEW_CUDA_HIERARCHICAL) && defined(__SYCL_DEVICE_ONLY__)
+    { return m_impl_handle + sycl::ext::oneapi::experimental::this_nd_item<3>().get_local_id(2); }
 #else
     { return m_impl_handle + m_fad_index; }
 #endif
@@ -762,6 +878,12 @@ public:
       const unsigned index = threadIdx.x;
       const unsigned strd = blockDim.x;
       const unsigned size = (m_fad_size.value+blockDim.x-threadIdx.x-1) / blockDim.x;
+#elif defined(SACADO_VIEW_CUDA_HIERARCHICAL) && defined(__SYCL_DEVICE_ONLY__)
+      const auto block_dim = sycl::ext::oneapi::experimental::this_nd_item<3>().get_local_range(2);
+      const auto thread_idx = sycl::ext::oneapi::experimental::this_nd_item<3>().get_local_id(2);
+      const unsigned index = unsigned(thread_idx);
+      const unsigned strd = unsigned(block_dim);
+      const unsigned size = (m_fad_size.value+block_dim-thread_idx-1) / block_dim;
 #else
       const unsigned index = m_fad_index;
       const unsigned strd = m_fad_stride;
@@ -782,6 +904,12 @@ public:
       const unsigned index = threadIdx.x;
       const unsigned strd = blockDim.x;
       const unsigned size = (m_fad_size.value+blockDim.x-threadIdx.x-1) / blockDim.x;
+#elif defined(SACADO_VIEW_CUDA_HIERARCHICAL) && defined(__SYCL_DEVICE_ONLY__)
+      const auto block_dim = sycl::ext::oneapi::experimental::this_nd_item<3>().get_local_range(2);
+      const auto thread_idx = sycl::ext::oneapi::experimental::this_nd_item<3>().get_local_id(2);
+      const unsigned index = unsigned(thread_idx);
+      const unsigned strd = unsigned(block_dim);
+      const unsigned size = (m_fad_size.value+block_dim-thread_idx-1) / block_dim;
 #else
       const unsigned index = m_fad_index;
       const unsigned strd = m_fad_stride;
@@ -802,6 +930,12 @@ public:
       const unsigned index = threadIdx.x;
       const unsigned strd = blockDim.x;
       const unsigned size = (m_fad_size.value+blockDim.x-threadIdx.x-1) / blockDim.x;
+#elif defined(SACADO_VIEW_CUDA_HIERARCHICAL) && defined(__SYCL_DEVICE_ONLY__)
+      const auto block_dim = sycl::ext::oneapi::experimental::this_nd_item<3>().get_local_range(2);
+      const auto thread_idx = sycl::ext::oneapi::experimental::this_nd_item<3>().get_local_id(2);
+      const unsigned index = unsigned(thread_idx);
+      const unsigned strd = unsigned(block_dim);
+      const unsigned size = (m_fad_size.value+block_dim-thread_idx-1) / block_dim;
 #else
       const unsigned index = m_fad_index;
       const unsigned strd = m_fad_stride;
@@ -822,6 +956,12 @@ public:
       const unsigned index = threadIdx.x;
       const unsigned strd = blockDim.x;
       const unsigned size = (m_fad_size.value+blockDim.x-threadIdx.x-1) / blockDim.x;
+#elif defined(SACADO_VIEW_CUDA_HIERARCHICAL) && defined(__SYCL_DEVICE_ONLY__)
+      const auto block_dim = sycl::ext::oneapi::experimental::this_nd_item<3>().get_local_range(2);
+      const auto thread_idx = sycl::ext::oneapi::experimental::this_nd_item<3>().get_local_id(2);
+      const unsigned index = unsigned(thread_idx);
+      const unsigned strd = unsigned(block_dim);
+      const unsigned size = (m_fad_size.value+block_dim-thread_idx-1) / block_dim;
 #else
       const unsigned index = m_fad_index;
       const unsigned strd = m_fad_stride;
@@ -842,6 +982,12 @@ public:
       const unsigned index = threadIdx.x;
       const unsigned strd = blockDim.x;
       const unsigned size = (m_fad_size.value+blockDim.x-threadIdx.x-1) / blockDim.x;
+#elif defined(SACADO_VIEW_CUDA_HIERARCHICAL) && defined(__SYCL_DEVICE_ONLY__)
+      const auto block_dim = sycl::ext::oneapi::experimental::this_nd_item<3>().get_local_range(2);
+      const auto thread_idx = sycl::ext::oneapi::experimental::this_nd_item<3>().get_local_id(2);
+      const unsigned index = unsigned(thread_idx);
+      const unsigned strd = unsigned(block_dim);
+      const unsigned size = (m_fad_size.value+block_dim-thread_idx-1) / block_dim;
 #else
       const unsigned index = m_fad_index;
       const unsigned strd = m_fad_stride;
@@ -863,6 +1009,12 @@ public:
       const unsigned index = threadIdx.x;
       const unsigned strd = blockDim.x;
       const unsigned size = (m_fad_size.value+blockDim.x-threadIdx.x-1) / blockDim.x;
+#elif defined(SACADO_VIEW_CUDA_HIERARCHICAL) && defined(__SYCL_DEVICE_ONLY__)
+      const auto block_dim = sycl::ext::oneapi::experimental::this_nd_item<3>().get_local_range(2);
+      const auto thread_idx = sycl::ext::oneapi::experimental::this_nd_item<3>().get_local_id(2);
+      const unsigned index = unsigned(thread_idx);
+      const unsigned strd = unsigned(block_dim);
+      const unsigned size = (m_fad_size.value+block_dim-thread_idx-1) / block_dim;
 #else
       const unsigned index = m_fad_index;
       const unsigned strd = m_fad_stride;
@@ -883,6 +1035,12 @@ public:
       const unsigned index = threadIdx.x;
       const unsigned strd = blockDim.x;
       const unsigned size = (m_fad_size.value+blockDim.x-threadIdx.x-1) / blockDim.x;
+#elif defined(SACADO_VIEW_CUDA_HIERARCHICAL) && defined(__SYCL_DEVICE_ONLY__)
+      const auto block_dim = sycl::ext::oneapi::experimental::this_nd_item<3>().get_local_range(2);
+      const auto thread_idx = sycl::ext::oneapi::experimental::this_nd_item<3>().get_local_id(2);
+      const unsigned index = unsigned(thread_idx);
+      const unsigned strd = unsigned(block_dim);
+      const unsigned size = (m_fad_size.value+block_dim-thread_idx-1) / block_dim;
 #else
       const unsigned index = m_fad_index;
       const unsigned strd = m_fad_stride;
@@ -903,6 +1061,12 @@ public:
       const unsigned index = threadIdx.x;
       const unsigned strd = blockDim.x;
       const unsigned size = (m_fad_size.value+blockDim.x-threadIdx.x-1) / blockDim.x;
+#elif defined(SACADO_VIEW_CUDA_HIERARCHICAL) && defined(__SYCL_DEVICE_ONLY__)
+      const auto block_dim = sycl::ext::oneapi::experimental::this_nd_item<3>().get_local_range(2);
+      const auto thread_idx = sycl::ext::oneapi::experimental::this_nd_item<3>().get_local_id(2);
+      const unsigned index = unsigned(thread_idx);
+      const unsigned strd = unsigned(block_dim);
+      const unsigned size = (m_fad_size.value+block_dim-thread_idx-1) / block_dim;
 #else
       const unsigned index = m_fad_index;
       const unsigned strd = m_fad_stride;
@@ -923,6 +1087,12 @@ public:
       const unsigned index = threadIdx.x;
       const unsigned strd = blockDim.x;
       const unsigned size = (m_fad_size.value+blockDim.x-threadIdx.x-1) / blockDim.x;
+#elif defined(SACADO_VIEW_CUDA_HIERARCHICAL) && defined(__SYCL_DEVICE_ONLY__)
+      const auto block_dim = sycl::ext::oneapi::experimental::this_nd_item<3>().get_local_range(2);
+      const auto thread_idx = sycl::ext::oneapi::experimental::this_nd_item<3>().get_local_id(2);
+      const unsigned index = unsigned(thread_idx);
+      const unsigned strd = unsigned(block_dim);
+      const unsigned size = (m_fad_size.value+block_dim-thread_idx-1) / block_dim;
 #else
       const unsigned index = m_fad_index;
       const unsigned strd = m_fad_stride;
@@ -945,6 +1115,12 @@ public:
       const unsigned index = threadIdx.x;
       const unsigned strd = blockDim.x;
       const unsigned size = (m_fad_size.value+blockDim.x-threadIdx.x-1) / blockDim.x;
+#elif defined(SACADO_VIEW_CUDA_HIERARCHICAL) && defined(__SYCL_DEVICE_ONLY__)
+      const auto block_dim = sycl::ext::oneapi::experimental::this_nd_item<3>().get_local_range(2);
+      const auto thread_idx = sycl::ext::oneapi::experimental::this_nd_item<3>().get_local_id(2);
+      const unsigned index = unsigned(thread_idx);
+      const unsigned strd = unsigned(block_dim);
+      const unsigned size = (m_fad_size.value+block_dim-thread_idx-1) / block_dim;
 #else
       const unsigned index = m_fad_index;
       const unsigned strd = m_fad_stride;
@@ -967,6 +1143,12 @@ public:
       const unsigned index = threadIdx.x;
       const unsigned strd = blockDim.x;
       const unsigned size = (m_fad_size.value+blockDim.x-threadIdx.x-1) / blockDim.x;
+#elif defined(SACADO_VIEW_CUDA_HIERARCHICAL) && defined(__SYCL_DEVICE_ONLY__)
+      const auto block_dim = sycl::ext::oneapi::experimental::this_nd_item<3>().get_local_range(2);
+      const auto thread_idx = sycl::ext::oneapi::experimental::this_nd_item<3>().get_local_id(2);
+      const unsigned index = unsigned(thread_idx);
+      const unsigned strd = unsigned(block_dim);
+      const unsigned size = (m_fad_size.value+block_dim-thread_idx-1) / block_dim;
 #else
       const unsigned index = m_fad_index;
       const unsigned strd = m_fad_stride;
@@ -989,6 +1171,12 @@ public:
       const unsigned index = threadIdx.x;
       const unsigned strd = blockDim.x;
       const unsigned size = (m_fad_size.value+blockDim.x-threadIdx.x-1) / blockDim.x;
+#elif defined(SACADO_VIEW_CUDA_HIERARCHICAL) && defined(__SYCL_DEVICE_ONLY__)
+      const auto block_dim = sycl::ext::oneapi::experimental::this_nd_item<3>().get_local_range(2);
+      const auto thread_idx = sycl::ext::oneapi::experimental::this_nd_item<3>().get_local_id(2);
+      const unsigned index = unsigned(thread_idx);
+      const unsigned strd = unsigned(block_dim);
+      const unsigned size = (m_fad_size.value+block_dim-thread_idx-1) / block_dim;
 #else
       const unsigned index = m_fad_index;
       const unsigned strd = m_fad_stride;
@@ -1011,6 +1199,12 @@ public:
       const unsigned index = threadIdx.x;
       const unsigned strd = blockDim.x;
       const unsigned size = (m_fad_size.value+blockDim.x-threadIdx.x-1) / blockDim.x;
+#elif defined(SACADO_VIEW_CUDA_HIERARCHICAL) && defined(__SYCL_DEVICE_ONLY__)
+      const auto block_dim = sycl::ext::oneapi::experimental::this_nd_item<3>().get_local_range(2);
+      const auto thread_idx = sycl::ext::oneapi::experimental::this_nd_item<3>().get_local_id(2);
+      const unsigned index = unsigned(thread_idx);
+      const unsigned strd = unsigned(block_dim);
+      const unsigned size = (m_fad_size.value+block_dim-thread_idx-1) / block_dim;
 #else
       const unsigned index = m_fad_index;
       const unsigned strd = m_fad_stride;
@@ -1033,6 +1227,12 @@ public:
       const unsigned index = threadIdx.x;
       const unsigned strd = blockDim.x;
       const unsigned size = (m_fad_size.value+blockDim.x-threadIdx.x-1) / blockDim.x;
+#elif defined(SACADO_VIEW_CUDA_HIERARCHICAL) && defined(__SYCL_DEVICE_ONLY__)
+      const auto block_dim = sycl::ext::oneapi::experimental::this_nd_item<3>().get_local_range(2);
+      const auto thread_idx = sycl::ext::oneapi::experimental::this_nd_item<3>().get_local_id(2);
+      const unsigned index = unsigned(thread_idx);
+      const unsigned strd = unsigned(block_dim);
+      const unsigned size = (m_fad_size.value+block_dim-thread_idx-1) / block_dim;
 #else
       const unsigned index = m_fad_index;
       const unsigned strd = m_fad_stride;
@@ -1055,6 +1255,12 @@ public:
       const unsigned index = threadIdx.x;
       const unsigned strd = blockDim.x;
       const unsigned size = (m_fad_size.value+blockDim.x-threadIdx.x-1) / blockDim.x;
+#elif defined(SACADO_VIEW_CUDA_HIERARCHICAL) && defined(__SYCL_DEVICE_ONLY__)
+      const auto block_dim = sycl::ext::oneapi::experimental::this_nd_item<3>().get_local_range(2);
+      const auto thread_idx = sycl::ext::oneapi::experimental::this_nd_item<3>().get_local_id(2);
+      const unsigned index = unsigned(thread_idx);
+      const unsigned strd = unsigned(block_dim);
+      const unsigned size = (m_fad_size.value+block_dim-thread_idx-1) / block_dim;
 #else
       const unsigned index = m_fad_index;
       const unsigned strd = m_fad_stride;
