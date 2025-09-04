@@ -347,7 +347,7 @@ namespace Sacado {
         if (atomics_use_team()) {
           int go = 1;
 	  // auto sg = sycl::ext::oneapi::this_work_item::get_sub_group();
-	  auto sg = sycl::ext::oneapi::experimental::this_sub_group();
+	  auto sg = sycl::ext::oneapi::this_work_item::get_sub_group();
 	  while (go) {
             if (sycl::ext::oneapi::this_work_item::get_nd_item<3>().get_local_id(0) == 0)
               go = !desul::Impl::lock_address_sycl((void*)dest_val, scope);
@@ -366,7 +366,7 @@ namespace Sacado {
           return_type return_val;
           // This is a way to avoid dead lock in a warp
           int done                 = 0;
-	  auto sg = sycl::ext::oneapi::experimental::this_sub_group();
+	  auto sg = sycl::ext::oneapi::this_work_item::get_sub_group();
 	  sycl::ext::oneapi::sub_group_mask active = sycl::ext::oneapi::group_ballot(sg, 1);
 	  sycl::ext::oneapi::sub_group_mask done_active = sycl::ext::oneapi::group_ballot(sg, 0);
           while (active != done_active) {
@@ -399,7 +399,7 @@ namespace Sacado {
         if (atomics_use_team()) {
           int go = 1;
 	  // auto sg = sycl::ext::oneapi::this_work_item::get_sub_group();
-	  auto sg = sycl::ext::oneapi::experimental::this_sub_group();
+	  auto sg = sycl::ext::oneapi::this_work_item::get_sub_group();
           while (go) {
             if (sycl::ext::oneapi::this_work_item::get_nd_item<3>().get_local_id(0) == 0)
               go = !desul::Impl::lock_address_sycl((void*)dest_val, scope);
@@ -418,7 +418,7 @@ namespace Sacado {
           return_type return_val;
           // This is a way to (hopefully) avoid dead lock in a warp
           int done = 0;
-	  auto sg = sycl::ext::oneapi::experimental::this_sub_group();
+	  auto sg = sycl::ext::oneapi::this_work_item::get_sub_group();
 	  sycl::ext::oneapi::sub_group_mask active = sycl::ext::oneapi::group_ballot(sg, 1);
 	  sycl::ext::oneapi::sub_group_mask done_active = sycl::ext::oneapi::group_ballot(sg, 0);
           while (active != done_active) {
