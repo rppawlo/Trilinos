@@ -21,7 +21,7 @@ namespace Sacado {
 #if defined(SACADO_VIEW_CUDA_HIERARCHICAL_DFAD) && !defined(SACADO_DISABLE_CUDA_IN_KOKKOS) && ( defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__) )
 #define SACADO_FAD_DERIV_LOOP(I,SZ) for (int I=threadIdx.x; I<SZ; I+=blockDim.x)
 #elif  defined(SACADO_VIEW_CUDA_HIERARCHICAL_DFAD) && !defined(SACADO_DISABLE_CUDA_IN_KOKKOS) && defined(__SYCL_DEVICE_ONLY__)
-#define SACADO_FAD_DERIV_LOOP(I,SZ) for (int I=sycl::ext::oneapi::experimental::this_nd_item<2>().get_local_id(0); I<SZ; I+=sycl::ext::oneapi::experimental::this_nd_item<2>().get_local_range(0))    
+#define SACADO_FAD_DERIV_LOOP(I,SZ) for (int I=sycl::ext::oneapi::this_work_item::get_nd_item<3>().get_local_id(0); I<SZ; I+=sycl::ext::oneapi::this_work_item::get_nd_item<3>().get_local_range(0))
 #else
 #define SACADO_FAD_DERIV_LOOP(I,SZ) for (int I=0; I<SZ; ++I)
 #endif
@@ -31,7 +31,7 @@ namespace Sacado {
 #if (defined(SACADO_VIEW_CUDA_HIERARCHICAL) || defined(SACADO_VIEW_CUDA_HIERARCHICAL_DFAD)) && !defined(SACADO_DISABLE_CUDA_IN_KOKKOS) && ( defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__) )
 #define SACADO_FAD_THREAD_SINGLE if (threadIdx.x == 0)
 #elif (defined(SACADO_VIEW_CUDA_HIERARCHICAL) || defined(SACADO_VIEW_CUDA_HIERARCHICAL_DFAD)) && !defined(SACADO_DISABLE_CUDA_IN_KOKKOS) && defined(__SYCL_DEVICE_ONLY__)
-#define SACADO_FAD_THREAD_SINGLE if (sycl::ext::oneapi::experimental::this_nd_item<2>().get_local_id(0) == 0)
+#define SACADO_FAD_THREAD_SINGLE if (sycl::ext::oneapi::this_work_item::get_nd_item<3>().get_local_id(0) == 0)
 #else
 #define SACADO_FAD_THREAD_SINGLE /* */
 #endif
@@ -278,7 +278,7 @@ namespace Sacado {
 
 
 
-// 	auto item = sycl::ext::oneapi::experimental::this_nd_item<3>();
+// 	auto item = sycl::ext::oneapi::this_work_item::get_nd_item<3>();
 // 	sycl::ext::oneapi::experimental::printf("sycl_group_range[gridDim](%u,%u,%u), sycl_group[BlockIdx](%u,%u,%u), sycl_loca\
 // l_range[blockDim](%u,%u,%u), sycl_local_id[threadIdx](%u,%u,%u)\n",
 // 						item.get_group_range(0),item.get_group_range(1),item.get_group_range(2),

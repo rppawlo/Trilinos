@@ -236,18 +236,18 @@ namespace Sacado {
 
       //! Returns derivative component \c i with bounds checking
       SACADO_INLINE_FUNCTION
-      // U dx(int i) const { return sz_ ? dx_[i*(sycl::ext::oneapi::experimental::this_nd_item<3>().get_local_range(2))] : U(0.); }
-      U dx(int i) const { return sz_ ? dx_[i*(sycl::ext::oneapi::experimental::this_nd_item<2>().get_local_range(0))] : U(0.); }
+      // U dx(int i) const { return sz_ ? dx_[i*(sycl::ext::oneapi::this_work_item::get_nd_item<3>().get_local_range(2))] : U(0.); }
+      U dx(int i) const { return sz_ ? dx_[i*(sycl::ext::oneapi::this_work_item::get_nd_item<3>().get_local_range(0))] : U(0.); }
 
       //! Returns derivative component \c i without bounds checking
       SACADO_INLINE_FUNCTION
-      // U& fastAccessDx(int i) { return dx_[i*(sycl::ext::oneapi::experimental::this_nd_item<3>().get_local_range(2))]; }
-      U& fastAccessDx(int i) { return dx_[i*(sycl::ext::oneapi::experimental::this_nd_item<2>().get_local_range(0))]; }
+      // U& fastAccessDx(int i) { return dx_[i*(sycl::ext::oneapi::this_work_item::get_nd_item<3>().get_local_range(2))]; }
+      U& fastAccessDx(int i) { return dx_[i*(sycl::ext::oneapi::this_work_item::get_nd_item<3>().get_local_range(0))]; }
 
       //! Returns derivative component \c i without bounds checking
       SACADO_INLINE_FUNCTION
-      // const U& fastAccessDx(int i) const { return dx_[i*(sycl::ext::oneapi::experimental::this_nd_item<3>().get_local_range(2))]; }
-      const U& fastAccessDx(int i) const { return dx_[i*(sycl::ext::oneapi::experimental::this_nd_item<2>().get_local_range(0))]; }
+      // const U& fastAccessDx(int i) const { return dx_[i*(sycl::ext::oneapi::this_work_item::get_nd_item<3>().get_local_range(2))]; }
+      const U& fastAccessDx(int i) const { return dx_[i*(sycl::ext::oneapi::this_work_item::get_nd_item<3>().get_local_range(0))]; }
 
 #else
 

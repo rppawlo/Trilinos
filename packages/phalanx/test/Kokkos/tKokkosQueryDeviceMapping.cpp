@@ -37,7 +37,7 @@ void runMappingQuery()
 	  if constexpr (PrintIndexing) {
 #if defined(KOKKOS_ENABLE_SYCL)
 	    static_assert(SYCL_EXT_ONEAPI_FREE_FUNCTION_QUERIES);
-	    auto item = sycl::ext::oneapi::experimental::this_nd_item<3>();
+	    auto item = sycl::ext::oneapi::this_work_item::get_nd_item<3>();
 	    sycl::ext::oneapi::experimental::printf("kokkos_index(%i,%i,%i) = %u, sycl_group_range[gridDim](%u,%u,%u), sycl_group[BlockIdx](%u,%u,%u), sycl_local_range[blockDim](%u,%u,%u), sycl_local_id[threadIdx](%u,%u,%u)\n",
 						    cell,basis,qp,a.impl_map().m_impl_offset(cell,basis,qp),
 						    item.get_group_range(0),item.get_group_range(1),item.get_group_range(2),
@@ -72,7 +72,7 @@ void runMappingQuery()
 	  if constexpr (PrintIndexing) {
 #if defined(KOKKOS_ENABLE_SYCL)
 	    static_assert(SYCL_EXT_ONEAPI_FREE_FUNCTION_QUERIES);
-	    auto item = sycl::ext::oneapi::experimental::this_nd_item<3>();
+	    auto item = sycl::ext::oneapi::this_work_item::get_nd_item<3>();
 	    sycl::ext::oneapi::experimental::printf("kokkos_index(%i,%i,%i) = %u, sycl_group_range[gridDim](%u,%u,%u), sycl_group[BlockIdx](%u,%u,%u), sycl_local_range[blockDim](%u,%u,%u), sycl_local_id[threadIdx](%u,%u,%u)\n",
 						    cell,basis,qp,a.impl_map().m_impl_offset(cell,basis,qp),
 						    item.get_group_range(0),item.get_group_range(1),item.get_group_range(2),
@@ -104,7 +104,7 @@ void runMappingQuery()
       if constexpr (PrintIndexing) {
 #if defined(KOKKOS_ENABLE_SYCL)
         static_assert(SYCL_EXT_ONEAPI_FREE_FUNCTION_QUERIES);
-	auto item = sycl::ext::oneapi::experimental::this_nd_item<3>();
+	auto item = sycl::ext::oneapi::this_work_item::get_nd_item<3>();
 	sycl::ext::oneapi::experimental::printf("kokkos_index(%i,%i,%i) = %u, sycl_group_range[gridDim](%u,%u,%u), sycl_group[BlockIdx](%u,%u,%u), sycl_local_range[blockDim](%u,%u,%u), sycl_local_id[threadIdx](%u,%u,%u)\n",
 						cell,basis,qp,a.impl_map().m_impl_offset(cell,basis,qp),
 						item.get_group_range(0),item.get_group_range(1),item.get_group_range(2),
