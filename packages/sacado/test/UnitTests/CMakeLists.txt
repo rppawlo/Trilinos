@@ -507,6 +507,48 @@ IF (Sacado_ENABLE_TeuchosCore)
 #        )
     ENDIF()
 
+    IF (Kokkos_ENABLE_SYCL)
+      TRIBITS_ADD_EXECUTABLE_AND_TEST(
+        FadKokkosTests_SYCL
+        SOURCES Fad_KokkosTests.hpp
+                Fad_KokkosTests_SYCL.cpp
+        COMM serial mpi
+        STANDARD_PASS_OUTPUT
+        NUM_MPI_PROCS 1
+        RUN_SERIAL
+        )
+
+      TRIBITS_ADD_EXECUTABLE_AND_TEST(
+        FadKokkosTests_NoViewSpec_SYCL
+        SOURCES Fad_KokkosTests.hpp
+                Fad_KokkosTests_NoViewSpec_SYCL.cpp
+        COMM serial mpi
+        STANDARD_PASS_OUTPUT
+        NUM_MPI_PROCS 1
+        RUN_SERIAL
+        )
+
+      TRIBITS_ADD_EXECUTABLE_AND_TEST(
+        FadKokkosAtomicTests_SYCL
+        SOURCES Fad_KokkosAtomicTests.hpp
+                Fad_KokkosAtomicTests_SYCL.cpp
+        COMM serial mpi
+        STANDARD_PASS_OUTPUT
+        NUM_MPI_PROCS 1
+        RUN_SERIAL
+        )
+
+      TRIBITS_ADD_EXECUTABLE_AND_TEST(
+        FadKokkosAtomicTests_NoViewSpec_SYCL
+        SOURCES Fad_KokkosAtomicTests.hpp
+                Fad_KokkosAtomicTests_NoViewSpec_SYCL.cpp
+        COMM serial mpi
+        STANDARD_PASS_OUTPUT
+        NUM_MPI_PROCS 1
+        RUN_SERIAL
+        )
+    ENDIF()
+
     TRIBITS_ADD_EXECUTABLE_AND_TEST(
       ViewFactoryTests
       SOURCES ViewFactoryTests.cpp

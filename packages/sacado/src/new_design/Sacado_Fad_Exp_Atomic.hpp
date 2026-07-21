@@ -322,14 +322,54 @@ namespace Sacado {
 #elif defined(KOKKOS_ENABLE_SYCL)
 
       // Our implementation of Kokkos::atomic_oper_fetch() and
-      // Kokkos::atomic_fetch_oper() for Sacado types on device
+      // Kokkos::atomic_fetch_oper() for Sacado types on device.
+      //
+      // Sacado's hierarchical Fad partitioning (SACADO_VIEW_CUDA_HIERARCHICAL)
+      // is Cuda/HIP-only, so unlike those backends there is no team-based
+      // fast path here -- dest_val always refers to a single Fad's value, and
+      // every work-item locks it individually.  We still have to guard
+      // against deadlock within a sub-group though: SYCL sub-groups execute
+      // in lockstep like a warp, so if one work-item acquires the lock while
+      // a sibling in the same sub-group is stuck spin-waiting on it, the
+      // whole sub-group can hang.  We use the same
+      // this_sub_group()/group_ballot() loop desul's own SYCL lock-based
+      // fetch-op uses for this reason (see
+      // desul/atomics/Lock_Based_Fetch_Op_SYCL.hpp).
       template <typename Oper, typename DestPtrT, typename ValT, typename T>
       typename Sacado::BaseExprType< Expr<T> >::type
       atomic_oper_fetch_device(const Oper& op, DestPtrT dest, ValT* dest_val,
                                const Expr<T>& x)
       {
-        Kokkos::abort("Not implemented!");
-        return {};
+        typedef typename Sacado::BaseExprType< Expr<T> >::type return_type;
+        const typename Expr<T>::derived_type& val = x.derived();
+
+        auto scope = desul::MemoryScopeDevice();
+
+        return_type return_val;
+        int done = 0;
+#if defined(__INTEL_LLVM_COMPILER) && __INTEL_LLVM_COMPILER >= 20250000
+        auto sg = sycl::ext::oneapi::this_work_item::get_sub_group();
+#else
+        auto sg = sycl::ext::oneapi::experimental::this_sub_group();
+#endif
+        using sycl::ext::oneapi::group_ballot;
+        using sycl::ext::oneapi::sub_group_mask;
+        sub_group_mask active = group_ballot(sg, 1);
+        sub_group_mask done_active = group_ballot(sg, 0);
+        while (active != done_active) {
+          if (!done) {
+            if (desul::Impl::lock_address_sycl((void*)dest_val, scope)) {
+              desul::atomic_thread_fence(desul::MemoryOrderAcquire(), scope);
+              return_val = op.apply(*dest, val);
+              *dest      = return_val;
+              desul::atomic_thread_fence(desul::MemoryOrderRelease(), scope);
+              desul::Impl::unlock_address_sycl((void*)dest_val, scope);
+              done = 1;
+            }
+          }
+          done_active = group_ballot(sg, done);
+        }
+        return return_val;
       }
 
       template <typename Oper, typename DestPtrT, typename ValT, typename T>
@@ -337,8 +377,36 @@ namespace Sacado {
       atomic_fetch_oper_device(const Oper& op, DestPtrT dest, ValT* dest_val,
                                const Expr<T>& x)
       {
-        Kokkos::abort("Not implemented!");
-        return {};
+        typedef typename Sacado::BaseExprType< Expr<T> >::type return_type;
+        const typename Expr<T>::derived_type& val = x.derived();
+
+        auto scope = desul::MemoryScopeDevice();
+
+        return_type return_val;
+        int done = 0;
+#if defined(__INTEL_LLVM_COMPILER) && __INTEL_LLVM_COMPILER >= 20250000
+        auto sg = sycl::ext::oneapi::this_work_item::get_sub_group();
+#else
+        auto sg = sycl::ext::oneapi::experimental::this_sub_group();
+#endif
+        using sycl::ext::oneapi::group_ballot;
+        using sycl::ext::oneapi::sub_group_mask;
+        sub_group_mask active = group_ballot(sg, 1);
+        sub_group_mask done_active = group_ballot(sg, 0);
+        while (active != done_active) {
+          if (!done) {
+            if (desul::Impl::lock_address_sycl((void*)dest_val, scope)) {
+              desul::atomic_thread_fence(desul::MemoryOrderAcquire(), scope);
+              return_val = *dest;
+              *dest      = op.apply(return_val, val);
+              desul::atomic_thread_fence(desul::MemoryOrderRelease(), scope);
+              desul::Impl::unlock_address_sycl((void*)dest_val, scope);
+              done = 1;
+            }
+          }
+          done_active = group_ballot(sg, done);
+        }
+        return return_val;
       }
 #endif
 
