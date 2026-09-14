@@ -122,7 +122,7 @@ namespace Sacado {
 	// Teams in sycl use second block dimension
 	static_assert(SYCL_EXT_ONEAPI_FREE_FUNCTION_QUERIES);
 	auto query = sycl::ext::oneapi::this_work_item::get_nd_item<3>();
-	return (query.get_local_range().get(0) > 1);
+	return (query.get_local_range().get(2) > 1);
 #endif
 #else
         return false;
@@ -349,7 +349,7 @@ namespace Sacado {
 	  // auto sg = sycl::ext::oneapi::this_work_item::get_sub_group();
 	  auto sg = sycl::ext::oneapi::this_work_item::get_sub_group();
 	  while (go) {
-            if (sycl::ext::oneapi::this_work_item::get_nd_item<3>().get_local_id(0) == 0)
+            if (sycl::ext::oneapi::this_work_item::get_nd_item<3>().get_local_id(2) == 0)
               go = !desul::Impl::lock_address_sycl((void*)dest_val, scope);
             // go = Kokkos::shfl(go, 0, sycl::ext::oneapi::this_work_item::get_nd_item<3>().get_local_range(2));
 	    go = sycl::select_from_group(sg,go,0);
@@ -358,7 +358,7 @@ namespace Sacado {
           return_type return_val = op.apply(*dest, val);
           *dest                  = return_val;
           desul::atomic_thread_fence(desul::MemoryOrderRelease(), scope);
-          if (sycl::ext::oneapi::this_work_item::get_nd_item<3>().get_local_id(0) == 0)
+          if (sycl::ext::oneapi::this_work_item::get_nd_item<3>().get_local_id(2) == 0)
             desul::Impl::unlock_address_sycl((void*)dest_val, scope);
           return return_val;
         }
@@ -401,7 +401,7 @@ namespace Sacado {
 	  // auto sg = sycl::ext::oneapi::this_work_item::get_sub_group();
 	  auto sg = sycl::ext::oneapi::this_work_item::get_sub_group();
           while (go) {
-            if (sycl::ext::oneapi::this_work_item::get_nd_item<3>().get_local_id(0) == 0)
+            if (sycl::ext::oneapi::this_work_item::get_nd_item<3>().get_local_id(2) == 0)
               go = !desul::Impl::lock_address_sycl((void*)dest_val, scope);
             // go = Kokkos::shfl(go, 0, blockDim.x);
 	    go = sycl::select_from_group(sg,go,0);
@@ -410,7 +410,7 @@ namespace Sacado {
           return_type return_val = *dest;
           *dest                  = op.apply(return_val, val);
           desul::atomic_thread_fence(desul::MemoryOrderRelease(), scope);
-          if (sycl::ext::oneapi::this_work_item::get_nd_item<3>().get_local_id(0) == 0)
+          if (sycl::ext::oneapi::this_work_item::get_nd_item<3>().get_local_id(2) == 0)
             desul::Impl::unlock_address_sycl((void*)dest_val, scope);
           return return_val;
         }

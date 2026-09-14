@@ -74,6 +74,13 @@ IF (Sacado_ENABLE_TeuchosCore)
 
   IF (Sacado_ENABLE_Kokkos)
 
+
+    TRIBITS_ADD_EXECUTABLE(roger_query
+	SOURCES tKokkosQueryDeviceMapping.cpp ${UTILS_SOURCES}
+	)
+
+
+
     IF (Kokkos_ENABLE_SERIAL)
       IF (Sacado_ENABLE_TeuchosKokkosComm)
         TRIBITS_ADD_EXECUTABLE_AND_TEST(
@@ -540,15 +547,15 @@ IF (Sacado_ENABLE_TeuchosCore)
       #  RUN_SERIAL
       #  )
 
-      #TRIBITS_ADD_EXECUTABLE_AND_TEST(
-      #  FadKokkosTests_Cuda_Hierarchical_DFad
-      #  SOURCES Fad_KokkosTests.hpp
-      #          Fad_KokkosTests_Cuda_Hierarchical_DFad.cpp
-      #  COMM serial mpi
-      #  STANDARD_PASS_OUTPUT
-      #  NUM_MPI_PROCS 1
-      #  RUN_SERIAL
-      #  )
+      TRIBITS_ADD_EXECUTABLE_AND_TEST(
+        FadKokkosTests_SYCL_Hierarchical_DFad
+        SOURCES Fad_KokkosTests.hpp
+                Fad_KokkosTests_SYCL_Hierarchical_DFad.cpp
+        COMM serial mpi
+        STANDARD_PASS_OUTPUT
+        NUM_MPI_PROCS 1
+        RUN_SERIAL
+        )
 
       #TRIBITS_ADD_EXECUTABLE_AND_TEST(
       #  FadKokkosTests_NoViewSpec_Cuda

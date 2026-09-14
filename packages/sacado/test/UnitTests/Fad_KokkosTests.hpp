@@ -623,6 +623,8 @@ TEUCHOS_UNIT_TEST_TEMPLATE_3_DECL(
   v = ViewType ("view", num_rows, num_cols, fad_size+1);
 #endif
   typename ViewType::array_type va = v;
+  std::cout << "ROGER array_type=" << Teuchos::demangleName(typeid(va).name()) << std::endl;
+  std::cout << "ROGER rank=" << va.rank() << ",extents=" << va.extent(0) << "," << va.extent(1) << "," << va.extent(2) << "," << va.extent(3) << "," << va.extent(4) << std::endl;
   Kokkos::deep_copy( va, 1.0 );
 
   // Deep copy a constant scalar

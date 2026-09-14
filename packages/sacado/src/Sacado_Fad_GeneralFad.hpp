@@ -43,6 +43,8 @@ namespace Sacado {
 #ifndef SACADO_FAD_DERIV_LOOP
 #if defined(SACADO_VIEW_CUDA_HIERARCHICAL_DFAD) && !defined(SACADO_DISABLE_CUDA_IN_KOKKOS) && defined(__CUDA_ARCH__)
 #define SACADO_FAD_DERIV_LOOP(I,SZ) for (int I=threadIdx.x; I<SZ; I+=blockDim.x)
+#elif defined(SACADO_VIEW_CUDA_HIERARCHICAL_DFAD) && !defined(SACADO_DISABLE_CUDA_IN_KOKKOS) && defined(__SYCL_DEVICE_ONLY__)
+#define SACADO_FAD_DERIV_LOOP(I,SZ) for (int I=sycl::ext::oneapi::this_work_item::get_nd_item<3>().get_local_id(2); I<SZ; I+=sycl::ext::oneapi::this_work_item::get_nd_item<3>().get_local_range(2))
 #else
 #define SACADO_FAD_DERIV_LOOP(I,SZ) for (int I=0; I<SZ; ++I)
 #endif
@@ -51,6 +53,8 @@ namespace Sacado {
 #ifndef SACADO_FAD_THREAD_SINGLE
 #if (defined(SACADO_VIEW_CUDA_HIERARCHICAL) || defined(SACADO_VIEW_CUDA_HIERARCHICAL_DFAD)) && !defined(SACADO_DISABLE_CUDA_IN_KOKKOS) && defined(__CUDA_ARCH__)
 #define SACADO_FAD_THREAD_SINGLE if (threadIdx.x == 0)
+#elif (defined(SACADO_VIEW_CUDA_HIERARCHICAL) || defined(SACADO_VIEW_CUDA_HIERARCHICAL_DFAD)) && !defined(SACADO_DISABLE_CUDA_IN_KOKKOS) && defined(__SYCL_DEVICE_ONLY__)
+#define SACADO_FAD_THREAD_SINGLE if (sycl::ext::oneapi::this_work_item::get_nd_item<3>().get_local_id(2) == 0)
 #else
 #define SACADO_FAD_THREAD_SINGLE /* */
 #endif
