@@ -230,6 +230,29 @@ namespace Sacado {
       SACADO_INLINE_FUNCTION
       const U& fastAccessDx(int i) const { return dx_[i*blockDim.x];}
 
+#elif defined(SACADO_VIEW_CUDA_HIERARCHICAL_DFAD_STRIDED) && defined(__SYCL_DEVICE_ONLY__)
+
+      //! Returns derivative component \c i with bounds checking
+      SACADO_INLINE_FUNCTION
+      U dx(int i) const {
+        return sz_ ? dx_[i*sycl::ext::oneapi::this_work_item::get_nd_item<2>()
+                              .get_local_range(1)] : U(0.);
+      }
+
+      //! Returns derivative component \c i without bounds checking
+      SACADO_INLINE_FUNCTION
+      U& fastAccessDx(int i) {
+        return dx_[i*sycl::ext::oneapi::this_work_item::get_nd_item<2>()
+                        .get_local_range(1)];
+      }
+
+      //! Returns derivative component \c i without bounds checking
+      SACADO_INLINE_FUNCTION
+      const U& fastAccessDx(int i) const {
+        return dx_[i*sycl::ext::oneapi::this_work_item::get_nd_item<2>()
+                        .get_local_range(1)];
+      }
+
 #else
 
       //! Returns derivative component \c i with bounds checking
