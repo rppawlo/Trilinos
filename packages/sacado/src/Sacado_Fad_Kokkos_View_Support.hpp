@@ -187,9 +187,10 @@ public:
                            blockDim.x,
                        blockDim.x);
 #elif defined(SACADO_VIEW_CUDA_HIERARCHICAL) && defined(__SYCL_DEVICE_ONLY__)
-      const auto item = sycl::ext::oneapi::this_work_item::get_nd_item<2>();
-      const size_t lane = item.get_local_id(1);
-      const size_t vec = item.get_local_range(1);
+      const size_t lane =
+          sycl::ext::oneapi::this_work_item::get_nd_item<2>().get_local_id(1);
+      const size_t vec =
+          sycl::ext::oneapi::this_work_item::get_nd_item<2>().get_local_range(1);
       return reference(get_ptr(p) + base_offset + lane,
                        get_ptr(p) + base_offset + m_fad_size.value,
                        (m_fad_size.value + vec - lane - 1) / vec,
