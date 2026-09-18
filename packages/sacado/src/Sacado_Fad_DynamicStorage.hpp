@@ -232,26 +232,26 @@ namespace Sacado {
 
 #elif defined(SACADO_VIEW_CUDA_HIERARCHICAL_DFAD_STRIDED) && defined(__SYCL_DEVICE_ONLY__)
 
+      //! Stride between derivative components, 1 outside a team kernel where
+      //! the nd_item<2> query is undefined
+      SACADO_INLINE_FUNCTION
+      static int strideDx() {
+        const int vec =
+            sycl::ext::oneapi::this_work_item::get_nd_item<2>().get_local_range(1);
+        return vec > 0 ? vec : 1;
+      }
+
       //! Returns derivative component \c i with bounds checking
       SACADO_INLINE_FUNCTION
-      U dx(int i) const {
-        return sz_ ? dx_[i*sycl::ext::oneapi::this_work_item::get_nd_item<2>()
-                              .get_local_range(1)] : U(0.);
-      }
+      U dx(int i) const { return sz_ ? dx_[i*strideDx()] : U(0.); }
 
       //! Returns derivative component \c i without bounds checking
       SACADO_INLINE_FUNCTION
-      U& fastAccessDx(int i) {
-        return dx_[i*sycl::ext::oneapi::this_work_item::get_nd_item<2>()
-                        .get_local_range(1)];
-      }
+      U& fastAccessDx(int i) { return dx_[i*strideDx()];}
 
       //! Returns derivative component \c i without bounds checking
       SACADO_INLINE_FUNCTION
-      const U& fastAccessDx(int i) const {
-        return dx_[i*sycl::ext::oneapi::this_work_item::get_nd_item<2>()
-                        .get_local_range(1)];
-      }
+      const U& fastAccessDx(int i) const { return dx_[i*strideDx()];}
 
 #else
 

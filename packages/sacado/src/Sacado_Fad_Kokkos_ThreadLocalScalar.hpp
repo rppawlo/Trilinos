@@ -89,10 +89,16 @@ partition_scalar(
   const int offset = threadIdx.x;
 #else
   const auto item = sycl::ext::oneapi::this_work_item::get_nd_item<2>();
-  const int size =
-      (x.size() + item.get_local_range(1) - item.get_local_id(1) - 1) /
-      item.get_local_range(1);
-  const int offset = item.get_local_id(1);
+  size_t lane = item.get_local_id(1);
+  size_t vec = item.get_local_range(1);
+  // See the note in Sacado_Fad_Kokkos_View_Support.hpp:  outside a team kernel
+  // the query is undefined, so fall back to the unpartitioned case.
+  if (vec == 0 || lane >= vec) {
+    lane = 0;
+    vec = 1;
+  }
+  const int size = (x.size() + vec - lane - 1) / vec;
+  const int offset = lane;
 #endif
   ret_type xp(size, x.val());
 
@@ -121,10 +127,16 @@ partition_scalar(const Fad::GeneralFad<Fad::StaticStorage<T, N>> &x) {
   const int offset = threadIdx.x;
 #else
   const auto item = sycl::ext::oneapi::this_work_item::get_nd_item<2>();
-  const int size =
-      (x.size() + item.get_local_range(1) - item.get_local_id(1) - 1) /
-      item.get_local_range(1);
-  const int offset = item.get_local_id(1);
+  size_t lane = item.get_local_id(1);
+  size_t vec = item.get_local_range(1);
+  // See the note in Sacado_Fad_Kokkos_View_Support.hpp:  outside a team kernel
+  // the query is undefined, so fall back to the unpartitioned case.
+  if (vec == 0 || lane >= vec) {
+    lane = 0;
+    vec = 1;
+  }
+  const int size = (x.size() + vec - lane - 1) / vec;
+  const int offset = lane;
 #endif
   ret_type xp(size, x.val());
   for (int i = 0; i < size; ++i)
@@ -146,10 +158,16 @@ partition_scalar(
   const int offset = threadIdx.x;
 #else
   const auto item = sycl::ext::oneapi::this_work_item::get_nd_item<2>();
-  const int size =
-      (x.size() + item.get_local_range(1) - item.get_local_id(1) - 1) /
-      item.get_local_range(1);
-  const int offset = item.get_local_id(1);
+  size_t lane = item.get_local_id(1);
+  size_t vec = item.get_local_range(1);
+  // See the note in Sacado_Fad_Kokkos_View_Support.hpp:  outside a team kernel
+  // the query is undefined, so fall back to the unpartitioned case.
+  if (vec == 0 || lane >= vec) {
+    lane = 0;
+    vec = 1;
+  }
+  const int size = (x.size() + vec - lane - 1) / vec;
+  const int offset = lane;
 #endif
   ret_type xp(size, x.val());
   for (int i = 0; i < size; ++i)

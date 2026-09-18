@@ -187,10 +187,19 @@ public:
                            blockDim.x,
                        blockDim.x);
 #elif defined(SACADO_VIEW_CUDA_HIERARCHICAL) && defined(__SYCL_DEVICE_ONLY__)
-      const size_t lane =
+      size_t lane =
           sycl::ext::oneapi::this_work_item::get_nd_item<2>().get_local_id(1);
-      const size_t vec =
+      size_t vec =
           sycl::ext::oneapi::this_work_item::get_nd_item<2>().get_local_range(1);
+      // A flat kernel has no vector dimension, and the nd_item<2> query is
+      // undefined there.  Kokkos gives Cuda blockDim.x == 1 for a RangePolicy
+      // launch, so the partitioned expressions degenerate to the unpartitioned
+      // ones; match that rather than let a wrapped subtraction turn into an
+      // unbounded loop.
+      if (vec == 0 || lane >= vec) {
+        lane = 0;
+        vec = 1;
+      }
       return reference(get_ptr(p) + base_offset + lane,
                        get_ptr(p) + base_offset + m_fad_size.value,
                        (m_fad_size.value + vec - lane - 1) / vec,

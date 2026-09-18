@@ -17,10 +17,19 @@ namespace Sacado {
 #if defined(SACADO_VIEW_CUDA_HIERARCHICAL_DFAD) && !defined(SACADO_DISABLE_CUDA_IN_KOKKOS) && ( defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__) )
 #define SACADO_FAD_DERIV_LOOP(I,SZ) for (int I=threadIdx.x; I<SZ; I+=blockDim.x)
 #elif defined(SACADO_VIEW_CUDA_HIERARCHICAL_DFAD) && defined(__SYCL_DEVICE_ONLY__)
-#define SACADO_FAD_DERIV_LOOP(I,SZ)                                     \
-  for (int I=sycl::ext::oneapi::this_work_item::get_nd_item<2>().get_local_id(1); \
-       I<SZ;                                                            \
-       I+=sycl::ext::oneapi::this_work_item::get_nd_item<2>().get_local_range(1))
+// Outside a team kernel the nd_item<2> query is undefined.  A zero range would
+// make this loop never advance, so validate before using it and fall back to
+// the sequential walk, which is what Cuda gets from blockDim.x == 1.
+#define SACADO_FAD_DERIV_LOOP(I,SZ)                                            \
+  for (int SACADO_IMPL_VEC =                                                   \
+           sycl::ext::oneapi::this_work_item::get_nd_item<2>().get_local_range(1), \
+       SACADO_IMPL_LANE =                                                      \
+           sycl::ext::oneapi::this_work_item::get_nd_item<2>().get_local_id(1),\
+       SACADO_IMPL_OK =                                                        \
+           (SACADO_IMPL_VEC > 0 && SACADO_IMPL_LANE < SACADO_IMPL_VEC),        \
+       I = SACADO_IMPL_OK ? SACADO_IMPL_LANE : 0;                              \
+       I < SZ;                                                                 \
+       I += SACADO_IMPL_OK ? SACADO_IMPL_VEC : 1)
 #else
 #define SACADO_FAD_DERIV_LOOP(I,SZ) for (int I=0; I<SZ; ++I)
 #endif
@@ -35,8 +44,15 @@ namespace Sacado {
 #if (defined(SACADO_VIEW_CUDA_HIERARCHICAL) || defined(SACADO_VIEW_CUDA_HIERARCHICAL_DFAD)) && !defined(SACADO_DISABLE_CUDA_IN_KOKKOS) && ( defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__) )
 #define SACADO_FAD_THREAD_SINGLE if (threadIdx.x == 0)
 #elif (defined(SACADO_VIEW_CUDA_HIERARCHICAL) || defined(SACADO_VIEW_CUDA_HIERARCHICAL_DFAD)) && defined(__SYCL_DEVICE_ONLY__)
-#define SACADO_FAD_THREAD_SINGLE                                        \
-  if (sycl::ext::oneapi::this_work_item::get_nd_item<2>().get_local_id(1) == 0)
+// A flat kernel has no vector dimension, so every work item must take this
+// branch, as it does on Cuda where blockDim.x == 1 makes threadIdx.x == 0.
+#define SACADO_FAD_THREAD_SINGLE                                               \
+  if (const int SACADO_IMPL_VEC =                                              \
+          sycl::ext::oneapi::this_work_item::get_nd_item<2>().get_local_range(1), \
+      SACADO_IMPL_LANE =                                                       \
+          sycl::ext::oneapi::this_work_item::get_nd_item<2>().get_local_id(1); \
+      SACADO_IMPL_LANE == 0 || SACADO_IMPL_VEC <= 0 ||                         \
+      SACADO_IMPL_LANE >= SACADO_IMPL_VEC)
 #else
 #define SACADO_FAD_THREAD_SINGLE /* */
 #endif
