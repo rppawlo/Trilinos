@@ -12,10 +12,8 @@
 #define PHX_FIELD_EVALUATOR_FACTORY_DEF_HPP
 
 #include <sstream>
-#include "Sacado_mpl_size.hpp"
-#include "Sacado_mpl_for_each.hpp"
-#include "Sacado_mpl_range_c.hpp"
 #include "Teuchos_Assert.hpp"
+#include "Phalanx_TypeList.hpp"
 #include "Phalanx_Evaluator_Factory_UFO.hpp"
 
 //**********************************************************************
@@ -39,8 +37,8 @@ buildEvaluators(const std::map<std::string, Teuchos::RCP<Teuchos::ParameterList>
 
     bool found_type = false;
     int object_type = p->get<int>("Type");
-    static const int size = Sacado::mpl::size<typename FactoryTraits::EvaluatorTypes>::value;
-    Sacado::mpl::for_each_no_kokkos< Sacado::mpl::range_c<int,0,size> >( UFO<Traits,FactoryTraits>(object_type, p, tm, found_type) );
+    constexpr std::size_t size = PHX::mpl::size_v<typename FactoryTraits::EvaluatorTypes>;
+    PHX::mpl::for_each_index<size>( UFO<Traits,FactoryTraits>(object_type, p, tm, found_type) );
 
     if (!found_type) {
       std::ostringstream msg;

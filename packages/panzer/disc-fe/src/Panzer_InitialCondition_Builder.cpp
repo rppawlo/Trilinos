@@ -52,8 +52,8 @@ setupInitialConditionFieldManagers(WorksetContainer & wkstContainer,
                                                       << ic_block_closure_models);
 
     // Only the residual is used by initial conditions
-    std::vector<bool> active_evaluation_types(Sacado::mpl::size<panzer::Traits::EvalTypes>::value,false);
-    int residual_index = Sacado::mpl::find<panzer::Traits::EvalTypes,panzer::Traits::Residual>::value;
+    std::vector<bool> active_evaluation_types(PHX::mpl::size_v<panzer::Traits::EvalTypes>,false);
+    constexpr std::size_t residual_index = PHX::mpl::index_v<panzer::Traits::Residual,panzer::Traits::EvalTypes>;
     active_evaluation_types[residual_index] = true;
     pb->setActiveEvaluationTypes(active_evaluation_types);
 
@@ -114,8 +114,8 @@ setupInitialConditionFieldManagers(WorksetContainer & wkstContainer,
                                                       << ic_block_closure_models);
 
     // Only the residual is used by initial conditions
-    std::vector<bool> active_evaluation_types(Sacado::mpl::size<panzer::Traits::EvalTypes>::value,false);
-    int residual_index = Sacado::mpl::find<panzer::Traits::EvalTypes,panzer::Traits::Residual>::value;
+    std::vector<bool> active_evaluation_types(PHX::mpl::size_v<panzer::Traits::EvalTypes>,false);
+    constexpr std::size_t residual_index = PHX::mpl::index_v<panzer::Traits::Residual,panzer::Traits::EvalTypes>;
     active_evaluation_types[residual_index] = true;
     pb->setActiveEvaluationTypes(active_evaluation_types);
 

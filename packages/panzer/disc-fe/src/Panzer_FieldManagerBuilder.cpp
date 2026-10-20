@@ -50,7 +50,7 @@ FieldManagerBuilder(bool disablePhysicsBlockScatter,
                     bool disablePhysicsBlockGather)
   : disablePhysicsBlockScatter_(disablePhysicsBlockScatter)
   , disablePhysicsBlockGather_(disablePhysicsBlockGather)
-  , active_evaluation_types_(Sacado::mpl::size<panzer::Traits::EvalTypes>::value, true)
+  , active_evaluation_types_(PHX::mpl::size_v<panzer::Traits::EvalTypes>, true)
 {}
 
 //=======================================================================
@@ -67,8 +67,8 @@ namespace {
       : active_(active),fm_(fm),setup_data_(setup_data) {}
 
     template<typename T>
-    void operator()(T) const {
-      auto index = Sacado::mpl::find<panzer::Traits::EvalTypes,T>::value;
+    void operator()() const {
+      constexpr std::size_t index = PHX::mpl::index_v<T,panzer::Traits::EvalTypes>;
       if (active_[index])
         fm_.postRegistrationSetupForType<T>(setup_data_);
     }
@@ -166,7 +166,7 @@ void panzer::FieldManagerBuilder::setupVolumeFieldManagers(
     setKokkosExtendedDataTypeDimensions(wd.getElementBlock(),*globalIndexer,user_data,*fm);
 
     // call postRegistrationSetup() for each active type
-    Sacado::mpl::for_each_no_kokkos<panzer::Traits::EvalTypes>(PostRegistrationFunctor(active_evaluation_types_,*fm,setupData));
+    PHX::mpl::for_each_type<panzer::Traits::EvalTypes>(PostRegistrationFunctor(active_evaluation_types_,*fm,setupData));
 
     // make sure to add the field manager & workset to the list
     volume_workset_desc_.push_back(wd);
@@ -309,7 +309,7 @@ setupBCFieldManagers(const std::vector<panzer::BC> & bcs,
         setupData.worksets_ = worksets;
         setupData.orientations_ = getWorksetContainer()->getOrientations();
 
-        Sacado::mpl::for_each_no_kokkos<panzer::Traits::EvalTypes>(PostRegistrationFunctor(active_evaluation_types_,fm,setupData));
+        PHX::mpl::for_each_type<panzer::Traits::EvalTypes>(PostRegistrationFunctor(active_evaluation_types_,fm,setupData));
 
       }
     } else {
@@ -369,7 +369,7 @@ setupBCFieldManagers(const std::vector<panzer::BC> & bcs,
 	// setup derivative information
 	setKokkosExtendedDataTypeDimensions(element_block_id,*globalIndexer,user_data,fm);
 
-        Sacado::mpl::for_each_no_kokkos<panzer::Traits::EvalTypes>(PostRegistrationFunctor(active_evaluation_types_,fm,setupData));
+        PHX::mpl::for_each_type<panzer::Traits::EvalTypes>(PostRegistrationFunctor(active_evaluation_types_,fm,setupData));
       }
     }
   }

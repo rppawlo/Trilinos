@@ -87,7 +87,7 @@ namespace panzer {
     /** for testing purposes only */
     explicit PhysicsBlock()
       : m_build_transient_support(false), m_global_data(Teuchos::null),
-        m_active_evaluation_types(Sacado::mpl::size<panzer::Traits::EvalTypes>::value,true)
+        m_active_evaluation_types(PHX::mpl::size_v<panzer::Traits::EvalTypes>,true)
     { std::cout << "WARNING: Default constructor for panzer::PhysicsBlock is for testing purposes only!" << std::endl; }
 
     /** This constructor call initialize.

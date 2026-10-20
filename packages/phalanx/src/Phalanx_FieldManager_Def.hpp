@@ -12,8 +12,7 @@
 #define PHX_FIELD_MANAGER_DEF_HPP
 
 #include "Teuchos_Assert.hpp"
-#include "Sacado_mpl_size.hpp"
-#include "Sacado_mpl_find.hpp"
+#include "Phalanx_TypeList.hpp"
 #include "Phalanx_EvaluationContainer_TemplateBuilder.hpp"
 #include <any>
 #include <sstream>
@@ -26,8 +25,7 @@ template<typename Traits>
 inline
 PHX::FieldManager<Traits>::FieldManager()
 {
-  m_num_evaluation_types =
-    Sacado::mpl::size<typename Traits::EvalTypes>::value;
+  m_num_evaluation_types = PHX::mpl::size_v<typename Traits::EvalTypes>;
 
   PHX::EvaluationContainer_TemplateBuilder<Traits> builder;
   m_eval_containers.buildObjects(builder);

@@ -20,7 +20,7 @@
 
 namespace panzer_stk {
 
-  /** \brief Builder functor used with Sacado::mpl::TemplateManager to
+  /** \brief Builder functor used with PHX::TemplateManager to
     * construct one panzer_stk::IOClosureModelFactory<EvalT> per
     * evaluation type, each wrapping the same underlying closure model
     * factory template manager, mesh, and output field selection.

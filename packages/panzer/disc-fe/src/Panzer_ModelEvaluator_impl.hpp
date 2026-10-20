@@ -77,7 +77,7 @@ ModelEvaluator(const Teuchos::RCP<panzer::FieldManagerBuilder>& fmb,
   , oneTimeDirichletBeta_(0.0)
   , build_volume_field_managers_(true)
   , build_bc_field_managers_(true)
-  , active_evaluation_types_(Sacado::mpl::size<panzer::Traits::EvalTypes>::value, true)
+  , active_evaluation_types_(PHX::mpl::size_v<panzer::Traits::EvalTypes>, true)
   , write_matrix_count_(0)
 {
   using Teuchos::RCP;
@@ -133,7 +133,7 @@ ModelEvaluator(const Teuchos::RCP<const panzer::LinearObjFactory<panzer::Traits>
   , oneTimeDirichletBeta_(0.0)
   , build_volume_field_managers_(true)
   , build_bc_field_managers_(true)
-  , active_evaluation_types_(Sacado::mpl::size<panzer::Traits::EvalTypes>::value, true)
+  , active_evaluation_types_(PHX::mpl::size_v<panzer::Traits::EvalTypes>, true)
   , write_matrix_count_(0)
 {
   using Teuchos::RCP;

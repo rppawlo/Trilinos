@@ -146,7 +146,7 @@ PhysicsBlock(const Teuchos::RCP<Teuchos::ParameterList>& physics_block_plist,
   m_build_transient_support(build_transient_support),
   m_global_data(global_data),
   m_eqset_factory(factory),
-  m_active_evaluation_types(Sacado::mpl::size<panzer::Traits::EvalTypes>::value,true)
+  m_active_evaluation_types(PHX::mpl::size_v<panzer::Traits::EvalTypes>,true)
 {
   TEUCHOS_ASSERT(nonnull(physics_block_plist));
   TEUCHOS_ASSERT(nonnull(factory));
@@ -170,7 +170,7 @@ PhysicsBlock(const Teuchos::RCP<Teuchos::ParameterList>& physics_block_plist,
   m_default_integration_order(1),
   m_input_parameters(physics_block_plist),
   m_build_transient_support(false),
-  m_active_evaluation_types(Sacado::mpl::size<panzer::Traits::EvalTypes>::value,true)
+  m_active_evaluation_types(PHX::mpl::size_v<panzer::Traits::EvalTypes>,true)
 {
 }
 
@@ -190,7 +190,7 @@ PhysicsBlock(const std::string & element_block_id,
   m_build_transient_support(false),
   m_global_data(global_data),
   m_eqset_factory(Teuchos::null),
-  m_active_evaluation_types(Sacado::mpl::size<panzer::Traits::EvalTypes>::value,true)
+  m_active_evaluation_types(PHX::mpl::size_v<panzer::Traits::EvalTypes>,true)
 {
   using Teuchos::RCP;
   using Teuchos::ParameterList;
@@ -236,7 +236,7 @@ PhysicsBlock(const panzer::PhysicsBlock& pb,
   m_build_transient_support(pb.m_build_transient_support),
   m_global_data(pb.m_global_data),
   m_eqset_factory(pb.m_eqset_factory),
-  m_active_evaluation_types(Sacado::mpl::size<panzer::Traits::EvalTypes>::value,true)
+  m_active_evaluation_types(PHX::mpl::size_v<panzer::Traits::EvalTypes>,true)
 {
   initialize(m_input_parameters,
             m_default_integration_order,
@@ -365,7 +365,7 @@ void panzer::PhysicsBlock::initialize(const Teuchos::RCP<Teuchos::ParameterList>
 // *******************************************************************
 void panzer::PhysicsBlock::setActiveEvaluationTypes(const std::vector<bool>& aet)
 {
-  TEUCHOS_ASSERT(aet.size() == std::size_t(Sacado::mpl::size<panzer::Traits::EvalTypes>::value));
+  TEUCHOS_ASSERT(aet.size() == PHX::mpl::size_v<panzer::Traits::EvalTypes>);
   m_active_evaluation_types = aet;
 }
 

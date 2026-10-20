@@ -18,12 +18,10 @@
 
 #include "Teuchos_RCP.hpp"
 
-#include "Sacado_mpl_size.hpp"
-#include "Sacado_mpl_find.hpp"
-#include "Sacado_mpl_for_each.hpp"
 #include "Sacado_mpl_apply.hpp"
 
 #include "Phalanx_config.hpp"
+#include "Phalanx_TypeList.hpp"
 
 namespace PHX {
 
@@ -73,8 +71,8 @@ namespace PHX {
                   std::vector<bool>& disabled_,
 		  const BuilderOpT& builder_) :
 	objects(objects_),disabled(disabled_),builder(builder_) {}
-      template <typename T> void operator()(T) const {
-	int idx = Sacado::mpl::find<TypeSeq,T>::value;
+      template <typename T> void operator()() const {
+	constexpr std::size_t idx = PHX::mpl::index_v<T,TypeSeq>;
         if (!disabled[idx])
           objects[idx] = builder.template build<T>();
       }
