@@ -222,7 +222,7 @@ void assembleAndSolve (panzer::AssemblyEngine_TemplateManager<panzer::Traits>& a
 }
 
 struct SparseTriple {
-  GO m, n;
+  GO m = 0, n = 0;
   std::vector<GO> i, j;
   std::vector<double> v;
 };
