@@ -341,6 +341,10 @@ namespace panzer {
     void
     setCellNodeCoordinates(PHX::MDField<Scalar,Cell,NODE,Dim> node_coordinates);
 
+    /// Explicitly release cached lazy-evaluation data while preserving setup metadata.
+    void
+    releaseCachedData();
+
     /// Check if reference point space is uniform across all cells (faster evaluation)
     bool
     hasUniformReferenceSpace() const

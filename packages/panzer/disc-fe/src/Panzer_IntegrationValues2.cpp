@@ -586,8 +586,36 @@ resetArrays()
   norm_contravarient_evaluated_ = false;
   ip_coordinates_evaluated_ = false;
   ref_ip_coordinates_evaluated_ = false;
+}
 
-  // TODO: We need to clear the views
+template <typename Scalar>
+void
+IntegrationValues2<Scalar>::
+releaseCachedData()
+{
+  resetArrays();
+
+  // These setup-time fields are intentionally not released here. Some lazy rebuild
+  // paths (notably cubature-point regeneration) wrap them in temporary non-const
+  // views and use them inside Kokkos/OpenMP kernels. Clearing them here caused a
+  // post-release rebuild segfault in the integration_values2 test, so we preserve
+  // them as reusable setup state rather than treating them as releasable caches.
+//  cub_points = Array_IPDim();
+//  side_cub_points = Array_IPDim();
+//  cub_weights = Array_IP();
+//  node_coordinates = Array_CellBASISDim();
+  jac = Array_CellIPDimDim();
+  jac_inv = Array_CellIPDimDim();
+  jac_det = Array_CellIP();
+  weighted_measure = Array_CellIP();
+  weighted_normals = Array_CellIPDim();
+  surface_normals = Array_CellIPDim();
+  surface_rotation_matrices = Array_CellIPDimDim();
+  covarient = Array_CellIPDimDim();
+  contravarient = Array_CellIPDimDim();
+  norm_contravarient = Array_CellIP();
+  ip_coordinates = Array_CellIPDim();
+  ref_ip_coordinates = Array_CellIPDim();
 }
 
 template <typename Scalar>

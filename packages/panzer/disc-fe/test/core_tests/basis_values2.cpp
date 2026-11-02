@@ -250,6 +250,24 @@ namespace panzer {
 
     auto cached_basis_again = basis_values.getBasisValues(false, true);
     TEST_EQUALITY(cached_basis_again.get_view().data(), basis_values.basis_scalar.get_view().data());
+
+    basis_values.releaseCachedData();
+    TEST_EQUALITY(basis_values.basis_scalar.size(), 0);
+    TEST_EQUALITY(basis_values.weighted_basis_scalar.size(), 0);
+
+    auto rebuilt_cached_basis = basis_values.getBasisValues(false, true);
+    TEST_EQUALITY(rebuilt_cached_basis.extent(0), num_cells);
+    TEST_EQUALITY(basis_values.basis_scalar.extent(0), num_cells);
+    TEST_EQUALITY(rebuilt_cached_basis.get_view().data(), basis_values.basis_scalar.get_view().data());
+
+    weighted_basis_values_with_dependencies.releaseCachedData();
+    TEST_EQUALITY(weighted_basis_values_with_dependencies.weighted_basis_scalar.size(), 0);
+    TEST_EQUALITY(weighted_basis_values_with_dependencies.basis_scalar.size(), 0);
+
+    auto rebuilt_weighted_basis = weighted_basis_values_with_dependencies.getBasisValues(true, true, true, true);
+    TEST_EQUALITY(rebuilt_weighted_basis.extent(0), num_cells);
+    TEST_EQUALITY(weighted_basis_values_with_dependencies.weighted_basis_scalar.extent(0), num_cells);
+    TEST_EQUALITY(weighted_basis_values_with_dependencies.basis_scalar.extent(0), num_cells);
   }
 
   TEUCHOS_UNIT_TEST(basis_values, grad_quad)

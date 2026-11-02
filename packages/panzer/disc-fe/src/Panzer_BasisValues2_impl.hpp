@@ -688,31 +688,35 @@ resetArrays()
   weighted_div_basis_evaluated_ = false;
   basis_coordinates_ref_evaluated_ = false;
   basis_coordinates_evaluated_ = false;
+}
 
-  // TODO: Enable this feature - requires the old interface to go away
-  // De-allocate arrays if necessary
-//  if(not alloc_arrays){
-//    basis_ref_scalar = Array_BasisIP();
-//    basis_scalar = Array_CellBasisIP();
-//    basis_ref_vector = Array_BasisIPDim();
-//    basis_vector = Array_CellBasisIPDim();
-//    grad_basis_ref = Array_BasisIPDim();
-//    grad_basis = Array_CellBasisIPDim();
-//    curl_basis_ref_scalar = Array_BasisIP();
-//    curl_basis_scalar = Array_CellBasisIP();
-//    curl_basis_ref_vector = Array_BasisIPDim();
-//    curl_basis_vector = Array_CellBasisIPDim();
-//    div_basis_ref = Array_BasisIP();
-//    div_basis = Array_CellBasisIP();
-//    weighted_basis_scalar = Array_CellBasisIP();
-//    weighted_basis_vector = Array_CellBasisIPDim();
-//    weighted_grad_basis = Array_CellBasisIPDim();
-//    weighted_curl_basis_scalar = Array_CellBasisIP();
-//    weighted_curl_basis_vector = Array_CellBasisIPDim();
-//    weighted_div_basis = Array_CellBasisIP();
-//    basis_coordinates_ref = Array_BasisDim();
-//    basis_coordinates = Array_CellBasisDim();
-//  }
+template <typename Scalar>
+void
+BasisValues2<Scalar>::
+releaseCachedData()
+{
+  resetArrays();
+
+  basis_ref_scalar = Array_BasisIP();
+  basis_scalar = Array_CellBasisIP();
+  basis_ref_vector = Array_BasisIPDim();
+  basis_vector = Array_CellBasisIPDim();
+  grad_basis_ref = Array_BasisIPDim();
+  grad_basis = Array_CellBasisIPDim();
+  curl_basis_ref_scalar = Array_BasisIP();
+  curl_basis_scalar = Array_CellBasisIP();
+  curl_basis_ref_vector = Array_BasisIPDim();
+  curl_basis_vector = Array_CellBasisIPDim();
+  div_basis_ref = Array_BasisIP();
+  div_basis = Array_CellBasisIP();
+  weighted_basis_scalar = Array_CellBasisIP();
+  weighted_basis_vector = Array_CellBasisIPDim();
+  weighted_grad_basis = Array_CellBasisIPDim();
+  weighted_curl_basis_scalar = Array_CellBasisIP();
+  weighted_curl_basis_vector = Array_CellBasisIPDim();
+  weighted_div_basis = Array_CellBasisIP();
+  basis_coordinates_ref = Array_BasisDim();
+  basis_coordinates = Array_CellBasisDim();
 }
 
 template <typename Scalar>

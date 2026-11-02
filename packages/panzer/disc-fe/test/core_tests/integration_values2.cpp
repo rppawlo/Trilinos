@@ -134,6 +134,16 @@ namespace panzer {
     auto cached_jac_again = int_values.getJacobian(true);
     TEST_EQUALITY(cached_jac_again.get_view().data(), int_values.jac.get_view().data());
 
+    int_values.releaseCachedData();
+    TEST_EQUALITY(int_values.jac.size(), 0);
+    TEST_EQUALITY(int_values.jac_det.size(), 0);
+    TEST_EQUALITY(int_values.weighted_measure.size(), 0);
+
+    auto rebuilt_cached_jac = int_values.getJacobian(true);
+    TEST_EQUALITY(rebuilt_cached_jac.extent(0), num_cells);
+    TEST_EQUALITY(int_values.jac.extent(0), num_cells);
+    TEST_EQUALITY(rebuilt_cached_jac.get_view().data(), int_values.jac.get_view().data());
+
     panzer::IntegrationValues2<double> det_values("prefix_");
     det_values.setup(int_rule, node_coordinates);
 
@@ -198,6 +208,17 @@ namespace panzer {
     TEST_EQUALITY(cached_weighted_with_dependencies.extent(0), num_cells);
     TEST_EQUALITY(weighted_values_with_dependencies.weighted_measure.extent(0), num_cells);
     TEST_EQUALITY(weighted_values_with_dependencies.jac_det.extent(0), num_cells);
+
+    weighted_values_with_dependencies.releaseCachedData();
+    TEST_EQUALITY(weighted_values_with_dependencies.weighted_measure.size(), 0);
+    TEST_EQUALITY(weighted_values_with_dependencies.jac_det.size(), 0);
+    TEST_EQUALITY(weighted_values_with_dependencies.jac.size(), 0);
+
+    auto rebuilt_cached_weighted = weighted_values_with_dependencies.getWeightedMeasure(true, false, true);
+    TEST_EQUALITY(rebuilt_cached_weighted.extent(0), num_cells);
+    TEST_EQUALITY(weighted_values_with_dependencies.weighted_measure.extent(0), num_cells);
+    TEST_EQUALITY(weighted_values_with_dependencies.jac_det.extent(0), num_cells);
+    TEST_EQUALITY(weighted_values_with_dependencies.jac.extent(0), num_cells);
   }
 
   TEUCHOS_UNIT_TEST(integration_values, control_volume)

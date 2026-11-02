@@ -473,6 +473,10 @@ namespace panzer {
     getIntegrationRule() const
     {return int_rule;}
 
+    /// Explicitly release cached lazy-evaluation data while preserving setup metadata.
+    void
+    releaseCachedData();
+
     // =====================================================================================================
 
   protected:
