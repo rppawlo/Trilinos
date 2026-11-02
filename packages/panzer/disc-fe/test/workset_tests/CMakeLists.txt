@@ -5,7 +5,13 @@ SET(UNIT_TEST_DRIVER
   ${PANZER_UNIT_TEST_MAIN})
 
 TRIBITS_ADD_EXECUTABLE_AND_TEST(
-  point_descriptor 
+  point_descriptor
   SOURCES  point_descriptor.cpp ${UNIT_TEST_DRIVER}
+  NUM_MPI_PROCS 1
+  )
+
+TRIBITS_ADD_EXECUTABLE_AND_TEST(
+  workset_cache
+  SOURCES workset_cache.cpp ${UNIT_TEST_DRIVER}
   NUM_MPI_PROCS 1
   )

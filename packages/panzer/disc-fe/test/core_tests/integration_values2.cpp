@@ -28,22 +28,22 @@ using panzer::IntegrationRule;
 namespace panzer {
 
   TEUCHOS_UNIT_TEST(integration_values, volume)
-  {    
-    Teuchos::RCP<shards::CellTopology> topo = 
+  {
+    Teuchos::RCP<shards::CellTopology> topo =
        Teuchos::rcp(new shards::CellTopology(shards::getCellTopologyData< shards::Quadrilateral<4> >()));
 
     const int num_cells = 20;
     const int base_cell_dimension = 2;
     const panzer::CellData cell_data(num_cells,topo);
 
-    const int cubature_degree = 2;    
-    RCP<IntegrationRule> int_rule = 
+    const int cubature_degree = 2;
+    RCP<IntegrationRule> int_rule =
       rcp(new IntegrationRule(cubature_degree, cell_data));
-    
+
     panzer::MDFieldArrayFactory af("prefix_",true);
 
     const int num_nodes = int_rule->topology->getNodeCount();
-    PHX::MDField<double,Cell,NODE,Dim> node_coordinates 
+    PHX::MDField<double,Cell,NODE,Dim> node_coordinates
         = af.buildStaticArray<double,Cell,NODE,Dim>("nc",num_cells, num_nodes, base_cell_dimension);
 
     // Set up node coordinates.  Here we assume the following
@@ -73,16 +73,66 @@ namespace panzer {
 
     panzer::IntegrationValues2<double> int_values("prefix_");
     int_values.setup(int_rule, node_coordinates);
-    
+
     TEST_EQUALITY(int_values.getCubaturePoints().extent(1), 4);
     double realspace_x_coord = (1.0/std::sqrt(3.0) + 1.0) / 2.0;
     double realspace_y_coord = (1.0/std::sqrt(3.0) + 1.0) / 2.0;
     auto tmp_coords = int_values.getCubaturePoints();
     auto tmp_coords_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),tmp_coords.get_view());
-    TEST_FLOATING_EQUALITY(tmp_coords_host(0,0,0), 
+    TEST_FLOATING_EQUALITY(tmp_coords_host(0,0,0),
                            realspace_x_coord, 1.0e-8);
-    TEST_FLOATING_EQUALITY(tmp_coords_host(0,0,1), 
+    TEST_FLOATING_EQUALITY(tmp_coords_host(0,0,1),
                            realspace_y_coord, 1.0e-8);
+  }
+
+  TEUCHOS_UNIT_TEST(integration_values, lazy_getter_cache_control)
+  {
+    Teuchos::RCP<shards::CellTopology> topo =
+       Teuchos::rcp(new shards::CellTopology(shards::getCellTopologyData< shards::Quadrilateral<4> >()));
+
+    const int num_cells = 2;
+    const int base_cell_dimension = 2;
+    const panzer::CellData cell_data(num_cells,topo);
+
+    const int cubature_degree = 2;
+    RCP<IntegrationRule> int_rule =
+      rcp(new IntegrationRule(cubature_degree, cell_data));
+
+    const int num_nodes = int_rule->topology->getNodeCount();
+    PHX::MDField<double,Cell,NODE,Dim> node_coordinates("nc","nc",num_cells,num_nodes,base_cell_dimension);
+
+    typedef panzer::ArrayTraits<double,PHX::MDField<double> >::size_type size_type;
+    const size_type x = 0;
+    const size_type y = 1;
+    auto node_coordinates_k = node_coordinates.get_view();
+    Kokkos::parallel_for("initialize node coords for lazy cache test",node_coordinates.extent(0),
+                         KOKKOS_LAMBDA (const int cell) {
+      node_coordinates_k(cell,0,x) = 0.0;
+      node_coordinates_k(cell,0,y) = 0.0;
+      node_coordinates_k(cell,1,x) = 1.0;
+      node_coordinates_k(cell,1,y) = 0.0;
+      node_coordinates_k(cell,2,x) = 1.0;
+      node_coordinates_k(cell,2,y) = 1.0;
+      node_coordinates_k(cell,3,x) = 0.0;
+      node_coordinates_k(cell,3,y) = 1.0;
+    });
+
+    panzer::IntegrationValues2<double> int_values("prefix_");
+    int_values.setup(int_rule, node_coordinates);
+
+    TEST_EQUALITY(int_values.jac.extent(0), 0);
+
+    auto uncached_jac = int_values.getJacobian(false);
+    TEST_EQUALITY(uncached_jac.extent(0), num_cells);
+    TEST_EQUALITY(int_values.jac.extent(0), 0);
+
+    auto cached_jac = int_values.getJacobian(true);
+    TEST_EQUALITY(cached_jac.extent(0), num_cells);
+    TEST_EQUALITY(int_values.jac.extent(0), num_cells);
+    TEST_EQUALITY(cached_jac.get_view().data(), int_values.jac.get_view().data());
+
+    auto cached_jac_again = int_values.getJacobian(true);
+    TEST_EQUALITY(cached_jac_again.get_view().data(), int_values.jac.get_view().data());
   }
 
   TEUCHOS_UNIT_TEST(integration_values, control_volume)
@@ -348,6 +398,8 @@ namespace panzer {
     // Build the subcell connectivity
     auto connectivity = Teuchos::rcp(new panzer::FaceConnectivity);
     connectivity->setup(mesh);
+
+    TEST_THROW(int_values.setupPermutations(connectivity,-1), std::logic_error);
 
     // Now we try again
     int_values.evaluateValues(node_coordinates,-1,connectivity,0);

@@ -703,7 +703,7 @@ setupPermutations(const Teuchos::RCP<const SubcellConnectivity> & face_connectiv
   TEUCHOS_ASSERT(face_connectivity != Teuchos::null);
   TEUCHOS_TEST_FOR_EXCEPT_MSG(int_rule->getType() != panzer::IntegrationDescriptor::SURFACE,
                               "IntegrationValues2::setupPermutations : Face connectivity based permutations are only required for surface integration schemes");
-  TEUCHOS_TEST_FOR_EXCEPT_MSG(num_virtual_cells_ >= 0,
+  TEUCHOS_TEST_FOR_EXCEPT_MSG(num_virtual_cells < 0,
                               "IntegrationValues2::setupPermutations : Number of virtual cells for surface permuations must be >= 0");
   resetArrays();
   side_connectivity_ = face_connectivity;

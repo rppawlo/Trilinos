@@ -139,6 +139,80 @@ namespace panzer {
     }
   }
 
+  TEUCHOS_UNIT_TEST(basis_values, lazy_getter_cache_control)
+  {
+    typedef panzer::ArrayTraits<double,PHX::MDField<double> >::size_type size_type;
+
+    Teuchos::RCP<shards::CellTopology> topo =
+       Teuchos::rcp(new shards::CellTopology(shards::getCellTopologyData< shards::Quadrilateral<4> >()));
+
+    const int num_cells = 2;
+    const int base_cell_dimension = 2;
+    const panzer::CellData cell_data(num_cells,topo);
+
+    const int cubature_degree = 2;
+    RCP<IntegrationRule> int_rule =
+      rcp(new IntegrationRule(cubature_degree, cell_data));
+
+    const int num_vertices = int_rule->topology->getNodeCount();
+    PHX::MDField<double,Cell,NODE,Dim> node_coordinates("nc","nc",num_cells,num_vertices,base_cell_dimension);
+
+    const size_type x = 0;
+    const size_type y = 1;
+    auto node_coordinates_k = node_coordinates.get_view();
+    Kokkos::parallel_for("initialize basis cache test node coords",node_coordinates.extent(0),
+                         KOKKOS_LAMBDA (const int cell) {
+      node_coordinates_k(cell,0,x) = 0.0;
+      node_coordinates_k(cell,0,y) = 0.0;
+      node_coordinates_k(cell,1,x) = 1.0;
+      node_coordinates_k(cell,1,y) = 0.0;
+      node_coordinates_k(cell,2,x) = 1.0;
+      node_coordinates_k(cell,2,y) = 1.0;
+      node_coordinates_k(cell,3,x) = 0.0;
+      node_coordinates_k(cell,3,y) = 1.0;
+    });
+
+    panzer::IntegrationValues2<double> int_values("prefix_");
+    int_values.setup(int_rule, node_coordinates);
+
+    const std::string basis_type = "Q1";
+    RCP<panzer::BasisIRLayout> basis = rcp(new panzer::BasisIRLayout(basis_type, 1, *int_rule));
+
+    panzer::BasisValues2<double> basis_values;
+    basis_values.setupUniform(basis,
+                              int_values.getUniformCubaturePointsRef(false),
+                              int_values.getJacobian(false),
+                              int_values.getJacobianDeterminant(false),
+                              int_values.getJacobianInverse(false));
+
+    TEST_EQUALITY(basis_values.basis_scalar.extent(0), 0);
+
+    panzer::BasisValues2<double> weighted_basis_values;
+    weighted_basis_values.setupUniform(basis,
+                                       int_values.getUniformCubaturePointsRef(false),
+                                       int_values.getJacobian(false),
+                                       int_values.getJacobianDeterminant(false),
+                                       int_values.getJacobianInverse(false));
+    weighted_basis_values.setWeightedMeasure(int_values.getWeightedMeasure(false));
+
+    auto weighted_basis = weighted_basis_values.getBasisValues(true, true, true);
+    TEST_EQUALITY(weighted_basis.extent(0), num_cells);
+    TEST_EQUALITY(weighted_basis_values.weighted_basis_scalar.extent(0), num_cells);
+    TEST_EQUALITY(weighted_basis_values.basis_scalar.extent(0), 0);
+
+    auto uncached_basis = basis_values.getBasisValues(false, false);
+    TEST_EQUALITY(uncached_basis.extent(0), num_cells);
+    TEST_EQUALITY(basis_values.basis_scalar.extent(0), 0);
+
+    auto cached_basis = basis_values.getBasisValues(false, true);
+    TEST_EQUALITY(cached_basis.extent(0), num_cells);
+    TEST_EQUALITY(basis_values.basis_scalar.extent(0), num_cells);
+    TEST_EQUALITY(cached_basis.get_view().data(), basis_values.basis_scalar.get_view().data());
+
+    auto cached_basis_again = basis_values.getBasisValues(false, true);
+    TEST_EQUALITY(cached_basis_again.get_view().data(), basis_values.basis_scalar.get_view().data());
+  }
+
   TEUCHOS_UNIT_TEST(basis_values, grad_quad)
   {
     typedef panzer::ArrayTraits<double,PHX::MDField<double> >::size_type size_type;

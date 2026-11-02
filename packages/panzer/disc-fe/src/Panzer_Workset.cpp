@@ -335,12 +335,17 @@ getBasisValues(const panzer::BasisDescriptor & basis_description,
     else
       biv->setup(bir, iv.getCubaturePointsRef(false), iv.getJacobian(false), iv.getJacobianDeterminant(false), iv.getJacobianInverse(false));
 
-    // pull out the subset of orientations required for this workset
-    std::vector<Intrepid2::Orientation> workset_orientations;
-    buildLocalOrientations(numOwnedCells()+numGhostCells(),getLocalCellIDs(),options_.orientations_, workset_orientations);
+    if(not options_.orientations_.is_null()){
+      std::vector<Intrepid2::Orientation> workset_orientations;
+      buildLocalOrientations(numOwnedCells()+numGhostCells(),getLocalCellIDs(),options_.orientations_, workset_orientations);
+      biv->setOrientations(workset_orientations, numOwnedCells()+numGhostCells());
+    }
 
-    biv->setOrientations(workset_orientations, numOwnedCells()+numGhostCells());
-    biv->setWeightedMeasure(iv.getWeightedMeasure(false));
+    const bool is_cv = (integration_description.getType() == IntegrationDescriptor::CV_BOUNDARY) or
+                       (integration_description.getType() == IntegrationDescriptor::CV_SIDE) or
+                       (integration_description.getType() == IntegrationDescriptor::CV_VOLUME);
+    if(not is_cv)
+      biv->setWeightedMeasure(iv.getWeightedMeasure(false));
     biv->setCellNodeCoordinates(cell_node_coordinates);
 
   } else {
@@ -471,11 +476,12 @@ getBasisValues(const panzer::BasisDescriptor & basis_description,
 
     bpv->setupUniform(bir, pv.coords_ref, pv.jac, pv.jac_det, pv.jac_inv);
 
-    // pull out the subset of orientations required for this workset
-    std::vector<Intrepid2::Orientation> workset_orientations;
-    buildLocalOrientations(numOwnedCells()+numGhostCells(),getLocalCellIDs(),options_.orientations_, workset_orientations);
+    if(not options_.orientations_.is_null()){
+      std::vector<Intrepid2::Orientation> workset_orientations;
+      buildLocalOrientations(numOwnedCells()+numGhostCells(),getLocalCellIDs(),options_.orientations_, workset_orientations);
+      bpv->setOrientations(workset_orientations, numOwnedCells()+numGhostCells());
+    }
 
-    bpv->setOrientations(workset_orientations, numOwnedCells()+numGhostCells());
     bpv->setCellNodeCoordinates(cell_node_coordinates);
 
   } else {
