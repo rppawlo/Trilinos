@@ -1036,6 +1036,17 @@ getBasisValues(const bool weighted,
                const bool cache,
                const bool force) const
 {
+  return getBasisValues(weighted, cache, force, cache);
+}
+
+template <typename Scalar>
+typename BasisValues2<Scalar>::ConstArray_CellBasisIP
+BasisValues2<Scalar>::
+getBasisValues(const bool weighted,
+               const bool cache,
+               const bool force,
+               const bool cache_dependencies) const
+{
   if(weighted){
     if(weighted_basis_scalar_evaluated_ and not force)
       return weighted_basis_scalar;
@@ -1055,7 +1066,7 @@ getBasisValues(const bool weighted,
     TEUCHOS_ASSERT(cubature_weights_.size() > 0);
 
     // Get the basis_scalar values - do not cache
-    const auto bv = getBasisValues(false, false, force);
+    const auto bv = getBasisValues(false, cache_dependencies, force, cache_dependencies);
 
     // Apply the weighted measure (cubature weights)
     auto tmp_weighted_basis_scalar = af.buildStaticArray<Scalar, Cell, BASIS, IP>("weighted_basis_scalar",  num_cells, num_card, num_points);
@@ -1203,6 +1214,17 @@ getVectorBasisValues(const bool weighted,
                      const bool cache,
                      const bool force) const
 {
+  return getVectorBasisValues(weighted, cache, force, cache);
+}
+
+template <typename Scalar>
+typename BasisValues2<Scalar>::ConstArray_CellBasisIPDim
+BasisValues2<Scalar>::
+getVectorBasisValues(const bool weighted,
+                     const bool cache,
+                     const bool force,
+                     const bool cache_dependencies) const
+{
   if(weighted){
     if(weighted_basis_vector_evaluated_ and not force)
       return weighted_basis_vector;
@@ -1224,7 +1246,7 @@ getVectorBasisValues(const bool weighted,
     TEUCHOS_ASSERT(cubature_weights_.size() > 0);
 
     // Get the basis_scalar values - do not cache
-    const auto bv = getVectorBasisValues(false, false, force);
+    const auto bv = getVectorBasisValues(false, cache_dependencies, force, cache_dependencies);
 
     // Apply the weighted measure (cubature weights)
     auto tmp_weighted_basis_vector = af.buildStaticArray<Scalar, Cell, BASIS, IP, Dim>("weighted_basis_vector",  num_cells, num_card, num_points, num_dim);
@@ -1378,6 +1400,17 @@ getGradBasisValues(const bool weighted,
                    const bool cache,
                    const bool force) const
 {
+  return getGradBasisValues(weighted, cache, force, cache);
+}
+
+template <typename Scalar>
+typename BasisValues2<Scalar>::ConstArray_CellBasisIPDim
+BasisValues2<Scalar>::
+getGradBasisValues(const bool weighted,
+                   const bool cache,
+                   const bool force,
+                   const bool cache_dependencies) const
+{
   if(weighted){
     if(weighted_grad_basis_evaluated_ and not force)
       return weighted_grad_basis;
@@ -1399,7 +1432,7 @@ getGradBasisValues(const bool weighted,
     TEUCHOS_ASSERT(cubature_weights_.size() > 0);
 
     // Get the basis_scalar values - do not cache
-    const auto bv = getGradBasisValues(false, false, force);
+    const auto bv = getGradBasisValues(false, cache_dependencies, force, cache_dependencies);
 
     // Apply the weighted measure (cubature weights)
     auto tmp_weighted_grad_basis = af.buildStaticArray<Scalar, Cell, BASIS, IP, Dim>("weighted_grad_basis",  num_cells, num_card, num_points, num_dim);
@@ -1532,6 +1565,17 @@ getCurl2DVectorBasis(const bool weighted,
                      const bool cache,
                      const bool force) const
 {
+  return getCurl2DVectorBasis(weighted, cache, force, cache);
+}
+
+template <typename Scalar>
+typename BasisValues2<Scalar>::ConstArray_CellBasisIP
+BasisValues2<Scalar>::
+getCurl2DVectorBasis(const bool weighted,
+                     const bool cache,
+                     const bool force,
+                     const bool cache_dependencies) const
+{
   if(weighted){
     if(weighted_curl_basis_scalar_evaluated_ and not force)
       return weighted_curl_basis_scalar;
@@ -1553,7 +1597,7 @@ getCurl2DVectorBasis(const bool weighted,
     TEUCHOS_ASSERT(cubature_weights_.size() > 0);
 
     // Get the basis_scalar values - do not cache
-    const auto bv = getCurl2DVectorBasis(false, false, force);
+    const auto bv = getCurl2DVectorBasis(false, cache_dependencies, force, cache_dependencies);
 
     // Apply the weighted measure (cubature weights)
     auto tmp_weighted_curl_basis_scalar = af.buildStaticArray<Scalar, Cell, BASIS, IP>("weighted_curl_basis_scalar",  num_cells, num_card, num_points);
@@ -1690,6 +1734,17 @@ getCurlVectorBasis(const bool weighted,
                    const bool cache,
                    const bool force) const
 {
+  return getCurlVectorBasis(weighted, cache, force, cache);
+}
+
+template <typename Scalar>
+typename BasisValues2<Scalar>::ConstArray_CellBasisIPDim
+BasisValues2<Scalar>::
+getCurlVectorBasis(const bool weighted,
+                   const bool cache,
+                   const bool force,
+                   const bool cache_dependencies) const
+{
   if(weighted){
     if(weighted_curl_basis_vector_evaluated_ and not force)
       return weighted_curl_basis_vector;
@@ -1711,7 +1766,7 @@ getCurlVectorBasis(const bool weighted,
     TEUCHOS_ASSERT(cubature_weights_.size() > 0);
 
     // Get the basis_scalar values - do not cache
-    const auto bv = getCurlVectorBasis(false, false, force);
+    const auto bv = getCurlVectorBasis(false, cache_dependencies, force, cache_dependencies);
 
     // Apply the weighted measure (cubature weights)
     auto tmp_weighted_curl_basis_vector = af.buildStaticArray<Scalar, Cell, BASIS, IP, Dim>("weighted_curl_basis_vector",  num_cells, num_card, num_points, num_dim);
@@ -1843,6 +1898,17 @@ getDivVectorBasis(const bool weighted,
                   const bool cache,
                   const bool force) const
 {
+  return getDivVectorBasis(weighted, cache, force, cache);
+}
+
+template <typename Scalar>
+typename BasisValues2<Scalar>::ConstArray_CellBasisIP
+BasisValues2<Scalar>::
+getDivVectorBasis(const bool weighted,
+                  const bool cache,
+                  const bool force,
+                  const bool cache_dependencies) const
+{
   if(weighted){
     if(weighted_div_basis_evaluated_ and not force)
       return weighted_div_basis;
@@ -1863,7 +1929,7 @@ getDivVectorBasis(const bool weighted,
     TEUCHOS_ASSERT(cubature_weights_.size() > 0);
 
     // Get the basis_scalar values - do not cache
-    const auto bv = getDivVectorBasis(false, false, force);
+    const auto bv = getDivVectorBasis(false, cache_dependencies, force, cache_dependencies);
 
     // Apply the weighted measure (cubature weights)
     auto tmp_weighted_div_basis = af.buildStaticArray<Scalar, Cell, BASIS, IP>("weighted_div_basis",  num_cells, num_card, num_points);

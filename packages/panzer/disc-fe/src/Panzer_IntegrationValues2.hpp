@@ -273,6 +273,11 @@ namespace panzer {
     getJacobianInverse(const bool cache = true,
                        const bool force = false) const;
 
+    ConstArray_CellIPDimDim
+    getJacobianInverse(const bool cache,
+                       const bool force,
+                       const bool cache_dependencies) const;
+
     /**
      * \brief Get the determinant of the Jacobian matrix evaluated at the cubature points
      *
@@ -287,6 +292,11 @@ namespace panzer {
     getJacobianDeterminant(const bool cache = true,
                            const bool force = false) const;
 
+    ConstArray_CellIP
+    getJacobianDeterminant(const bool cache,
+                           const bool force,
+                           const bool cache_dependencies) const;
+
     /**
      * \brief Get the weighted measure (integration weights)
      *
@@ -300,6 +310,11 @@ namespace panzer {
     ConstArray_CellIP
     getWeightedMeasure(const bool cache = true,
                        const bool force = false) const;
+
+    ConstArray_CellIP
+    getWeightedMeasure(const bool cache,
+                       const bool force,
+                       const bool cache_dependencies) const;
 
     /**
      * \brief Get the weighted normals
@@ -343,6 +358,11 @@ namespace panzer {
     getSurfaceRotationMatrices(const bool cache = true,
                                const bool force = false) const;
 
+    ConstArray_CellIPDimDim
+    getSurfaceRotationMatrices(const bool cache,
+                               const bool force,
+                               const bool cache_dependencies) const;
+
     /**
      * \brief Get the covarient matrix
      *
@@ -358,6 +378,11 @@ namespace panzer {
     ConstArray_CellIPDimDim
     getCovarientMatrix(const bool cache = true,
                        const bool force = false) const;
+
+    ConstArray_CellIPDimDim
+    getCovarientMatrix(const bool cache,
+                       const bool force,
+                       const bool cache_dependencies) const;
 
     /**
      * \brief Get the contravarient matrix
@@ -375,6 +400,11 @@ namespace panzer {
     getContravarientMatrix(const bool cache = true,
                            const bool force = false) const;
 
+    ConstArray_CellIPDimDim
+    getContravarientMatrix(const bool cache,
+                           const bool force,
+                           const bool cache_dependencies) const;
+
     /**
      * \brief Get the contravarient matrix
      *
@@ -391,6 +421,11 @@ namespace panzer {
     getNormContravarientMatrix(const bool cache = true,
                                const bool force = false) const;
 
+    ConstArray_CellIP
+    getNormContravarientMatrix(const bool cache,
+                               const bool force,
+                               const bool cache_dependencies) const;
+
     /**
      * \brief Get the cubature points in physical space
      *
@@ -405,6 +440,11 @@ namespace panzer {
     getCubaturePoints(const bool cache = true,
                       const bool force = false) const;
 
+    ConstArray_CellIPDim
+    getCubaturePoints(const bool cache,
+                      const bool force,
+                      const bool cache_dependencies) const;
+
     /**
      * \brief Get the cubature points in the reference space
      *
@@ -418,6 +458,11 @@ namespace panzer {
     ConstArray_CellIPDim
     getCubaturePointsRef(const bool cache = true,
                          const bool force = false) const;
+
+    ConstArray_CellIPDim
+    getCubaturePointsRef(const bool cache,
+                         const bool force,
+                         const bool cache_dependencies) const;
 
     /**
      * \brief Returns the IntegrationRule

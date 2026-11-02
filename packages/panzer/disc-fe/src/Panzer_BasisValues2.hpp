@@ -495,6 +495,12 @@ namespace panzer {
                    const bool cache = true,
                    const bool force = false) const;
 
+    ConstArray_CellBasisIP
+    getBasisValues(const bool weighted,
+                   const bool cache,
+                   const bool force,
+                   const bool cache_dependencies) const;
+
     /**
      * \brief Get the vector basis values evaluated at mesh points
      *
@@ -511,6 +517,12 @@ namespace panzer {
                          const bool cache = true,
                          const bool force = false) const;
 
+    ConstArray_CellBasisIPDim
+    getVectorBasisValues(const bool weighted,
+                         const bool cache,
+                         const bool force,
+                         const bool cache_dependencies) const;
+
     /**
      * \brief Get the gradient of the basis evaluated at mesh points
      *
@@ -526,6 +538,12 @@ namespace panzer {
     getGradBasisValues(const bool weighted,
                        const bool cache = true,
                        const bool force = false) const;
+
+    ConstArray_CellBasisIPDim
+    getGradBasisValues(const bool weighted,
+                       const bool cache,
+                       const bool force,
+                       const bool cache_dependencies) const;
 
     /**
      * \brief Get the curl of a 2D vector basis evaluated at mesh points
@@ -544,6 +562,12 @@ namespace panzer {
                          const bool cache = true,
                          const bool force = false) const;
 
+    ConstArray_CellBasisIP
+    getCurl2DVectorBasis(const bool weighted,
+                         const bool cache,
+                         const bool force,
+                         const bool cache_dependencies) const;
+
     /**
      * \brief Get the curl of a 3D vector basis evaluated at mesh points
      *
@@ -561,6 +585,12 @@ namespace panzer {
                        const bool cache = true,
                        const bool force = false) const;
 
+    ConstArray_CellBasisIPDim
+    getCurlVectorBasis(const bool weighted,
+                       const bool cache,
+                       const bool force,
+                       const bool cache_dependencies) const;
+
     /**
      * \brief Get the divergence of a vector basis evaluated at mesh points
      *
@@ -577,6 +607,12 @@ namespace panzer {
     getDivVectorBasis(const bool weighted,
                       const bool cache = true,
                       const bool force = false) const;
+
+    ConstArray_CellBasisIP
+    getDivVectorBasis(const bool weighted,
+                      const bool cache,
+                      const bool force,
+                      const bool cache_dependencies) const;
 
     //=======================================================================================================
 

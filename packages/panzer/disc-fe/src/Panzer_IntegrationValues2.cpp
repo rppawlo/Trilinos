@@ -959,7 +959,7 @@ getJacobian(const bool cache,
   if(is_cv or is_surface){
 
     // Don't forget that since we are not caching this, we have to make sure the managed view remains alive while we use the non-const wrapper
-    auto const_ref_coord = getCubaturePointsRef(false,force);
+    auto const_ref_coord = getCubaturePointsRef(false,force,false);
     auto ref_coord = PHX::getNonConstDynRankViewFromConstMDField(const_ref_coord);
     auto node_coord = PHX::getNonConstDynRankViewFromConstMDField(getNodeCoordinates());
 
@@ -1004,6 +1004,16 @@ IntegrationValues2<Scalar>::
 getJacobianInverse(const bool cache,
                    const bool force) const
 {
+  return getJacobianInverse(cache, force, cache);
+}
+
+template <typename Scalar>
+typename IntegrationValues2<Scalar>::ConstArray_CellIPDimDim
+IntegrationValues2<Scalar>::
+getJacobianInverse(const bool cache,
+                   const bool force,
+                   const bool cache_dependencies) const
+{
   if(jac_inv_evaluated_ and not force)
     return jac_inv;
 
@@ -1016,7 +1026,7 @@ getJacobianInverse(const bool cache,
   const int num_space_dim = int_rule->topology->getDimension();
   const int num_ip = int_rule->num_points;
 
-  auto jacobian = getJacobian(false,force);
+  auto jacobian = getJacobian(cache_dependencies,force);
   auto aux = af.template buildStaticArray<Scalar,Cell,IP,Dim,Dim>("jac_inv",num_cells_, num_ip, num_space_dim,num_space_dim);
 
   const auto cell_range = std::make_pair(0,num_evaluate_cells_);
@@ -1041,6 +1051,16 @@ IntegrationValues2<Scalar>::
 getJacobianDeterminant(const bool cache,
                        const bool force) const
 {
+  return getJacobianDeterminant(cache, force, cache);
+}
+
+template <typename Scalar>
+typename IntegrationValues2<Scalar>::ConstArray_CellIP
+IntegrationValues2<Scalar>::
+getJacobianDeterminant(const bool cache,
+                       const bool force,
+                       const bool cache_dependencies) const
+{
   if(jac_det_evaluated_ and not force)
     return jac_det;
 
@@ -1052,7 +1072,7 @@ getJacobianDeterminant(const bool cache,
 
   const int num_ip = int_rule->num_points;
 
-  auto jacobian = getJacobian(false,force);
+  auto jacobian = getJacobian(cache_dependencies,force);
   auto aux = af.template buildStaticArray<Scalar,Cell,IP>("jac_det",num_cells_, num_ip);
 
   const auto cell_range = std::make_pair(0,num_evaluate_cells_);
@@ -1076,6 +1096,16 @@ typename IntegrationValues2<Scalar>::ConstArray_CellIP
 IntegrationValues2<Scalar>::
 getWeightedMeasure(const bool cache,
                    const bool force) const
+{
+  return getWeightedMeasure(cache, force, cache);
+}
+
+template <typename Scalar>
+typename IntegrationValues2<Scalar>::ConstArray_CellIP
+IntegrationValues2<Scalar>::
+getWeightedMeasure(const bool cache,
+                   const bool force,
+                   const bool cache_dependencies) const
 {
   if(weighted_measure_evaluated_ and not force)
     return weighted_measure;
@@ -1116,7 +1146,7 @@ getWeightedMeasure(const bool cache,
     const int num_points_on_side = num_ip / num_sides;
 
     Intrepid2::DefaultCubatureFactory cubature_factory;
-    auto jacobian = getJacobian(false,force);
+    auto jacobian = getJacobian(cache_dependencies,force);
 
     for(int side=0; side<num_sides; ++side) {
 
@@ -1197,13 +1227,13 @@ getWeightedMeasure(const bool cache,
 
     if (!int_rule->isSide()) {
 
-      auto s_jac_det = Kokkos::subview(getJacobianDeterminant(false,force).get_view(),cell_range,Kokkos::ALL());
+      auto s_jac_det = Kokkos::subview(getJacobianDeterminant(cache_dependencies,force,cache_dependencies).get_view(),cell_range,Kokkos::ALL());
       Intrepid2::FunctionSpaceTools<PHX::Device>::
       computeCellMeasure(s_weighted_measure, s_jac_det, cubature_weights.get_view());
 
     } else if(int_rule->spatial_dimension==3) {
 
-      auto s_jac = Kokkos::subview(getJacobian(false,force).get_view(),cell_range,Kokkos::ALL(),Kokkos::ALL(),Kokkos::ALL());
+      auto s_jac = Kokkos::subview(getJacobian(cache_dependencies,force).get_view(),cell_range,Kokkos::ALL(),Kokkos::ALL(),Kokkos::ALL());
       auto scratch = af.template buildStaticArray<Scalar,Point>("scratch_for_compute_measure", num_evaluate_cells_*num_ip*num_space_dim*num_space_dim);
       Intrepid2::FunctionSpaceTools<PHX::Device>::
       computeFaceMeasure(s_weighted_measure, s_jac, cubature_weights.get_view(),
@@ -1212,7 +1242,7 @@ getWeightedMeasure(const bool cache,
 
     } else if(int_rule->spatial_dimension==2) {
 
-      auto s_jac = Kokkos::subview(getJacobian(false,force).get_view(),cell_range,Kokkos::ALL(),Kokkos::ALL(),Kokkos::ALL());
+      auto s_jac = Kokkos::subview(getJacobian(cache_dependencies,force).get_view(),cell_range,Kokkos::ALL(),Kokkos::ALL(),Kokkos::ALL());
       auto scratch = af.template buildStaticArray<Scalar,Point>("scratch_for_compute_measure", num_evaluate_cells_*num_ip*num_space_dim*num_space_dim);
       Intrepid2::FunctionSpaceTools<PHX::Device>::
       computeEdgeMeasure(s_weighted_measure, s_jac, cubature_weights.get_view(),
@@ -1410,6 +1440,16 @@ IntegrationValues2<Scalar>::
 getSurfaceRotationMatrices(const bool cache,
                            const bool force) const
 {
+  return getSurfaceRotationMatrices(cache, force, cache);
+}
+
+template <typename Scalar>
+typename IntegrationValues2<Scalar>::ConstArray_CellIPDimDim
+IntegrationValues2<Scalar>::
+getSurfaceRotationMatrices(const bool cache,
+                           const bool force,
+                           const bool cache_dependencies) const
+{
   if(surface_rotation_matrices_evaluated_ and not force)
     return surface_rotation_matrices;
 
@@ -1422,7 +1462,7 @@ getSurfaceRotationMatrices(const bool cache,
   const int cell_dim = int_rule->topology->getDimension();
 
   // This call will handle all the error checking
-  auto normals = getSurfaceNormals(false,force).get_static_view();
+  auto normals = getSurfaceNormals(cache_dependencies,force).get_static_view();
   auto aux = af.template buildStaticArray<Scalar,Cell,IP,Dim,Dim>("surface_rotation_matrices",num_cells_, num_ip, 3, 3);
 
   Kokkos::MDRangePolicy<PHX::ExecutionSpace,Kokkos::Rank<2>> policy({0,0},{num_evaluate_cells_,num_ip});
@@ -1471,6 +1511,16 @@ IntegrationValues2<Scalar>::
 getCovarientMatrix(const bool cache,
                    const bool force) const
 {
+  return getCovarientMatrix(cache, force, cache);
+}
+
+template <typename Scalar>
+typename IntegrationValues2<Scalar>::ConstArray_CellIPDimDim
+IntegrationValues2<Scalar>::
+getCovarientMatrix(const bool cache,
+                   const bool force,
+                   const bool cache_dependencies) const
+{
   if(covarient_evaluated_ and not force)
     return covarient;
 
@@ -1482,7 +1532,7 @@ getCovarientMatrix(const bool cache,
   const int num_space_dim = int_rule->topology->getDimension();
   const int num_ip = int_rule->num_points;
 
-  auto jacobian = getJacobian(false,force).get_static_view();
+  auto jacobian = getJacobian(cache_dependencies,force).get_static_view();
   auto aux = af.template buildStaticArray<Scalar,Cell,IP,Dim,Dim>("covarient",num_cells_, num_ip, num_space_dim,num_space_dim);
 
   Kokkos::MDRangePolicy<PHX::ExecutionSpace,Kokkos::Rank<2>> policy({0,0},{num_evaluate_cells_,num_ip});
@@ -1513,6 +1563,16 @@ IntegrationValues2<Scalar>::
 getContravarientMatrix(const bool cache,
                        const bool force) const
 {
+  return getContravarientMatrix(cache, force, cache);
+}
+
+template <typename Scalar>
+typename IntegrationValues2<Scalar>::ConstArray_CellIPDimDim
+IntegrationValues2<Scalar>::
+getContravarientMatrix(const bool cache,
+                       const bool force,
+                       const bool cache_dependencies) const
+{
   if(contravarient_evaluated_ and not force)
     return contravarient;
 
@@ -1524,7 +1584,7 @@ getContravarientMatrix(const bool cache,
   const int num_space_dim = int_rule->topology->getDimension();
   const int num_ip = int_rule->num_points;
 
-  auto cov = getCovarientMatrix(false,force);
+  auto cov = getCovarientMatrix(cache_dependencies,force,cache_dependencies);
   auto aux = af.template buildStaticArray<Scalar,Cell,IP,Dim,Dim>("contravarient",num_cells_, num_ip, num_space_dim,num_space_dim);
 
   const auto cell_range = std::make_pair(0,num_evaluate_cells_);
@@ -1548,6 +1608,16 @@ IntegrationValues2<Scalar>::
 getNormContravarientMatrix(const bool cache,
                            const bool force) const
 {
+  return getNormContravarientMatrix(cache, force, cache);
+}
+
+template <typename Scalar>
+typename IntegrationValues2<Scalar>::ConstArray_CellIP
+IntegrationValues2<Scalar>::
+getNormContravarientMatrix(const bool cache,
+                           const bool force,
+                           const bool cache_dependencies) const
+{
   if(norm_contravarient_evaluated_ and not force)
     return norm_contravarient;
 
@@ -1559,7 +1629,7 @@ getNormContravarientMatrix(const bool cache,
   const int num_space_dim = int_rule->topology->getDimension();
   const int num_ip = int_rule->num_points;
 
-  auto con = getContravarientMatrix(false,force).get_static_view();
+  auto con = getContravarientMatrix(cache_dependencies,force,cache_dependencies).get_static_view();
   auto aux = af.template buildStaticArray<Scalar,Cell,IP>("norm_contravarient",num_cells_, num_ip);
 
   // norm of g_ij
@@ -1588,6 +1658,16 @@ typename IntegrationValues2<Scalar>::ConstArray_CellIPDim
 IntegrationValues2<Scalar>::
 getCubaturePoints(const bool cache,
                   const bool force) const
+{
+  return getCubaturePoints(cache, force, cache);
+}
+
+template <typename Scalar>
+typename IntegrationValues2<Scalar>::ConstArray_CellIPDim
+IntegrationValues2<Scalar>::
+getCubaturePoints(const bool cache,
+                  const bool force,
+                  const bool cache_dependencies) const
 {
   if(ip_coordinates_evaluated_ and not force)
     return ip_coordinates;
@@ -1629,7 +1709,7 @@ getCubaturePoints(const bool cache,
   } else if(is_surface){
 
     // Don't forget that since we are not caching this, we have to make sure the managed view remains alive while we use the non-const wrapper
-    auto const_ref_coord = getCubaturePointsRef(false,force);
+    auto const_ref_coord = getCubaturePointsRef(cache_dependencies,force,cache_dependencies);
     auto ref_coord = PHX::getNonConstDynRankViewFromConstMDField(const_ref_coord);
 
     const auto cell_range = std::make_pair(0,num_evaluate_cells_);
@@ -1675,6 +1755,16 @@ IntegrationValues2<Scalar>::
 getCubaturePointsRef(const bool cache,
                      const bool force) const
 {
+  return getCubaturePointsRef(cache, force, cache);
+}
+
+template <typename Scalar>
+typename IntegrationValues2<Scalar>::ConstArray_CellIPDim
+IntegrationValues2<Scalar>::
+getCubaturePointsRef(const bool cache,
+                     const bool force,
+                     const bool cache_dependencies) const
+{
   if(ref_ip_coordinates_evaluated_ and not force)
     return ref_ip_coordinates;
 
@@ -1701,7 +1791,7 @@ getCubaturePointsRef(const bool cache,
     auto node_coord = PHX::getNonConstDynRankViewFromConstMDField(getNodeCoordinates());
 
     // Don't forget that since we are not caching this, we have to make sure the managed view remains alive while we use the non-const wrapper
-    auto const_coord = getCubaturePoints(false,force);
+    auto const_coord = getCubaturePoints(cache_dependencies,force,cache_dependencies);
     auto coord = PHX::getNonConstDynRankViewFromConstMDField(const_coord);
 
     const auto cell_range = std::make_pair(0,num_evaluate_cells_);
@@ -1770,7 +1860,7 @@ getCubaturePointsRef(const bool cache,
                                 "ERROR: 0-D quadrature rule infrastructure does not exist!!! Will not be able to do "
                                  << "non-natural integration rules.");
 
-    auto cub_points2 = getUniformCubaturePointsRef(false,force,false);
+    auto cub_points2 = getUniformCubaturePointsRef(cache_dependencies,force,false);
 
     Kokkos::MDRangePolicy<PHX::ExecutionSpace,Kokkos::Rank<3>> policy({0,0,0},{num_evaluate_cells_,num_ip,num_space_dim});
     Kokkos::parallel_for(policy, KOKKOS_LAMBDA(const int & cell, const int & ip, const int & dim){

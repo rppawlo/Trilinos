@@ -133,6 +133,71 @@ namespace panzer {
 
     auto cached_jac_again = int_values.getJacobian(true);
     TEST_EQUALITY(cached_jac_again.get_view().data(), int_values.jac.get_view().data());
+
+    panzer::IntegrationValues2<double> det_values("prefix_");
+    det_values.setup(int_rule, node_coordinates);
+
+    auto uncached_det_with_cached_dependencies = det_values.getJacobianDeterminant(false, false, true);
+    TEST_EQUALITY(uncached_det_with_cached_dependencies.extent(0), num_cells);
+    TEST_EQUALITY(det_values.jac_det.extent(0), 0);
+    TEST_EQUALITY(det_values.jac.extent(0), num_cells);
+
+    panzer::IntegrationValues2<double> det_values_default_cache("prefix_");
+    det_values_default_cache.setup(int_rule, node_coordinates);
+
+    auto cached_det_default = det_values_default_cache.getJacobianDeterminant(true, false);
+    TEST_EQUALITY(cached_det_default.extent(0), num_cells);
+    TEST_EQUALITY(det_values_default_cache.jac_det.extent(0), num_cells);
+    TEST_EQUALITY(det_values_default_cache.jac.extent(0), num_cells);
+
+    panzer::IntegrationValues2<double> det_values_without_dependencies("prefix_");
+    det_values_without_dependencies.setup(int_rule, node_coordinates);
+
+    auto cached_det_without_dependencies = det_values_without_dependencies.getJacobianDeterminant(true, false, false);
+    TEST_EQUALITY(cached_det_without_dependencies.extent(0), num_cells);
+    TEST_EQUALITY(det_values_without_dependencies.jac_det.extent(0), num_cells);
+    TEST_EQUALITY(det_values_without_dependencies.jac.extent(0), 0);
+
+    panzer::IntegrationValues2<double> det_values_with_dependencies("prefix_");
+    det_values_with_dependencies.setup(int_rule, node_coordinates);
+
+    auto cached_det_with_dependencies = det_values_with_dependencies.getJacobianDeterminant(true, false, true);
+    TEST_EQUALITY(cached_det_with_dependencies.extent(0), num_cells);
+    TEST_EQUALITY(det_values_with_dependencies.jac_det.extent(0), num_cells);
+    TEST_EQUALITY(det_values_with_dependencies.jac.extent(0), num_cells);
+
+    panzer::IntegrationValues2<double> weighted_values("prefix_");
+    weighted_values.setup(int_rule, node_coordinates);
+
+    auto uncached_weighted_with_cached_dependencies = weighted_values.getWeightedMeasure(false, false, true);
+    TEST_EQUALITY(uncached_weighted_with_cached_dependencies.extent(0), num_cells);
+    TEST_EQUALITY(weighted_values.weighted_measure.extent(0), 0);
+    TEST_EQUALITY(weighted_values.jac_det.extent(0), num_cells);
+
+    panzer::IntegrationValues2<double> weighted_values_default_cache("prefix_");
+    weighted_values_default_cache.setup(int_rule, node_coordinates);
+
+    auto cached_weighted_default = weighted_values_default_cache.getWeightedMeasure(true, false);
+    TEST_EQUALITY(cached_weighted_default.extent(0), num_cells);
+    TEST_EQUALITY(weighted_values_default_cache.weighted_measure.extent(0), num_cells);
+    TEST_EQUALITY(weighted_values_default_cache.jac_det.extent(0), num_cells);
+    TEST_EQUALITY(weighted_values_default_cache.jac.extent(0), num_cells);
+
+    panzer::IntegrationValues2<double> weighted_values_without_dependencies("prefix_");
+    weighted_values_without_dependencies.setup(int_rule, node_coordinates);
+
+    auto cached_weighted_without_dependencies = weighted_values_without_dependencies.getWeightedMeasure(true, false, false);
+    TEST_EQUALITY(cached_weighted_without_dependencies.extent(0), num_cells);
+    TEST_EQUALITY(weighted_values_without_dependencies.weighted_measure.extent(0), num_cells);
+    TEST_EQUALITY(weighted_values_without_dependencies.jac_det.extent(0), 0);
+
+    panzer::IntegrationValues2<double> weighted_values_with_dependencies("prefix_");
+    weighted_values_with_dependencies.setup(int_rule, node_coordinates);
+
+    auto cached_weighted_with_dependencies = weighted_values_with_dependencies.getWeightedMeasure(true, false, true);
+    TEST_EQUALITY(cached_weighted_with_dependencies.extent(0), num_cells);
+    TEST_EQUALITY(weighted_values_with_dependencies.weighted_measure.extent(0), num_cells);
+    TEST_EQUALITY(weighted_values_with_dependencies.jac_det.extent(0), num_cells);
   }
 
   TEUCHOS_UNIT_TEST(integration_values, control_volume)

@@ -198,7 +198,46 @@ namespace panzer {
     auto weighted_basis = weighted_basis_values.getBasisValues(true, true, true);
     TEST_EQUALITY(weighted_basis.extent(0), num_cells);
     TEST_EQUALITY(weighted_basis_values.weighted_basis_scalar.extent(0), num_cells);
-    TEST_EQUALITY(weighted_basis_values.basis_scalar.extent(0), 0);
+    TEST_EQUALITY(weighted_basis_values.basis_scalar.extent(0), num_cells);
+
+    panzer::BasisValues2<double> weighted_basis_values_without_dependencies;
+    weighted_basis_values_without_dependencies.setupUniform(basis,
+                                                            int_values.getUniformCubaturePointsRef(false),
+                                                            int_values.getJacobian(false),
+                                                            int_values.getJacobianDeterminant(false),
+                                                            int_values.getJacobianInverse(false));
+    weighted_basis_values_without_dependencies.setWeightedMeasure(int_values.getWeightedMeasure(false));
+
+    auto weighted_basis_without_dependencies = weighted_basis_values_without_dependencies.getBasisValues(true, true, true, false);
+    TEST_EQUALITY(weighted_basis_without_dependencies.extent(0), num_cells);
+    TEST_EQUALITY(weighted_basis_values_without_dependencies.weighted_basis_scalar.extent(0), num_cells);
+    TEST_EQUALITY(weighted_basis_values_without_dependencies.basis_scalar.extent(0), 0);
+
+    panzer::BasisValues2<double> weighted_basis_values_cached_dependencies_only;
+    weighted_basis_values_cached_dependencies_only.setupUniform(basis,
+                                                                int_values.getUniformCubaturePointsRef(false),
+                                                                int_values.getJacobian(false),
+                                                                int_values.getJacobianDeterminant(false),
+                                                                int_values.getJacobianInverse(false));
+    weighted_basis_values_cached_dependencies_only.setWeightedMeasure(int_values.getWeightedMeasure(false));
+
+    auto uncached_weighted_basis_with_cached_dependencies = weighted_basis_values_cached_dependencies_only.getBasisValues(true, false, true, true);
+    TEST_EQUALITY(uncached_weighted_basis_with_cached_dependencies.extent(0), num_cells);
+    TEST_EQUALITY(weighted_basis_values_cached_dependencies_only.weighted_basis_scalar.extent(0), 0);
+    TEST_EQUALITY(weighted_basis_values_cached_dependencies_only.basis_scalar.extent(0), num_cells);
+
+    panzer::BasisValues2<double> weighted_basis_values_with_dependencies;
+    weighted_basis_values_with_dependencies.setupUniform(basis,
+                                                         int_values.getUniformCubaturePointsRef(false),
+                                                         int_values.getJacobian(false),
+                                                         int_values.getJacobianDeterminant(false),
+                                                         int_values.getJacobianInverse(false));
+    weighted_basis_values_with_dependencies.setWeightedMeasure(int_values.getWeightedMeasure(false));
+
+    auto weighted_basis_with_dependencies = weighted_basis_values_with_dependencies.getBasisValues(true, true, true, true);
+    TEST_EQUALITY(weighted_basis_with_dependencies.extent(0), num_cells);
+    TEST_EQUALITY(weighted_basis_values_with_dependencies.weighted_basis_scalar.extent(0), num_cells);
+    TEST_EQUALITY(weighted_basis_values_with_dependencies.basis_scalar.extent(0), num_cells);
 
     auto uncached_basis = basis_values.getBasisValues(false, false);
     TEST_EQUALITY(uncached_basis.extent(0), num_cells);
