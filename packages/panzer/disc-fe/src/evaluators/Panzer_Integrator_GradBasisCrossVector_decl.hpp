@@ -291,22 +291,17 @@ namespace panzer
        */
       int numGradDims_;
 
-      /**
-       *  \brief The name of the basis we're using.
-       */
-      std::string basisName_;
+      /// Descriptor used to reacquire basis values through the workset.
+      panzer::BasisDescriptor basisDescriptor_;
 
-      /**
-       *  \brief The index in the `Workset` bases for our particular
-       *         `BasisIRLayout` name.
-       */
-      std::size_t basisIndex_;
+      /// Descriptor used to reacquire basis values through the workset.
+      panzer::IntegrationDescriptor integrationDescriptor_;
 
       /**
        *  \brief The gradient vector basis information necessary for
        *         integration.
        */
-      PHX::MDField<double, panzer::Cell, panzer::BASIS, panzer::IP, panzer::Dim> basis_;
+      PHX::MDField<const double, panzer::Cell, panzer::BASIS, panzer::IP, panzer::Dim> basis_;
 
   }; // end of class Integrator_GradBasisCrossVector
 

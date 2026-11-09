@@ -100,9 +100,10 @@ evaluateFields(
   if (workset.num_cells == 0)
     return;
 
+  const auto weighted_measure = (this->wda(workset).int_rules[ir_index])->getWeightedMeasure();
   Intrepid2::FunctionSpaceTools<PHX::Device>::integrate(volumes.get_view(),
-                                                                         ones.get_view(), 
-                                                                         (this->wda(workset).int_rules[ir_index])->weighted_measure.get_view());
+                                                                         ones.get_view(),
+                                                                         weighted_measure.get_view());
   auto volumes_h = Kokkos::create_mirror_view(as_view(volumes));
   Kokkos::deep_copy(volumes_h, as_view(volumes));
 
@@ -114,8 +115,8 @@ evaluateFields(
        field != field_values.end(); ++field,++field_index) {
     
     Intrepid2::FunctionSpaceTools<PHX::Device>::integrate(tmp.get_view(),
-                                                                           field->get_view(), 
-                                                                           (this->wda(workset).int_rules[ir_index])->weighted_measure.get_view());
+                                                                           field->get_view(),
+                                                                           weighted_measure.get_view());
     auto tmp_h = Kokkos::create_mirror_view(tmp.get_static_view());
     auto field_h = Kokkos::create_mirror_view( field->get_static_view());
     Kokkos::deep_copy(tmp_h, tmp.get_static_view());

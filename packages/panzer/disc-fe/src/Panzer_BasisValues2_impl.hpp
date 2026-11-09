@@ -140,45 +140,45 @@ evaluateValues(const PHX::MDField<Scalar,IP,Dim> & cub_points,
 
   // Evaluate Reference values
   if(elmtspace == PureBasis::HGRAD or elmtspace == PureBasis::CONST or elmtspace == PureBasis::HVOL)
-    getBasisValuesRef(true,true);
+    getBasisValuesRef(CacheValues::Yes, ForceRecompute::Yes);
 
   if(elmtspace == PureBasis::HDIV or elmtspace == PureBasis::HCURL)
-    getVectorBasisValuesRef(true,true);
+    getVectorBasisValuesRef(CacheValues::Yes, ForceRecompute::Yes);
 
   if(elmtspace == PureBasis::HGRAD and compute_derivatives)
-    getGradBasisValuesRef(true,true);
+    getGradBasisValuesRef(CacheValues::Yes, ForceRecompute::Yes);
 
   if(elmtspace == PureBasis::HCURL and compute_derivatives){
     if(num_dims == 2)
-      getCurl2DVectorBasisRef(true,true);
+      getCurl2DVectorBasisRef(CacheValues::Yes, ForceRecompute::Yes);
     else if(num_dims == 3)
-      getCurlVectorBasisRef(true,true);
+      getCurlVectorBasisRef(CacheValues::Yes, ForceRecompute::Yes);
   }
 
   if(elmtspace == PureBasis::HDIV and compute_derivatives)
-    getDivVectorBasisRef(true, true);
+    getDivVectorBasisRef(CacheValues::Yes, ForceRecompute::Yes);
 
   references_evaluated = true;
 
   // Evaluate real space values
   if(elmtspace == PureBasis::HGRAD or elmtspace == PureBasis::CONST or elmtspace == PureBasis::HVOL)
-    getBasisValues(false,true,true);
+    getBasisValues(WeightBasis::No, CacheValues::Yes, ForceRecompute::Yes);
 
   if(elmtspace == PureBasis::HDIV or elmtspace == PureBasis::HCURL)
-    getVectorBasisValues(false,true,true);
+    getVectorBasisValues(WeightBasis::No, CacheValues::Yes, ForceRecompute::Yes);
 
   if(elmtspace == PureBasis::HGRAD and compute_derivatives)
-    getGradBasisValues(false,true,true);
+    getGradBasisValues(WeightBasis::No, CacheValues::Yes, ForceRecompute::Yes);
 
   if(elmtspace == PureBasis::HCURL and compute_derivatives){
     if(num_dims == 2)
-      getCurl2DVectorBasis(false,true,true);
+      getCurl2DVectorBasis(WeightBasis::No, CacheValues::Yes, ForceRecompute::Yes);
     else if(num_dims == 3)
-      getCurlVectorBasis(false,true,true);
+      getCurlVectorBasis(WeightBasis::No, CacheValues::Yes, ForceRecompute::Yes);
   }
 
   if(elmtspace == PureBasis::HDIV and compute_derivatives)
-    getDivVectorBasis(false,true,true);
+    getDivVectorBasis(WeightBasis::No, CacheValues::Yes, ForceRecompute::Yes);
 
   // Orientations have been applied if the number of them is greater than zero
   orientations_applied_ = (orientations_.size()>0);
@@ -210,28 +210,28 @@ evaluateValues(const PHX::MDField<Scalar,IP,Dim> & cub_points,
   const int num_dims = jac.extent(2);
 
   if(elmtspace == PureBasis::HGRAD or elmtspace == PureBasis::CONST or elmtspace == PureBasis::HVOL)
-    getBasisValues(true,true,true);
+    getBasisValues(WeightBasis::Yes, CacheValues::Yes, ForceRecompute::Yes);
 
   if(elmtspace == PureBasis::HDIV or elmtspace == PureBasis::HCURL)
-    getVectorBasisValues(true,true,true);
+    getVectorBasisValues(WeightBasis::Yes, CacheValues::Yes, ForceRecompute::Yes);
 
   if(elmtspace == PureBasis::HGRAD and compute_derivatives)
-    getGradBasisValues(true,true,true);
+    getGradBasisValues(WeightBasis::Yes, CacheValues::Yes, ForceRecompute::Yes);
 
   if(elmtspace == PureBasis::HCURL and compute_derivatives){
     if(num_dims == 2)
-      getCurl2DVectorBasis(true,true,true);
+      getCurl2DVectorBasis(WeightBasis::Yes, CacheValues::Yes, ForceRecompute::Yes);
     else if(num_dims == 3)
-      getCurlVectorBasis(true,true,true);
+      getCurlVectorBasis(WeightBasis::Yes, CacheValues::Yes, ForceRecompute::Yes);
   }
 
   if(elmtspace == PureBasis::HDIV and compute_derivatives)
-    getDivVectorBasis(true,true,true);
+    getDivVectorBasis(WeightBasis::Yes, CacheValues::Yes, ForceRecompute::Yes);
 
   // Add the node components
   if(use_node_coordinates){
-    getBasisCoordinatesRef(true,true);
-    getBasisCoordinates(true,true);
+    getBasisCoordinatesRef(CacheValues::Yes, ForceRecompute::Yes);
+    getBasisCoordinates(CacheValues::Yes, ForceRecompute::Yes);
   }
 
   // Orientations have been applied if the number of them is greater than zero
@@ -261,39 +261,39 @@ evaluateValues(const PHX::MDField<Scalar,Cell,IP,Dim> & cub_points,
   const int num_dims = jac.extent(2);
 
   if(elmtspace == PureBasis::HGRAD or elmtspace == PureBasis::CONST or elmtspace == PureBasis::HVOL){
-    getBasisValues(false,true,true);
-    if(build_weighted) getBasisValues(true,true,true);
+    getBasisValues(WeightBasis::No, CacheValues::Yes, ForceRecompute::Yes);
+    if(build_weighted) getBasisValues(WeightBasis::Yes, CacheValues::Yes, ForceRecompute::Yes);
   }
 
   if(elmtspace == PureBasis::HDIV or elmtspace == PureBasis::HCURL){
-    getVectorBasisValues(false,true,true);
-    if(build_weighted) getVectorBasisValues(true,true,true);
+    getVectorBasisValues(WeightBasis::No, CacheValues::Yes, ForceRecompute::Yes);
+    if(build_weighted) getVectorBasisValues(WeightBasis::Yes, CacheValues::Yes, ForceRecompute::Yes);
   }
 
   if(elmtspace == PureBasis::HGRAD and compute_derivatives){
-    getGradBasisValues(false,true,true);
-    if(build_weighted) getGradBasisValues(true,true,true);
+    getGradBasisValues(WeightBasis::No, CacheValues::Yes, ForceRecompute::Yes);
+    if(build_weighted) getGradBasisValues(WeightBasis::Yes, CacheValues::Yes, ForceRecompute::Yes);
   }
 
   if(elmtspace == PureBasis::HCURL and compute_derivatives){
     if(num_dims == 2){
-      getCurl2DVectorBasis(false,true,true);
-      if(build_weighted) getCurl2DVectorBasis(true,true,true);
+      getCurl2DVectorBasis(WeightBasis::No, CacheValues::Yes, ForceRecompute::Yes);
+      if(build_weighted) getCurl2DVectorBasis(WeightBasis::Yes, CacheValues::Yes, ForceRecompute::Yes);
     } else if(num_dims == 3) {
-      getCurlVectorBasis(false,true,true);
-      if(build_weighted) getCurlVectorBasis(true,true,true);
+      getCurlVectorBasis(WeightBasis::No, CacheValues::Yes, ForceRecompute::Yes);
+      if(build_weighted) getCurlVectorBasis(WeightBasis::Yes, CacheValues::Yes, ForceRecompute::Yes);
     }
   }
 
   if(elmtspace == PureBasis::HDIV and compute_derivatives){
-    getDivVectorBasis(false,true,true);
-    if(build_weighted) getDivVectorBasis(true,true,true);
+    getDivVectorBasis(WeightBasis::No, CacheValues::Yes, ForceRecompute::Yes);
+    if(build_weighted) getDivVectorBasis(WeightBasis::Yes, CacheValues::Yes, ForceRecompute::Yes);
   }
 
   // Add the node components
   if(use_node_coordinates){
-    getBasisCoordinatesRef(true,true);
-    getBasisCoordinates(true,true);
+    getBasisCoordinatesRef(CacheValues::Yes, ForceRecompute::Yes);
+    getBasisCoordinates(CacheValues::Yes, ForceRecompute::Yes);
   }
 
   // Orientations have been applied if the number of them is greater than zero
@@ -337,7 +337,7 @@ evaluateBasisCoordinates(const PHX::MDField<Scalar,Cell,NODE,Dim> & node_coordin
   num_evaluate_cells_ = in_num_cells < 0 ? node_coordinates.extent(0) : in_num_cells;
   cell_node_coordinates_ = node_coordinates;
 
-  getBasisCoordinates(true,true);
+  getBasisCoordinates(CacheValues::Yes, ForceRecompute::Yes);
 }
 
 // method for applying orientations
@@ -735,8 +735,8 @@ setWeightedMeasure(PHX::MDField<const Scalar, Cell, IP> weighted_measure)
 // applicaiton or the library has cached a BasisValues2 member view
 // outside of the BasisValues object. This could happen when the basis
 // values object is embedded in an evalautor for mesh motion.
-#define PANZER_CACHE_DATA(name) \
-  if(cache) { \
+#define PANZER_CACHE_FIELD_IF_ENABLED(name) \
+  if(cache == CacheValues::Yes) { \
     if(name.size()==tmp_##name.size()){ \
       Kokkos::deep_copy(name.get_view(), tmp_##name.get_view()); \
     } else { \
@@ -748,11 +748,10 @@ setWeightedMeasure(PHX::MDField<const Scalar, Cell, IP> weighted_measure)
 template <typename Scalar>
 typename BasisValues2<Scalar>::ConstArray_BasisDim
 BasisValues2<Scalar>::
-getBasisCoordinatesRef(const bool cache,
-                       const bool force) const
+getBasisCoordinatesRef(const CacheValues cache,
+                       const ForceRecompute force) const
 {
-  // Check if array already exists
-  if(basis_coordinates_ref_evaluated_ and not force)
+  if(basis_coordinates_ref_evaluated_ and force != ForceRecompute::Yes)
     return basis_coordinates_ref;
 
   PANZER_FUNC_TIME_MONITOR_DIFF("panzer::basisValues2::getBasisCoordinatesRef()",bv_get_bc_ref);
@@ -767,20 +766,28 @@ getBasisCoordinatesRef(const bool cache,
   intrepid_basis->getDofCoords(tmp_basis_coordinates_ref.get_view());
   PHX::ExecutionSpace().fence();
 
-  // Store for later if cache is enabled
-  PANZER_CACHE_DATA(basis_coordinates_ref)
+  PANZER_CACHE_FIELD_IF_ENABLED(basis_coordinates_ref)
 
   return tmp_basis_coordinates_ref;
 }
 
 template <typename Scalar>
+typename BasisValues2<Scalar>::ConstArray_BasisDim
+BasisValues2<Scalar>::
+getBasisCoordinatesRef(const bool cache,
+                       const bool force) const
+{
+  return getBasisCoordinatesRef(BasisValues2<Scalar>::cacheValues(cache),
+                                BasisValues2<Scalar>::forceRecompute(force));
+}
+
+template <typename Scalar>
 typename BasisValues2<Scalar>::ConstArray_BasisIP
 BasisValues2<Scalar>::
-getBasisValuesRef(const bool cache,
-                  const bool force) const
+getBasisValuesRef(const CacheValues cache,
+                  const ForceRecompute force) const
 {
-  // Check if array already exists
-  if(basis_ref_scalar_evaluated_ and not force)
+  if(basis_ref_scalar_evaluated_ and force != ForceRecompute::Yes)
     return basis_ref_scalar;
 
   PANZER_FUNC_TIME_MONITOR_DIFF("panzer::basisValues2::getBasisValuesRef()",bv_get_bV_ref);
@@ -803,20 +810,28 @@ getBasisValuesRef(const bool cache,
   intrepid_basis->getValues(tmp_basis_ref_scalar.get_view(), cubature_points_uniform_ref, Intrepid2::OPERATOR_VALUE);
   PHX::ExecutionSpace().fence();
 
-  // Store for later if cache is enabled
-  PANZER_CACHE_DATA(basis_ref_scalar);
+  PANZER_CACHE_FIELD_IF_ENABLED(basis_ref_scalar);
 
   return tmp_basis_ref_scalar;
 }
 
 template <typename Scalar>
+typename BasisValues2<Scalar>::ConstArray_BasisIP
+BasisValues2<Scalar>::
+getBasisValuesRef(const bool cache,
+                  const bool force) const
+{
+  return getBasisValuesRef(BasisValues2<Scalar>::cacheValues(cache),
+                           BasisValues2<Scalar>::forceRecompute(force));
+}
+
+template <typename Scalar>
 typename BasisValues2<Scalar>::ConstArray_BasisIPDim
 BasisValues2<Scalar>::
-getVectorBasisValuesRef(const bool cache,
-                        const bool force) const
+getVectorBasisValuesRef(const CacheValues cache,
+                        const ForceRecompute force) const
 {
-  // Check if array already exists
-  if(basis_ref_vector_evaluated_ and not force)
+  if(basis_ref_vector_evaluated_ and force != ForceRecompute::Yes)
     return basis_ref_vector;
 
   PANZER_FUNC_TIME_MONITOR_DIFF("panzer::basisValues2::getVectorBasisValuesRef()",bv_get_vec_bv_ref);
@@ -840,8 +855,7 @@ getVectorBasisValuesRef(const bool cache,
   intrepid_basis->getValues(tmp_basis_ref_vector.get_view(),cubature_points_uniform_ref,Intrepid2::OPERATOR_VALUE);
   PHX::ExecutionSpace().fence();
 
-  // Store for later if cache is enabled
-  PANZER_CACHE_DATA(basis_ref_vector);
+  PANZER_CACHE_FIELD_IF_ENABLED(basis_ref_vector);
 
   return tmp_basis_ref_vector;
 }
@@ -849,11 +863,20 @@ getVectorBasisValuesRef(const bool cache,
 template <typename Scalar>
 typename BasisValues2<Scalar>::ConstArray_BasisIPDim
 BasisValues2<Scalar>::
-getGradBasisValuesRef(const bool cache,
-                      const bool force) const
+getVectorBasisValuesRef(const bool cache,
+                        const bool force) const
 {
-  // Check if array already exists
-  if(grad_basis_ref_evaluated_ and not force)
+  return getVectorBasisValuesRef(BasisValues2<Scalar>::cacheValues(cache),
+                                 BasisValues2<Scalar>::forceRecompute(force));
+}
+
+template <typename Scalar>
+typename BasisValues2<Scalar>::ConstArray_BasisIPDim
+BasisValues2<Scalar>::
+getGradBasisValuesRef(const CacheValues cache,
+                      const ForceRecompute force) const
+{
+  if(grad_basis_ref_evaluated_ and force != ForceRecompute::Yes)
     return grad_basis_ref;
 
   PANZER_FUNC_TIME_MONITOR_DIFF("panzer::basisValues2::getGradBasisValuesRef()",bv_get_grad_bv_ref);
@@ -877,20 +900,28 @@ getGradBasisValuesRef(const bool cache,
   intrepid_basis->getValues(tmp_grad_basis_ref.get_view(), cubature_points_uniform_ref, Intrepid2::OPERATOR_GRAD);
   PHX::ExecutionSpace().fence();
 
-  // Store for later if cache is enabled
-  PANZER_CACHE_DATA(grad_basis_ref);
+  PANZER_CACHE_FIELD_IF_ENABLED(grad_basis_ref);
 
   return tmp_grad_basis_ref;
 }
 
 template <typename Scalar>
+typename BasisValues2<Scalar>::ConstArray_BasisIPDim
+BasisValues2<Scalar>::
+getGradBasisValuesRef(const bool cache,
+                      const bool force) const
+{
+  return getGradBasisValuesRef(BasisValues2<Scalar>::cacheValues(cache),
+                               BasisValues2<Scalar>::forceRecompute(force));
+}
+
+template <typename Scalar>
 typename BasisValues2<Scalar>::ConstArray_BasisIP
 BasisValues2<Scalar>::
-getCurl2DVectorBasisRef(const bool cache,
-                        const bool force) const
+getCurl2DVectorBasisRef(const CacheValues cache,
+                        const ForceRecompute force) const
 {
-  // Check if array already exists
-  if(curl_basis_ref_scalar_evaluated_ and not force)
+  if(curl_basis_ref_scalar_evaluated_ and force != ForceRecompute::Yes)
     return curl_basis_ref_scalar;
 
   PANZER_FUNC_TIME_MONITOR_DIFF("panzer::basisValues2::getCurl2DVectorBasisRef()",bv_get_curl2_bv_ref);
@@ -914,23 +945,31 @@ getCurl2DVectorBasisRef(const bool cache,
   intrepid_basis->getValues(tmp_curl_basis_ref_scalar.get_view(), cubature_points_uniform_ref, Intrepid2::OPERATOR_CURL);
   PHX::ExecutionSpace().fence();
 
-  // Store for later if cache is enabled
-  PANZER_CACHE_DATA(curl_basis_ref_scalar);
+  PANZER_CACHE_FIELD_IF_ENABLED(curl_basis_ref_scalar);
 
   return tmp_curl_basis_ref_scalar;
 }
 
 template <typename Scalar>
+typename BasisValues2<Scalar>::ConstArray_BasisIP
+BasisValues2<Scalar>::
+getCurl2DVectorBasisRef(const bool cache,
+                        const bool force) const
+{
+  return getCurl2DVectorBasisRef(BasisValues2<Scalar>::cacheValues(cache),
+                                 BasisValues2<Scalar>::forceRecompute(force));
+}
+
+template <typename Scalar>
 typename BasisValues2<Scalar>::ConstArray_BasisIPDim
 BasisValues2<Scalar>::
-getCurlVectorBasisRef(const bool cache,
-                      const bool force) const
+getCurlVectorBasisRef(const CacheValues cache,
+                      const ForceRecompute force) const
 {
-  // Check if array already exists
-  if(curl_basis_ref_vector_evaluated_ and not force)
+  if(curl_basis_ref_vector_evaluated_ and force != ForceRecompute::Yes)
     return curl_basis_ref_vector;
 
-  PANZER_FUNC_TIME_MONITOR_DIFF("panzer::basisValues2::getCurlVectorBasisRef()",bv_get_curl_vec_bv_ref);
+  PANZER_FUNC_TIME_MONITOR_DIFF("panzer::basisValues2::getCurlVectorBasisRef()",bv_get_curl_bv_ref);
 
   // Reference quantities only exist for a uniform reference space
   TEUCHOS_ASSERT(hasUniformReferenceSpace());
@@ -952,23 +991,31 @@ getCurlVectorBasisRef(const bool cache,
   intrepid_basis->getValues(tmp_curl_basis_ref_vector.get_view(), cubature_points_uniform_ref, Intrepid2::OPERATOR_CURL);
   PHX::ExecutionSpace().fence();
 
-  // Store for later if cache is enabled
-  PANZER_CACHE_DATA(curl_basis_ref_vector);
+  PANZER_CACHE_FIELD_IF_ENABLED(curl_basis_ref_vector);
 
   return tmp_curl_basis_ref_vector;
 }
 
 template <typename Scalar>
+typename BasisValues2<Scalar>::ConstArray_BasisIPDim
+BasisValues2<Scalar>::
+getCurlVectorBasisRef(const bool cache,
+                      const bool force) const
+{
+  return getCurlVectorBasisRef(BasisValues2<Scalar>::cacheValues(cache),
+                               BasisValues2<Scalar>::forceRecompute(force));
+}
+
+template <typename Scalar>
 typename BasisValues2<Scalar>::ConstArray_BasisIP
 BasisValues2<Scalar>::
-getDivVectorBasisRef(const bool cache,
-                     const bool force) const
+getDivVectorBasisRef(const CacheValues cache,
+                     const ForceRecompute force) const
 {
-  // Check if array already exists
-  if(div_basis_ref_evaluated_ and not force)
+  if(div_basis_ref_evaluated_ and force != ForceRecompute::Yes)
     return div_basis_ref;
 
-  PANZER_FUNC_TIME_MONITOR_DIFF("panzer::basisValues2::getDivVectorBasisRef()",bv_get_div_vec_bv_ref);
+  PANZER_FUNC_TIME_MONITOR_DIFF("panzer::basisValues2::getDivVectorBasisRef()",bv_get_div_bv_ref);
 
   // Reference quantities only exist for a uniform reference space
   TEUCHOS_ASSERT(hasUniformReferenceSpace());
@@ -982,28 +1029,37 @@ getDivVectorBasisRef(const bool cache,
   const int num_quad  = basis_layout->numPoints();
   const int num_card  = basis_layout->cardinality();
 
-  auto tmp_div_basis_ref = af.buildStaticArray<Scalar,BASIS,IP>("dyn_div_basis_ref_scalar",num_card,num_quad);
+  auto tmp_div_basis_ref = af.buildStaticArray<Scalar,BASIS,IP>("dyn_div_basis_ref",num_card,num_quad);
   auto cubature_points_uniform_ref = PHX::getNonConstDynRankViewFromConstMDField(cubature_points_uniform_ref_);
 
   intrepid_basis->getValues(tmp_div_basis_ref.get_view(), cubature_points_uniform_ref, Intrepid2::OPERATOR_DIV);
   PHX::ExecutionSpace().fence();
 
-  // Store for later if cache is enabled
-  PANZER_CACHE_DATA(div_basis_ref);
+  PANZER_CACHE_FIELD_IF_ENABLED(div_basis_ref);
 
   return tmp_div_basis_ref;
 }
 
 template <typename Scalar>
+typename BasisValues2<Scalar>::ConstArray_BasisIP
+BasisValues2<Scalar>::
+getDivVectorBasisRef(const bool cache,
+                     const bool force) const
+{
+  return getDivVectorBasisRef(BasisValues2<Scalar>::cacheValues(cache),
+                              BasisValues2<Scalar>::forceRecompute(force));
+}
+
+template <typename Scalar>
 typename BasisValues2<Scalar>::ConstArray_CellBasisDim
 BasisValues2<Scalar>::
-getBasisCoordinates(const bool cache,
-                    const bool force) const
+getBasisCoordinates(const CacheValues cache,
+                    const ForceRecompute force) const
 {
   PANZER_FUNC_TIME_MONITOR_DIFF("panzer::basisValues2::getBasisCoordinates()",bv_get_bc);
 
   // Check if array already exists
-  if(basis_coordinates_evaluated_ and not force)
+  if(basis_coordinates_evaluated_ and force != ForceRecompute::Yes)
     return basis_coordinates;
 
   TEUCHOS_ASSERT(cell_node_coordinates_.size() > 0);
@@ -1019,18 +1075,40 @@ getBasisCoordinates(const bool cache,
   auto tmp_basis_coordinates = af.buildStaticArray<Scalar, Cell, BASIS, IP>("basis_coordinates",  num_cells_, num_card, num_dim);
   auto s_aux = Kokkos::subview(tmp_basis_coordinates.get_view(),cell_range,Kokkos::ALL(),Kokkos::ALL());
 
-  // Don't forget that since we are not caching this, we have to make sure the managed view remains alive while we use the non-const wrapper
-  auto const_bcr = getBasisCoordinatesRef(false);
+  // Keep the managed field alive while the non-const wrapper is in use.
+  auto const_bcr = getBasisCoordinatesRef(CacheValues::No, force);
   auto bcr = PHX::getNonConstDynRankViewFromConstMDField(const_bcr);
 
   Intrepid2::CellTools<PHX::Device> cell_tools;
   cell_tools.mapToPhysicalFrame(s_aux, bcr, s_node_coordinates, *cell_topology_);
   PHX::ExecutionSpace().fence();
 
-  // Store for later if cache is enabled
-  PANZER_CACHE_DATA(basis_coordinates);
+  if(cache == CacheValues::Yes){
+    basis_coordinates = tmp_basis_coordinates;
+    basis_coordinates_evaluated_ = true;
+  }
 
   return tmp_basis_coordinates;
+}
+
+template <typename Scalar>
+typename BasisValues2<Scalar>::ConstArray_CellBasisDim
+BasisValues2<Scalar>::
+getBasisCoordinates(const bool cache,
+                    const bool force) const
+{
+  return getBasisCoordinates(BasisValues2<Scalar>::cacheValues(cache),
+                             BasisValues2<Scalar>::forceRecompute(force));
+}
+
+template <typename Scalar>
+typename BasisValues2<Scalar>::ConstArray_CellBasisIP
+BasisValues2<Scalar>::
+getBasisValues(const WeightBasis weighting,
+               const CacheValues cache,
+               const ForceRecompute force) const
+{
+  return getBasisValues(weighting, cache, force, cache == CacheValues::Yes ? CacheDependencies::Yes : CacheDependencies::No);
 }
 
 template <typename Scalar>
@@ -1040,23 +1118,22 @@ getBasisValues(const bool weighted,
                const bool cache,
                const bool force) const
 {
-  return getBasisValues(weighted, cache, force, cache);
+  return getBasisValues(BasisValues2<Scalar>::weightBasis(weighted), BasisValues2<Scalar>::cacheValues(cache), BasisValues2<Scalar>::forceRecompute(force));
 }
 
 template <typename Scalar>
 typename BasisValues2<Scalar>::ConstArray_CellBasisIP
 BasisValues2<Scalar>::
-getBasisValues(const bool weighted,
-               const bool cache,
-               const bool force,
-               const bool cache_dependencies) const
+getBasisValues(const WeightBasis weighting,
+               const CacheValues cache,
+               const ForceRecompute force,
+               const CacheDependencies cache_dependencies) const
 {
-  if(weighted){
-    if(weighted_basis_scalar_evaluated_ and not force)
+  if(weighting == WeightBasis::Yes){
+    if(weighted_basis_scalar_evaluated_ and force != ForceRecompute::Yes)
       return weighted_basis_scalar;
-  } else
-    if(basis_scalar_evaluated_ and not force)
-      return basis_scalar;
+  } else if(basis_scalar_evaluated_ and force != ForceRecompute::Yes)
+    return basis_scalar;
 
   PANZER_FUNC_TIME_MONITOR_DIFF("panzer::basisValues2::getBasisValues()",bv_get_bv);
 
@@ -1066,11 +1143,11 @@ getBasisValues(const bool weighted,
   const int num_points = basis_layout->numPoints();
   const int num_card   = basis_layout->cardinality();
 
-  if(weighted){
+  if(weighting == WeightBasis::Yes){
     TEUCHOS_ASSERT(cubature_weights_.size() > 0);
 
     // Get the basis_scalar values - do not cache
-    const auto bv = getBasisValues(false, cache_dependencies, force, cache_dependencies);
+    const auto bv = getBasisValues(WeightBasis::No, cache_dependencies == CacheDependencies::Yes ? CacheValues::Yes : CacheValues::No, force, cache_dependencies);
 
     // Apply the weighted measure (cubature weights)
     auto tmp_weighted_basis_scalar = af.buildStaticArray<Scalar, Cell, BASIS, IP>("weighted_basis_scalar",  num_cells, num_card, num_points);
@@ -1083,11 +1160,11 @@ getBasisValues(const bool weighted,
     using fst=Intrepid2::FunctionSpaceTools<PHX::Device>;
     fst::multiplyMeasure(s_aux,s_cw,s_bv);
 
-    // NOTE: Weighted path has orientations already applied so doesn't
-    // need the applyOrientations call at the bottom of this function.
+    // NOTE: The weighted path already has orientations applied, so it
+    // does not need the applyOrientations call at the bottom.
 
     // Store for later if cache is enabled
-    PANZER_CACHE_DATA(weighted_basis_scalar);
+    PANZER_CACHE_FIELD_IF_ENABLED(weighted_basis_scalar);
 
     return tmp_weighted_basis_scalar;
 
@@ -1203,12 +1280,35 @@ getBasisValues(const bool weighted,
       applyOrientationsImpl<Scalar>(num_orientations_cells_, tmp_basis_scalar.get_view(), orientations_, *intrepid_basis);
 
     // Store for later if cache is enabled
-    PANZER_CACHE_DATA(basis_scalar);
-
+    PANZER_CACHE_FIELD_IF_ENABLED(basis_scalar);
     return tmp_basis_scalar;
 
   }
 
+}
+
+template <typename Scalar>
+typename BasisValues2<Scalar>::ConstArray_CellBasisIP
+BasisValues2<Scalar>::
+getBasisValues(const bool weighted,
+               const bool cache,
+               const bool force,
+               const bool cache_dependencies) const
+{
+  return getBasisValues(BasisValues2<Scalar>::weightBasis(weighted),
+                        BasisValues2<Scalar>::cacheValues(cache),
+                        BasisValues2<Scalar>::forceRecompute(force),
+                        BasisValues2<Scalar>::cacheDependencies(cache_dependencies));
+}
+
+template <typename Scalar>
+typename BasisValues2<Scalar>::ConstArray_CellBasisIPDim
+BasisValues2<Scalar>::
+getVectorBasisValues(const WeightBasis weighting,
+                     const CacheValues cache,
+                     const ForceRecompute force) const
+{
+  return getVectorBasisValues(weighting, cache, force, cache == CacheValues::Yes ? CacheDependencies::Yes : CacheDependencies::No);
 }
 
 template <typename Scalar>
@@ -1218,23 +1318,22 @@ getVectorBasisValues(const bool weighted,
                      const bool cache,
                      const bool force) const
 {
-  return getVectorBasisValues(weighted, cache, force, cache);
+  return getVectorBasisValues(BasisValues2<Scalar>::weightBasis(weighted), BasisValues2<Scalar>::cacheValues(cache), BasisValues2<Scalar>::forceRecompute(force));
 }
 
 template <typename Scalar>
 typename BasisValues2<Scalar>::ConstArray_CellBasisIPDim
 BasisValues2<Scalar>::
-getVectorBasisValues(const bool weighted,
-                     const bool cache,
-                     const bool force,
-                     const bool cache_dependencies) const
+getVectorBasisValues(const WeightBasis weighting,
+                     const CacheValues cache,
+                     const ForceRecompute force,
+                     const CacheDependencies cache_dependencies) const
 {
-  if(weighted){
-    if(weighted_basis_vector_evaluated_ and not force)
+  if(weighting == WeightBasis::Yes){
+    if(weighted_basis_vector_evaluated_ and force != ForceRecompute::Yes)
       return weighted_basis_vector;
-  } else
-    if(basis_vector_evaluated_ and not force)
-      return basis_vector;
+  } else if(basis_vector_evaluated_ and force != ForceRecompute::Yes)
+    return basis_vector;
 
   PANZER_FUNC_TIME_MONITOR_DIFF("panzer::basisValues2::getVectorBasisValues()",bv_get_vec_bv);
 
@@ -1245,12 +1344,12 @@ getVectorBasisValues(const bool weighted,
   const int num_card   = basis_layout->cardinality();
   const int num_dim    = basis_layout->dimension();
 
-  if(weighted){
+  if(weighting == WeightBasis::Yes){
 
     TEUCHOS_ASSERT(cubature_weights_.size() > 0);
 
     // Get the basis_scalar values - do not cache
-    const auto bv = getVectorBasisValues(false, cache_dependencies, force, cache_dependencies);
+    const auto bv = getVectorBasisValues(WeightBasis::No, cache_dependencies == CacheDependencies::Yes ? CacheValues::Yes : CacheValues::No, force, cache_dependencies);
 
     // Apply the weighted measure (cubature weights)
     auto tmp_weighted_basis_vector = af.buildStaticArray<Scalar, Cell, BASIS, IP, Dim>("weighted_basis_vector",  num_cells, num_card, num_points, num_dim);
@@ -1264,8 +1363,7 @@ getVectorBasisValues(const bool weighted,
     fst::multiplyMeasure(s_aux, s_cw, s_bv);
 
     // Store for later if cache is enabled
-    PANZER_CACHE_DATA(weighted_basis_vector);
-
+    PANZER_CACHE_FIELD_IF_ENABLED(weighted_basis_vector);
     return tmp_weighted_basis_vector;
 
   } else { // non-weighted
@@ -1389,8 +1487,7 @@ getVectorBasisValues(const bool weighted,
       applyOrientationsImpl<Scalar>(num_orientations_cells_, tmp_basis_vector.get_view(), orientations_, *intrepid_basis);
 
     // Store for later if cache is enabled
-    PANZER_CACHE_DATA(basis_vector);
-
+    PANZER_CACHE_FIELD_IF_ENABLED(basis_vector);
     return tmp_basis_vector;
 
   }
@@ -1400,11 +1497,25 @@ getVectorBasisValues(const bool weighted,
 template <typename Scalar>
 typename BasisValues2<Scalar>::ConstArray_CellBasisIPDim
 BasisValues2<Scalar>::
-getGradBasisValues(const bool weighted,
-                   const bool cache,
-                   const bool force) const
+getVectorBasisValues(const bool weighted,
+                     const bool cache,
+                     const bool force,
+                     const bool cache_dependencies) const
 {
-  return getGradBasisValues(weighted, cache, force, cache);
+  return getVectorBasisValues(BasisValues2<Scalar>::weightBasis(weighted),
+                              BasisValues2<Scalar>::cacheValues(cache),
+                              BasisValues2<Scalar>::forceRecompute(force),
+                              BasisValues2<Scalar>::cacheDependencies(cache_dependencies));
+}
+
+template <typename Scalar>
+typename BasisValues2<Scalar>::ConstArray_CellBasisIPDim
+BasisValues2<Scalar>::
+getGradBasisValues(const WeightBasis weighting,
+                   const CacheValues cache,
+                   const ForceRecompute force) const
+{
+  return getGradBasisValues(weighting, cache, force, cache == CacheValues::Yes ? CacheDependencies::Yes : CacheDependencies::No);
 }
 
 template <typename Scalar>
@@ -1412,15 +1523,24 @@ typename BasisValues2<Scalar>::ConstArray_CellBasisIPDim
 BasisValues2<Scalar>::
 getGradBasisValues(const bool weighted,
                    const bool cache,
-                   const bool force,
-                   const bool cache_dependencies) const
+                   const bool force) const
 {
-  if(weighted){
-    if(weighted_grad_basis_evaluated_ and not force)
+  return getGradBasisValues(BasisValues2<Scalar>::weightBasis(weighted), BasisValues2<Scalar>::cacheValues(cache), BasisValues2<Scalar>::forceRecompute(force));
+}
+
+template <typename Scalar>
+typename BasisValues2<Scalar>::ConstArray_CellBasisIPDim
+BasisValues2<Scalar>::
+getGradBasisValues(const WeightBasis weighting,
+                   const CacheValues cache,
+                   const ForceRecompute force,
+                   const CacheDependencies cache_dependencies) const
+{
+  if(weighting == WeightBasis::Yes){
+    if(weighted_grad_basis_evaluated_ and force != ForceRecompute::Yes)
       return weighted_grad_basis;
-  } else
-    if(grad_basis_evaluated_ and not force)
-      return grad_basis;
+  } else if(grad_basis_evaluated_ and force != ForceRecompute::Yes)
+    return grad_basis;
 
   PANZER_FUNC_TIME_MONITOR_DIFF("panzer::basisValues2::getGradBasisValues()",bv_get_grad_bv);
 
@@ -1431,12 +1551,17 @@ getGradBasisValues(const bool weighted,
   const int num_card   = basis_layout->cardinality();
   const int num_dim    = basis_layout->dimension();
 
-  if(weighted){
+  if(weighting == WeightBasis::Yes){
 
-    TEUCHOS_ASSERT(cubature_weights_.size() > 0);
+    TEUCHOS_TEST_FOR_EXCEPTION(
+      cubature_weights_.size() == 0,
+      std::logic_error,
+      "panzer::BasisValues2::getGradBasisValues(weighted=true) called without an attached weighted measure for basis '"
+      << (basis_layout == Teuchos::null ? std::string("<null>") : basis_layout->name())
+      << "'.");
 
     // Get the basis_scalar values - do not cache
-    const auto bv = getGradBasisValues(false, cache_dependencies, force, cache_dependencies);
+    const auto bv = getGradBasisValues(WeightBasis::No, cache_dependencies == CacheDependencies::Yes ? CacheValues::Yes : CacheValues::No, force, cache_dependencies);
 
     // Apply the weighted measure (cubature weights)
     auto tmp_weighted_grad_basis = af.buildStaticArray<Scalar, Cell, BASIS, IP, Dim>("weighted_grad_basis",  num_cells, num_card, num_points, num_dim);
@@ -1450,8 +1575,7 @@ getGradBasisValues(const bool weighted,
     fst::multiplyMeasure(s_aux,s_cw,s_bv);
 
     // Store for later if cache is enabled
-    PANZER_CACHE_DATA(weighted_grad_basis);
-
+    PANZER_CACHE_FIELD_IF_ENABLED(weighted_grad_basis);
     return tmp_weighted_grad_basis;
 
   } else {
@@ -1554,12 +1678,35 @@ getGradBasisValues(const bool weighted,
       applyOrientationsImpl<Scalar>(num_orientations_cells_, tmp_grad_basis.get_view(), orientations_, *intrepid_basis);
 
     // Store for later if cache is enabled
-    PANZER_CACHE_DATA(grad_basis);
-
+    PANZER_CACHE_FIELD_IF_ENABLED(grad_basis);
     return tmp_grad_basis;
 
   }
 
+}
+
+template <typename Scalar>
+typename BasisValues2<Scalar>::ConstArray_CellBasisIPDim
+BasisValues2<Scalar>::
+getGradBasisValues(const bool weighted,
+                   const bool cache,
+                   const bool force,
+                   const bool cache_dependencies) const
+{
+  return getGradBasisValues(BasisValues2<Scalar>::weightBasis(weighted),
+                            BasisValues2<Scalar>::cacheValues(cache),
+                            BasisValues2<Scalar>::forceRecompute(force),
+                            BasisValues2<Scalar>::cacheDependencies(cache_dependencies));
+}
+
+template <typename Scalar>
+typename BasisValues2<Scalar>::ConstArray_CellBasisIP
+BasisValues2<Scalar>::
+getCurl2DVectorBasis(const WeightBasis weighting,
+                     const CacheValues cache,
+                     const ForceRecompute force) const
+{
+  return getCurl2DVectorBasis(weighting, cache, force, cache == CacheValues::Yes ? CacheDependencies::Yes : CacheDependencies::No);
 }
 
 template <typename Scalar>
@@ -1569,23 +1716,22 @@ getCurl2DVectorBasis(const bool weighted,
                      const bool cache,
                      const bool force) const
 {
-  return getCurl2DVectorBasis(weighted, cache, force, cache);
+  return getCurl2DVectorBasis(BasisValues2<Scalar>::weightBasis(weighted), BasisValues2<Scalar>::cacheValues(cache), BasisValues2<Scalar>::forceRecompute(force));
 }
 
 template <typename Scalar>
 typename BasisValues2<Scalar>::ConstArray_CellBasisIP
 BasisValues2<Scalar>::
-getCurl2DVectorBasis(const bool weighted,
-                     const bool cache,
-                     const bool force,
-                     const bool cache_dependencies) const
+getCurl2DVectorBasis(const WeightBasis weighting,
+                     const CacheValues cache,
+                     const ForceRecompute force,
+                     const CacheDependencies cache_dependencies) const
 {
-  if(weighted){
-    if(weighted_curl_basis_scalar_evaluated_ and not force)
+  if(weighting == WeightBasis::Yes){
+    if(weighted_curl_basis_scalar_evaluated_ and force != ForceRecompute::Yes)
       return weighted_curl_basis_scalar;
-  } else
-    if(curl_basis_scalar_evaluated_ and not force)
-      return curl_basis_scalar;
+  } else if(curl_basis_scalar_evaluated_ and force != ForceRecompute::Yes)
+    return curl_basis_scalar;
 
   PANZER_FUNC_TIME_MONITOR_DIFF("panzer::basisValues2::getCurl2DVectorBasis()",bv_get_curl2d_vec_bv);
 
@@ -1596,12 +1742,12 @@ getCurl2DVectorBasis(const bool weighted,
   const int num_card   = basis_layout->cardinality();
   const int num_dim    = basis_layout->dimension();
 
-  if(weighted){
+  if(weighting == WeightBasis::Yes){
 
     TEUCHOS_ASSERT(cubature_weights_.size() > 0);
 
     // Get the basis_scalar values - do not cache
-    const auto bv = getCurl2DVectorBasis(false, cache_dependencies, force, cache_dependencies);
+    const auto bv = getCurl2DVectorBasis(WeightBasis::No, cache_dependencies == CacheDependencies::Yes ? CacheValues::Yes : CacheValues::No, force, cache_dependencies);
 
     // Apply the weighted measure (cubature weights)
     auto tmp_weighted_curl_basis_scalar = af.buildStaticArray<Scalar, Cell, BASIS, IP>("weighted_curl_basis_scalar",  num_cells, num_card, num_points);
@@ -1615,8 +1761,7 @@ getCurl2DVectorBasis(const bool weighted,
     fst::multiplyMeasure(s_aux,s_cw,s_bv);
 
     // Store for later if cache is enabled
-    PANZER_CACHE_DATA(weighted_curl_basis_scalar);
-
+    PANZER_CACHE_FIELD_IF_ENABLED(weighted_curl_basis_scalar);
     return tmp_weighted_curl_basis_scalar;
 
   } else {
@@ -1723,12 +1868,35 @@ getCurl2DVectorBasis(const bool weighted,
       applyOrientationsImpl<Scalar>(num_orientations_cells_, tmp_curl_basis_scalar.get_view(), orientations_, *intrepid_basis);
 
     // Store for later if cache is enabled
-    PANZER_CACHE_DATA(curl_basis_scalar);
-
+    PANZER_CACHE_FIELD_IF_ENABLED(curl_basis_scalar);
     return tmp_curl_basis_scalar;
 
   }
 
+}
+
+template <typename Scalar>
+typename BasisValues2<Scalar>::ConstArray_CellBasisIP
+BasisValues2<Scalar>::
+getCurl2DVectorBasis(const bool weighted,
+                     const bool cache,
+                     const bool force,
+                     const bool cache_dependencies) const
+{
+  return getCurl2DVectorBasis(BasisValues2<Scalar>::weightBasis(weighted),
+                              BasisValues2<Scalar>::cacheValues(cache),
+                              BasisValues2<Scalar>::forceRecompute(force),
+                              BasisValues2<Scalar>::cacheDependencies(cache_dependencies));
+}
+
+template <typename Scalar>
+typename BasisValues2<Scalar>::ConstArray_CellBasisIPDim
+BasisValues2<Scalar>::
+getCurlVectorBasis(const WeightBasis weighting,
+                   const CacheValues cache,
+                   const ForceRecompute force) const
+{
+  return getCurlVectorBasis(weighting, cache, force, cache == CacheValues::Yes ? CacheDependencies::Yes : CacheDependencies::No);
 }
 
 template <typename Scalar>
@@ -1738,23 +1906,22 @@ getCurlVectorBasis(const bool weighted,
                    const bool cache,
                    const bool force) const
 {
-  return getCurlVectorBasis(weighted, cache, force, cache);
+  return getCurlVectorBasis(BasisValues2<Scalar>::weightBasis(weighted), BasisValues2<Scalar>::cacheValues(cache), BasisValues2<Scalar>::forceRecompute(force));
 }
 
 template <typename Scalar>
 typename BasisValues2<Scalar>::ConstArray_CellBasisIPDim
 BasisValues2<Scalar>::
-getCurlVectorBasis(const bool weighted,
-                   const bool cache,
-                   const bool force,
-                   const bool cache_dependencies) const
+getCurlVectorBasis(const WeightBasis weighting,
+                   const CacheValues cache,
+                   const ForceRecompute force,
+                   const CacheDependencies cache_dependencies) const
 {
-  if(weighted){
-    if(weighted_curl_basis_vector_evaluated_ and not force)
+  if(weighting == WeightBasis::Yes){
+    if(weighted_curl_basis_vector_evaluated_ and force != ForceRecompute::Yes)
       return weighted_curl_basis_vector;
-  } else
-    if(curl_basis_vector_evaluated_ and not force)
-      return curl_basis_vector;
+  } else if(curl_basis_vector_evaluated_ and force != ForceRecompute::Yes)
+    return curl_basis_vector;
 
   PANZER_FUNC_TIME_MONITOR_DIFF("panzer::basisValues2::getCurlVectorBasis()",bv_get_curl_vec_bv);
 
@@ -1765,12 +1932,12 @@ getCurlVectorBasis(const bool weighted,
   const int num_card   = basis_layout->cardinality();
   const int num_dim    = basis_layout->dimension();
 
-  if(weighted){
+  if(weighting == WeightBasis::Yes){
 
     TEUCHOS_ASSERT(cubature_weights_.size() > 0);
 
     // Get the basis_scalar values - do not cache
-    const auto bv = getCurlVectorBasis(false, cache_dependencies, force, cache_dependencies);
+    const auto bv = getCurlVectorBasis(WeightBasis::No, cache_dependencies == CacheDependencies::Yes ? CacheValues::Yes : CacheValues::No, force, cache_dependencies);
 
     // Apply the weighted measure (cubature weights)
     auto tmp_weighted_curl_basis_vector = af.buildStaticArray<Scalar, Cell, BASIS, IP, Dim>("weighted_curl_basis_vector",  num_cells, num_card, num_points, num_dim);
@@ -1784,8 +1951,7 @@ getCurlVectorBasis(const bool weighted,
     fst::multiplyMeasure(s_aux, s_cw, s_bv);
 
     // Store for later if cache is enabled
-    PANZER_CACHE_DATA(weighted_curl_basis_vector);
-
+    PANZER_CACHE_FIELD_IF_ENABLED(weighted_curl_basis_vector);
     return tmp_weighted_curl_basis_vector;
 
   } else {
@@ -1887,12 +2053,35 @@ getCurlVectorBasis(const bool weighted,
       applyOrientationsImpl<Scalar>(num_orientations_cells_, tmp_curl_basis_vector.get_view(), orientations_, *intrepid_basis);
 
     // Store for later if cache is enabled
-    PANZER_CACHE_DATA(curl_basis_vector);
-
+    PANZER_CACHE_FIELD_IF_ENABLED(curl_basis_vector);
     return tmp_curl_basis_vector;
 
   }
 
+}
+
+template <typename Scalar>
+typename BasisValues2<Scalar>::ConstArray_CellBasisIPDim
+BasisValues2<Scalar>::
+getCurlVectorBasis(const bool weighted,
+                   const bool cache,
+                   const bool force,
+                   const bool cache_dependencies) const
+{
+  return getCurlVectorBasis(BasisValues2<Scalar>::weightBasis(weighted),
+                            BasisValues2<Scalar>::cacheValues(cache),
+                            BasisValues2<Scalar>::forceRecompute(force),
+                            BasisValues2<Scalar>::cacheDependencies(cache_dependencies));
+}
+
+template <typename Scalar>
+typename BasisValues2<Scalar>::ConstArray_CellBasisIP
+BasisValues2<Scalar>::
+getDivVectorBasis(const WeightBasis weighting,
+                  const CacheValues cache,
+                  const ForceRecompute force) const
+{
+  return getDivVectorBasis(weighting, cache, force, cache == CacheValues::Yes ? CacheDependencies::Yes : CacheDependencies::No);
 }
 
 template <typename Scalar>
@@ -1902,23 +2091,22 @@ getDivVectorBasis(const bool weighted,
                   const bool cache,
                   const bool force) const
 {
-  return getDivVectorBasis(weighted, cache, force, cache);
+  return getDivVectorBasis(BasisValues2<Scalar>::weightBasis(weighted), BasisValues2<Scalar>::cacheValues(cache), BasisValues2<Scalar>::forceRecompute(force));
 }
 
 template <typename Scalar>
 typename BasisValues2<Scalar>::ConstArray_CellBasisIP
 BasisValues2<Scalar>::
-getDivVectorBasis(const bool weighted,
-                  const bool cache,
-                  const bool force,
-                  const bool cache_dependencies) const
+getDivVectorBasis(const WeightBasis weighting,
+                  const CacheValues cache,
+                  const ForceRecompute force,
+                  const CacheDependencies cache_dependencies) const
 {
-  if(weighted){
-    if(weighted_div_basis_evaluated_ and not force)
+  if(weighting == WeightBasis::Yes){
+    if(weighted_div_basis_evaluated_ and force != ForceRecompute::Yes)
       return weighted_div_basis;
-  } else
-    if(div_basis_evaluated_ and not force)
-      return div_basis;
+  } else if(div_basis_evaluated_ and force != ForceRecompute::Yes)
+    return div_basis;
 
   PANZER_FUNC_TIME_MONITOR_DIFF("panzer::basisValues2::getDevVectorBasis()",bv_get_div_vec_bv);
 
@@ -1928,12 +2116,12 @@ getDivVectorBasis(const bool weighted,
   const int num_points = basis_layout->numPoints();
   const int num_card   = basis_layout->cardinality();
 
-  if(weighted){
+  if(weighting == WeightBasis::Yes){
 
     TEUCHOS_ASSERT(cubature_weights_.size() > 0);
 
     // Get the basis_scalar values - do not cache
-    const auto bv = getDivVectorBasis(false, cache_dependencies, force, cache_dependencies);
+    const auto bv = getDivVectorBasis(WeightBasis::No, cache_dependencies == CacheDependencies::Yes ? CacheValues::Yes : CacheValues::No, force, cache_dependencies);
 
     // Apply the weighted measure (cubature weights)
     auto tmp_weighted_div_basis = af.buildStaticArray<Scalar, Cell, BASIS, IP>("weighted_div_basis",  num_cells, num_card, num_points);
@@ -1947,8 +2135,7 @@ getDivVectorBasis(const bool weighted,
     fst::multiplyMeasure(s_aux, s_cw, s_bv);
 
     // Store for later if cache is enabled
-    PANZER_CACHE_DATA(weighted_div_basis);
-
+    PANZER_CACHE_FIELD_IF_ENABLED(weighted_div_basis);
     return tmp_weighted_div_basis;
 
   } else {
@@ -2046,12 +2233,25 @@ getDivVectorBasis(const bool weighted,
       applyOrientationsImpl<Scalar>(num_orientations_cells_, tmp_div_basis.get_view(), orientations_, *intrepid_basis);
 
     // Store for later if cache is enabled
-    PANZER_CACHE_DATA(div_basis);
-
+    PANZER_CACHE_FIELD_IF_ENABLED(div_basis);
     return tmp_div_basis;
 
   }
 
+}
+
+template <typename Scalar>
+typename BasisValues2<Scalar>::ConstArray_CellBasisIP
+BasisValues2<Scalar>::
+getDivVectorBasis(const bool weighted,
+                  const bool cache,
+                  const bool force,
+                  const bool cache_dependencies) const
+{
+  return getDivVectorBasis(BasisValues2<Scalar>::weightBasis(weighted),
+                           BasisValues2<Scalar>::cacheValues(cache),
+                           BasisValues2<Scalar>::forceRecompute(force),
+                           BasisValues2<Scalar>::cacheDependencies(cache_dependencies));
 }
 
 //=======================================================================================================

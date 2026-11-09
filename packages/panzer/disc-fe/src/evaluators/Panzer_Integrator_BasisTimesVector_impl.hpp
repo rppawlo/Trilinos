@@ -43,9 +43,9 @@ namespace panzer
       std::vector<std::string>() */)
     :
     evalStyle_(evalStyle),
-    useDescriptors_(false),
-    multiplier_(multiplier),
-    basisName_(basis.name())
+    bd_(basis.getBasis()->order(), basis.getBasis()->type()),
+    id_(ir),
+    multiplier_(multiplier)
   {
     using PHX::View;
     using panzer::BASIS;
@@ -125,7 +125,6 @@ namespace panzer
       std::vector<PHX::FieldTag>() */)
     :
     evalStyle_(evalStyle),
-    useDescriptors_(true),
     bd_(bd),
     id_(id),
     multiplier_(multiplier)
@@ -226,7 +225,6 @@ namespace panzer
     typename Traits::SetupData sd,
     PHX::FieldManager<Traits>& /* fm */)
   {
-    using panzer::getBasisIndex;
     using std::size_t;
 
     // Get the PHX::Views of the field multipliers.
@@ -237,10 +235,6 @@ namespace panzer
     // vector that we're integrating.
     numQP_  = vector_.extent(1);
     numDim_ = vector_.extent(2);
-
-    // Determine the index in the Workset bases for our particular basis name.
-    if (not useDescriptors_)
-      basisIndex_ = getBasisIndex(basisName_, (*sd.worksets_)[0], this->wda);
 
   } // end of postRegistrationSetup()
 
@@ -315,12 +309,13 @@ namespace panzer
     using Kokkos::parallel_for;
     using Kokkos::RangePolicy;
 
+    if (workset.num_cells == 0)
+      return;
+
     // Grab the basis information.
-    const panzer::BasisValues2<double>& bv = useDescriptors_ ?
-      this->wda(workset).getBasisValues(bd_,id_) :
-      *this->wda(workset).bases[basisIndex_];
-    using Array=typename BasisValues2<double>::ConstArray_CellBasisIPDim;
-    basis_ = useDescriptors_ ? bv.getVectorBasisValues(true) : Array(bv.weighted_basis_vector);
+    const panzer::BasisValues2<double>& bv =
+      this->wda(workset).getBasisValues(bd_, id_, true);
+    basis_ = bv.getVectorBasisValues(WeightBasis::Yes, CacheValues::Yes, ForceRecompute::No);
 
     // The following if-block is for the sake of optimization depending on the
     // number of field multipliers.  The parallel_fors will loop over the cells

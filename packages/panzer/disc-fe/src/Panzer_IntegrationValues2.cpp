@@ -737,7 +737,7 @@ setupPermutations(const Teuchos::RCP<const SubcellConnectivity> & face_connectiv
   side_connectivity_ = face_connectivity;
   num_virtual_cells_ = num_virtual_cells;
   requires_permutation_ = false;
-  permutations_ = generateSurfacePermutations<Scalar>(num_evaluate_cells_,*face_connectivity, getCubaturePoints(false,true), getSurfaceRotationMatrices(false,true));
+  permutations_ = generateSurfacePermutations<Scalar>(num_evaluate_cells_,*face_connectivity, getCubaturePoints(CacheValues::No, ForceRecompute::Yes), getSurfaceRotationMatrices(CacheValues::No, ForceRecompute::Yes));
   requires_permutation_ = true;
 }
 
@@ -749,7 +749,7 @@ setupPermutations(const PHX::MDField<Scalar,Cell,IP,Dim> & other_ip_coordinates)
   PANZER_FUNC_TIME_MONITOR_DIFF("panzer::integrationValues2::setupPermutations(other_coords)",setup_perms_coords);
   resetArrays();
   requires_permutation_ = false;
-  permutations_ = generatePermutations<Scalar>(num_evaluate_cells_, getCubaturePoints(false,true), other_ip_coordinates);
+  permutations_ = generatePermutations<Scalar>(num_evaluate_cells_, getCubaturePoints(CacheValues::No, ForceRecompute::Yes), other_ip_coordinates);
   requires_permutation_ = true;
 }
 
@@ -795,11 +795,11 @@ setup(const Teuchos::RCP<const panzer::IntegrationRule>& ir,
 template <typename Scalar>
 typename IntegrationValues2<Scalar>::ConstArray_IPDim
 IntegrationValues2<Scalar>::
-getUniformCubaturePointsRef(const bool cache,
-                            const bool force,
+getUniformCubaturePointsRef(const CacheValues cache,
+                            const ForceRecompute force,
                             const bool apply_permutation) const
 {
-  if(cub_points_evaluated_ and (apply_permutation == requires_permutation_) and not force)
+  if(cub_points_evaluated_ and (apply_permutation == requires_permutation_) and force != ForceRecompute::Yes)
     return cub_points;
 
   // Only log time if values computed (i.e. don't log if values are already cached)
@@ -841,7 +841,7 @@ getUniformCubaturePointsRef(const bool cache,
   if(apply_permutation and requires_permutation_)
     applyBasePermutation(aux, permutations_);
 
-  if(cache and (apply_permutation == requires_permutation_)){
+  if(cache == CacheValues::Yes and (apply_permutation == requires_permutation_)){
     cub_points = aux;
     cub_points_evaluated_ = true;
   }
@@ -853,11 +853,23 @@ getUniformCubaturePointsRef(const bool cache,
 template <typename Scalar>
 typename IntegrationValues2<Scalar>::ConstArray_IPDim
 IntegrationValues2<Scalar>::
-getUniformSideCubaturePointsRef(const bool cache,
-                                const bool force,
+getUniformCubaturePointsRef(const bool cache,
+                            const bool force,
+                            const bool apply_permutation) const
+{
+  return getUniformCubaturePointsRef(IntegrationValues2<Scalar>::cacheValues(cache),
+                                     IntegrationValues2<Scalar>::forceRecompute(force),
+                                     apply_permutation);
+}
+
+template <typename Scalar>
+typename IntegrationValues2<Scalar>::ConstArray_IPDim
+IntegrationValues2<Scalar>::
+getUniformSideCubaturePointsRef(const CacheValues cache,
+                                const ForceRecompute force,
                                 const bool apply_permutation) const
 {
-  if(side_cub_points_evaluated_ and (apply_permutation == requires_permutation_) and not force)
+  if(side_cub_points_evaluated_ and (apply_permutation == requires_permutation_) and force != ForceRecompute::Yes)
     return side_cub_points;
 
   // Only log time if values computed (i.e. don't log if values are already cached)
@@ -894,7 +906,7 @@ getUniformSideCubaturePointsRef(const bool cache,
   if(apply_permutation and requires_permutation_)
     applyBasePermutation(aux, permutations_);
 
-  if(cache and (apply_permutation == requires_permutation_)){
+  if(cache == CacheValues::Yes and (apply_permutation == requires_permutation_)){
     side_cub_points = aux;
     side_cub_points_evaluated_ = true;
   }
@@ -903,13 +915,25 @@ getUniformSideCubaturePointsRef(const bool cache,
 }
 
 template <typename Scalar>
+typename IntegrationValues2<Scalar>::ConstArray_IPDim
+IntegrationValues2<Scalar>::
+getUniformSideCubaturePointsRef(const bool cache,
+                                const bool force,
+                                const bool apply_permutation) const
+{
+  return getUniformSideCubaturePointsRef(IntegrationValues2<Scalar>::cacheValues(cache),
+                                         IntegrationValues2<Scalar>::forceRecompute(force),
+                                         apply_permutation);
+}
+
+template <typename Scalar>
 typename IntegrationValues2<Scalar>::ConstArray_IP
 IntegrationValues2<Scalar>::
-getUniformCubatureWeightsRef(const bool cache,
-                             const bool force,
+getUniformCubatureWeightsRef(const CacheValues cache,
+                             const ForceRecompute force,
                              const bool apply_permutation) const
 {
-  if(cub_weights_evaluated_ and (apply_permutation == requires_permutation_) and not force)
+  if(cub_weights_evaluated_ and (apply_permutation == requires_permutation_) and force != ForceRecompute::Yes)
     return cub_weights;
 
   // Only log time if values computed (i.e. don't log if values are already cached)
@@ -943,13 +967,25 @@ getUniformCubatureWeightsRef(const bool cache,
   if(apply_permutation and requires_permutation_)
     applyBasePermutation(aux, permutations_);
 
-  if(cache and (apply_permutation == requires_permutation_)){
+  if(cache == CacheValues::Yes and (apply_permutation == requires_permutation_)){
     cub_weights = aux;
     cub_weights_evaluated_ = true;
   }
 
   return aux;
 
+}
+
+template <typename Scalar>
+typename IntegrationValues2<Scalar>::ConstArray_IP
+IntegrationValues2<Scalar>::
+getUniformCubatureWeightsRef(const bool cache,
+                             const bool force,
+                             const bool apply_permutation) const
+{
+  return getUniformCubatureWeightsRef(IntegrationValues2<Scalar>::cacheValues(cache),
+                                      IntegrationValues2<Scalar>::forceRecompute(force),
+                                      apply_permutation);
 }
 
 template <typename Scalar>
@@ -963,10 +999,10 @@ getNodeCoordinates() const
 template <typename Scalar>
 typename IntegrationValues2<Scalar>::ConstArray_CellIPDimDim
 IntegrationValues2<Scalar>::
-getJacobian(const bool cache,
-            const bool force) const
+getJacobian(const CacheValues cache,
+            const ForceRecompute force) const
 {
-  if(jac_evaluated_ and not force)
+  if(jac_evaluated_ and force != ForceRecompute::Yes)
     return jac;
 
   // Only log time if values computed (i.e. don't log if values are already cached)
@@ -986,8 +1022,10 @@ getJacobian(const bool cache,
 
   if(is_cv or is_surface){
 
-    // Don't forget that since we are not caching this, we have to make sure the managed view remains alive while we use the non-const wrapper
-    auto const_ref_coord = getCubaturePointsRef(false,force,false);
+    // Keep the managed field alive while the non-const wrapper is in use.
+    auto const_ref_coord = getCubaturePointsRef(CacheValues::No,
+                                                force,
+                                                CacheDependencies::Yes);
     auto ref_coord = PHX::getNonConstDynRankViewFromConstMDField(const_ref_coord);
     auto node_coord = PHX::getNonConstDynRankViewFromConstMDField(getNodeCoordinates());
 
@@ -1000,8 +1038,8 @@ getJacobian(const bool cache,
 
   } else {
 
-    // Don't forget that since we are not caching this, we have to make sure the managed view remains alive while we use the non-const wrapper
-    auto const_ref_coord = getUniformCubaturePointsRef(false,force,false);
+    // Keep the managed field alive while the non-const wrapper is in use.
+    auto const_ref_coord = getUniformCubaturePointsRef(CacheValues::No, force, false);
     auto ref_coord = PHX::getNonConstDynRankViewFromConstMDField(const_ref_coord);
     auto node_coord = PHX::getNonConstDynRankViewFromConstMDField(getNodeCoordinates());
 
@@ -1018,7 +1056,7 @@ getJacobian(const bool cache,
 
   PHX::ExecutionSpace().fence();
 
-  if(cache){
+  if(cache == CacheValues::Yes){
     jac = aux;
     jac_evaluated_ = true;
   }
@@ -1029,20 +1067,49 @@ getJacobian(const bool cache,
 template <typename Scalar>
 typename IntegrationValues2<Scalar>::ConstArray_CellIPDimDim
 IntegrationValues2<Scalar>::
-getJacobianInverse(const bool cache,
-                   const bool force) const
+getJacobian(const bool cache,
+            const bool force) const
 {
-  return getJacobianInverse(cache, force, cache);
+  return getJacobian(IntegrationValues2<Scalar>::cacheValues(cache),
+                     IntegrationValues2<Scalar>::forceRecompute(force));
+}
+
+template <typename Scalar>
+typename IntegrationValues2<Scalar>::ConstArray_CellIPDimDim
+IntegrationValues2<Scalar>::
+getJacobian(const CacheValues cache,
+            const ForceRecompute force,
+            const CacheDependencies) const
+{
+  return getJacobian(cache, force);
+}
+
+template <typename Scalar>
+typename IntegrationValues2<Scalar>::ConstArray_CellIPDimDim
+IntegrationValues2<Scalar>::
+getJacobianInverse(const CacheValues cache,
+                   const ForceRecompute force) const
+{
+  return getJacobianInverse(cache, force, cache == CacheValues::Yes ? CacheDependencies::Yes : CacheDependencies::No);
 }
 
 template <typename Scalar>
 typename IntegrationValues2<Scalar>::ConstArray_CellIPDimDim
 IntegrationValues2<Scalar>::
 getJacobianInverse(const bool cache,
-                   const bool force,
-                   const bool cache_dependencies) const
+                   const bool force) const
 {
-  if(jac_inv_evaluated_ and not force)
+  return getJacobianInverse(IntegrationValues2<Scalar>::cacheValues(cache), IntegrationValues2<Scalar>::forceRecompute(force));
+}
+
+template <typename Scalar>
+typename IntegrationValues2<Scalar>::ConstArray_CellIPDimDim
+IntegrationValues2<Scalar>::
+getJacobianInverse(const CacheValues cache,
+                   const ForceRecompute force,
+                   const CacheDependencies cache_dependencies) const
+{
+  if(jac_inv_evaluated_ and force != ForceRecompute::Yes)
     return jac_inv;
 
   // Only log time if values computed (i.e. don't log if values are already cached)
@@ -1054,7 +1121,9 @@ getJacobianInverse(const bool cache,
   const int num_space_dim = int_rule->topology->getDimension();
   const int num_ip = int_rule->num_points;
 
-  auto jacobian = getJacobian(cache_dependencies,force);
+  auto jacobian = getJacobian(cache_dependencies == CacheDependencies::Yes ? CacheValues::Yes : CacheValues::No,
+                              force,
+                              cache_dependencies);
   auto aux = af.template buildStaticArray<Scalar,Cell,IP,Dim,Dim>("jac_inv",num_cells_, num_ip, num_space_dim,num_space_dim);
 
   const auto cell_range = std::make_pair(0,num_evaluate_cells_);
@@ -1065,7 +1134,7 @@ getJacobianInverse(const bool cache,
 
   PHX::ExecutionSpace().fence();
 
-  if(cache){
+  if(cache == CacheValues::Yes){
     jac_inv = aux;
     jac_inv_evaluated_ = true;
   }
@@ -1074,22 +1143,43 @@ getJacobianInverse(const bool cache,
 }
 
 template <typename Scalar>
+typename IntegrationValues2<Scalar>::ConstArray_CellIPDimDim
+IntegrationValues2<Scalar>::
+getJacobianInverse(const bool cache,
+                   const bool force,
+                   const bool cache_dependencies) const
+{
+  return getJacobianInverse(IntegrationValues2<Scalar>::cacheValues(cache),
+                            IntegrationValues2<Scalar>::forceRecompute(force),
+                            IntegrationValues2<Scalar>::cacheDependencies(cache_dependencies));
+}
+
+template <typename Scalar>
 typename IntegrationValues2<Scalar>::ConstArray_CellIP
 IntegrationValues2<Scalar>::
-getJacobianDeterminant(const bool cache,
-                       const bool force) const
+getJacobianDeterminant(const CacheValues cache,
+                       const ForceRecompute force) const
 {
-  return getJacobianDeterminant(cache, force, cache);
+  return getJacobianDeterminant(cache, force, cache == CacheValues::Yes ? CacheDependencies::Yes : CacheDependencies::No);
 }
 
 template <typename Scalar>
 typename IntegrationValues2<Scalar>::ConstArray_CellIP
 IntegrationValues2<Scalar>::
 getJacobianDeterminant(const bool cache,
-                       const bool force,
-                       const bool cache_dependencies) const
+                       const bool force) const
 {
-  if(jac_det_evaluated_ and not force)
+  return getJacobianDeterminant(IntegrationValues2<Scalar>::cacheValues(cache), IntegrationValues2<Scalar>::forceRecompute(force));
+}
+
+template <typename Scalar>
+typename IntegrationValues2<Scalar>::ConstArray_CellIP
+IntegrationValues2<Scalar>::
+getJacobianDeterminant(const CacheValues cache,
+                       const ForceRecompute force,
+                       const CacheDependencies cache_dependencies) const
+{
+  if(jac_det_evaluated_ and force != ForceRecompute::Yes)
     return jac_det;
 
   // Only log time if values computed (i.e. don't log if values are already cached)
@@ -1100,7 +1190,9 @@ getJacobianDeterminant(const bool cache,
 
   const int num_ip = int_rule->num_points;
 
-  auto jacobian = getJacobian(cache_dependencies,force);
+  auto jacobian = getJacobian(cache_dependencies == CacheDependencies::Yes ? CacheValues::Yes : CacheValues::No,
+                              force,
+                              cache_dependencies);
   auto aux = af.template buildStaticArray<Scalar,Cell,IP>("jac_det",num_cells_, num_ip);
 
   const auto cell_range = std::make_pair(0,num_evaluate_cells_);
@@ -1111,7 +1203,7 @@ getJacobianDeterminant(const bool cache,
 
   PHX::ExecutionSpace().fence();
 
-  if(cache){
+  if(cache == CacheValues::Yes){
     jac_det = aux;
     jac_det_evaluated_ = true;
   }
@@ -1122,20 +1214,41 @@ getJacobianDeterminant(const bool cache,
 template <typename Scalar>
 typename IntegrationValues2<Scalar>::ConstArray_CellIP
 IntegrationValues2<Scalar>::
-getWeightedMeasure(const bool cache,
-                   const bool force) const
+getJacobianDeterminant(const bool cache,
+                       const bool force,
+                       const bool cache_dependencies) const
 {
-  return getWeightedMeasure(cache, force, cache);
+  return getJacobianDeterminant(IntegrationValues2<Scalar>::cacheValues(cache),
+                                IntegrationValues2<Scalar>::forceRecompute(force),
+                                IntegrationValues2<Scalar>::cacheDependencies(cache_dependencies));
+}
+
+template <typename Scalar>
+typename IntegrationValues2<Scalar>::ConstArray_CellIP
+IntegrationValues2<Scalar>::
+getWeightedMeasure(const CacheValues cache,
+                   const ForceRecompute force) const
+{
+  return getWeightedMeasure(cache, force, cache == CacheValues::Yes ? CacheDependencies::Yes : CacheDependencies::No);
 }
 
 template <typename Scalar>
 typename IntegrationValues2<Scalar>::ConstArray_CellIP
 IntegrationValues2<Scalar>::
 getWeightedMeasure(const bool cache,
-                   const bool force,
-                   const bool cache_dependencies) const
+                   const bool force) const
 {
-  if(weighted_measure_evaluated_ and not force)
+  return getWeightedMeasure(IntegrationValues2<Scalar>::cacheValues(cache), IntegrationValues2<Scalar>::forceRecompute(force));
+}
+
+template <typename Scalar>
+typename IntegrationValues2<Scalar>::ConstArray_CellIP
+IntegrationValues2<Scalar>::
+getWeightedMeasure(const CacheValues cache,
+                   const ForceRecompute force,
+                   const CacheDependencies cache_dependencies) const
+{
+  if(weighted_measure_evaluated_ and force != ForceRecompute::Yes)
     return weighted_measure;
 
   // Only log time if values computed (i.e. don't log if values are already cached)
@@ -1174,7 +1287,9 @@ getWeightedMeasure(const bool cache,
     const int num_points_on_side = num_ip / num_sides;
 
     Intrepid2::DefaultCubatureFactory cubature_factory;
-    auto jacobian = getJacobian(cache_dependencies,force);
+    auto jacobian = getJacobian(cache_dependencies == CacheDependencies::Yes ? CacheValues::Yes : CacheValues::No,
+                              force,
+                              cache_dependencies);
 
     for(int side=0; side<num_sides; ++side) {
 
@@ -1251,17 +1366,23 @@ getWeightedMeasure(const bool cache,
 
     auto cell_range = std::make_pair(0,num_evaluate_cells_);
     auto s_weighted_measure = Kokkos::subview(aux.get_view(),cell_range,Kokkos::ALL());
-    auto cubature_weights = getUniformCubatureWeightsRef(false,force,false);
+    auto cubature_weights = getUniformCubatureWeightsRef(CacheValues::No,
+                                                         force,
+                                                         false);
 
     if (!int_rule->isSide()) {
 
-      auto s_jac_det = Kokkos::subview(getJacobianDeterminant(cache_dependencies,force,cache_dependencies).get_view(),cell_range,Kokkos::ALL());
+      auto s_jac_det = Kokkos::subview(getJacobianDeterminant(cache_dependencies == CacheDependencies::Yes ? CacheValues::Yes : CacheValues::No,
+                                                             force,
+                                                             cache_dependencies).get_view(),cell_range,Kokkos::ALL());
       Intrepid2::FunctionSpaceTools<PHX::Device>::
       computeCellMeasure(s_weighted_measure, s_jac_det, cubature_weights.get_view());
 
     } else if(int_rule->spatial_dimension==3) {
 
-      auto s_jac = Kokkos::subview(getJacobian(cache_dependencies,force).get_view(),cell_range,Kokkos::ALL(),Kokkos::ALL(),Kokkos::ALL());
+      auto s_jac = Kokkos::subview(getJacobian(cache_dependencies == CacheDependencies::Yes ? CacheValues::Yes : CacheValues::No,
+                             force,
+                             cache_dependencies).get_view(),cell_range,Kokkos::ALL(),Kokkos::ALL(),Kokkos::ALL());
       auto scratch = af.template buildStaticArray<Scalar,Point>("scratch_for_compute_measure", num_evaluate_cells_*num_ip*num_space_dim*num_space_dim);
       Intrepid2::FunctionSpaceTools<PHX::Device>::
       computeFaceMeasure(s_weighted_measure, s_jac, cubature_weights.get_view(),
@@ -1270,7 +1391,9 @@ getWeightedMeasure(const bool cache,
 
     } else if(int_rule->spatial_dimension==2) {
 
-      auto s_jac = Kokkos::subview(getJacobian(cache_dependencies,force).get_view(),cell_range,Kokkos::ALL(),Kokkos::ALL(),Kokkos::ALL());
+      auto s_jac = Kokkos::subview(getJacobian(cache_dependencies == CacheDependencies::Yes ? CacheValues::Yes : CacheValues::No,
+                             force,
+                             cache_dependencies).get_view(),cell_range,Kokkos::ALL(),Kokkos::ALL(),Kokkos::ALL());
       auto scratch = af.template buildStaticArray<Scalar,Point>("scratch_for_compute_measure", num_evaluate_cells_*num_ip*num_space_dim*num_space_dim);
       Intrepid2::FunctionSpaceTools<PHX::Device>::
       computeEdgeMeasure(s_weighted_measure, s_jac, cubature_weights.get_view(),
@@ -1289,7 +1412,7 @@ getWeightedMeasure(const bool cache,
   if(requires_permutation_)
     applyPermutation(aux, permutations_);
 
-  if(cache){
+  if(cache == CacheValues::Yes){
     weighted_measure = aux;
     weighted_measure_evaluated_ = true;
   }
@@ -1298,12 +1421,24 @@ getWeightedMeasure(const bool cache,
 }
 
 template <typename Scalar>
+typename IntegrationValues2<Scalar>::ConstArray_CellIP
+IntegrationValues2<Scalar>::
+getWeightedMeasure(const bool cache,
+                   const bool force,
+                   const bool cache_dependencies) const
+{
+  return getWeightedMeasure(IntegrationValues2<Scalar>::cacheValues(cache),
+                            IntegrationValues2<Scalar>::forceRecompute(force),
+                            IntegrationValues2<Scalar>::cacheDependencies(cache_dependencies));
+}
+
+template <typename Scalar>
 typename IntegrationValues2<Scalar>::ConstArray_CellIPDim
 IntegrationValues2<Scalar>::
-getWeightedNormals(const bool cache,
-                   const bool force) const
+getWeightedNormals(const CacheValues cache,
+                   const ForceRecompute force) const
 {
-  if(weighted_normals_evaluated_ and not force)
+  if(weighted_normals_evaluated_ and force != ForceRecompute::Yes)
     return weighted_normals;
 
   // Only log time if values computed (i.e. don't log if values are already cached)
@@ -1336,7 +1471,7 @@ getWeightedNormals(const bool cache,
   if(requires_permutation_)
     applyPermutation(aux, permutations_);
 
-  if(cache){
+  if(cache == CacheValues::Yes){
     weighted_normals = aux;
     weighted_normals_evaluated_ = true;
   }
@@ -1347,10 +1482,20 @@ getWeightedNormals(const bool cache,
 template <typename Scalar>
 typename IntegrationValues2<Scalar>::ConstArray_CellIPDim
 IntegrationValues2<Scalar>::
-getSurfaceNormals(const bool cache,
-                  const bool force) const
+getWeightedNormals(const bool cache,
+                   const bool force) const
 {
-  if(surface_normals_evaluated_ and not force)
+  return getWeightedNormals(IntegrationValues2<Scalar>::cacheValues(cache),
+                            IntegrationValues2<Scalar>::forceRecompute(force));
+}
+
+template <typename Scalar>
+typename IntegrationValues2<Scalar>::ConstArray_CellIPDim
+IntegrationValues2<Scalar>::
+getSurfaceNormals(const CacheValues cache,
+                  const ForceRecompute force) const
+{
+  if(surface_normals_evaluated_ and force != ForceRecompute::Yes)
     return surface_normals;
 
   // Only log time if values computed (i.e. don't log if values are already cached)
@@ -1381,7 +1526,7 @@ getSurfaceNormals(const bool cache,
   // We only need the jacobian if we're not in 1D
   ConstArray_CellIPDimDim jacobian;
   if(cell_dim != 1)
-    jacobian = getJacobian(false,force);
+    jacobian = getJacobian(CacheValues::No, force);
 
   // We get to build up our surface normals one 'side' at a time
   for(int subcell_index=0; subcell_index<num_subcells; ++subcell_index) {
@@ -1453,7 +1598,7 @@ getSurfaceNormals(const bool cache,
       correctVirtualNormals(aux, num_evaluate_cells_ - num_virtual_cells_, num_virtual_cells_, *int_rule->topology, *side_connectivity_);
   }
 
-  if(cache){
+  if(cache == CacheValues::Yes){
     surface_normals = aux;
     surface_normals_evaluated_ = true;
   }
@@ -1463,22 +1608,41 @@ getSurfaceNormals(const bool cache,
 }
 
 template <typename Scalar>
+typename IntegrationValues2<Scalar>::ConstArray_CellIPDim
+IntegrationValues2<Scalar>::
+getSurfaceNormals(const bool cache,
+                  const bool force) const
+{
+  return getSurfaceNormals(IntegrationValues2<Scalar>::cacheValues(cache),
+                           IntegrationValues2<Scalar>::forceRecompute(force));
+}
+
+template <typename Scalar>
 typename IntegrationValues2<Scalar>::ConstArray_CellIPDimDim
 IntegrationValues2<Scalar>::
-getSurfaceRotationMatrices(const bool cache,
-                           const bool force) const
+getSurfaceRotationMatrices(const CacheValues cache,
+                           const ForceRecompute force) const
 {
-  return getSurfaceRotationMatrices(cache, force, cache);
+  return getSurfaceRotationMatrices(cache, force, cache == CacheValues::Yes ? CacheDependencies::Yes : CacheDependencies::No);
 }
 
 template <typename Scalar>
 typename IntegrationValues2<Scalar>::ConstArray_CellIPDimDim
 IntegrationValues2<Scalar>::
 getSurfaceRotationMatrices(const bool cache,
-                           const bool force,
-                           const bool cache_dependencies) const
+                           const bool force) const
 {
-  if(surface_rotation_matrices_evaluated_ and not force)
+  return getSurfaceRotationMatrices(IntegrationValues2<Scalar>::cacheValues(cache), IntegrationValues2<Scalar>::forceRecompute(force));
+}
+
+template <typename Scalar>
+typename IntegrationValues2<Scalar>::ConstArray_CellIPDimDim
+IntegrationValues2<Scalar>::
+getSurfaceRotationMatrices(const CacheValues cache,
+                           const ForceRecompute force,
+                           const CacheDependencies cache_dependencies) const
+{
+  if(surface_rotation_matrices_evaluated_ and force != ForceRecompute::Yes)
     return surface_rotation_matrices;
 
   // Only log time if values computed (i.e. don't log if values are already cached)
@@ -1490,7 +1654,8 @@ getSurfaceRotationMatrices(const bool cache,
   const int cell_dim = int_rule->topology->getDimension();
 
   // This call will handle all the error checking
-  auto normals = getSurfaceNormals(cache_dependencies,force).get_static_view();
+  auto normals = getSurfaceNormals(cache_dependencies == CacheDependencies::Yes ? CacheValues::Yes : CacheValues::No,
+                                   force).get_static_view();
   auto aux = af.template buildStaticArray<Scalar,Cell,IP,Dim,Dim>("surface_rotation_matrices",num_cells_, num_ip, 3, 3);
 
   Kokkos::MDRangePolicy<PHX::ExecutionSpace,Kokkos::Rank<2>> policy({0,0},{num_evaluate_cells_,num_ip});
@@ -1525,7 +1690,7 @@ getSurfaceRotationMatrices(const bool cache,
       correctVirtualRotationMatrices(aux, num_evaluate_cells_ - num_virtual_cells_, num_virtual_cells_, *int_rule->topology, *side_connectivity_);
   }
 
-  if(cache){
+  if(cache == CacheValues::Yes){
     surface_rotation_matrices = aux;
     surface_rotation_matrices_evaluated_ = true;
   }
@@ -1536,20 +1701,41 @@ getSurfaceRotationMatrices(const bool cache,
 template <typename Scalar>
 typename IntegrationValues2<Scalar>::ConstArray_CellIPDimDim
 IntegrationValues2<Scalar>::
-getCovarientMatrix(const bool cache,
-                   const bool force) const
+getSurfaceRotationMatrices(const bool cache,
+                           const bool force,
+                           const bool cache_dependencies) const
 {
-  return getCovarientMatrix(cache, force, cache);
+  return getSurfaceRotationMatrices(IntegrationValues2<Scalar>::cacheValues(cache),
+                                    IntegrationValues2<Scalar>::forceRecompute(force),
+                                    IntegrationValues2<Scalar>::cacheDependencies(cache_dependencies));
+}
+
+template <typename Scalar>
+typename IntegrationValues2<Scalar>::ConstArray_CellIPDimDim
+IntegrationValues2<Scalar>::
+getCovarientMatrix(const CacheValues cache,
+                   const ForceRecompute force) const
+{
+  return getCovarientMatrix(cache, force, cache == CacheValues::Yes ? CacheDependencies::Yes : CacheDependencies::No);
 }
 
 template <typename Scalar>
 typename IntegrationValues2<Scalar>::ConstArray_CellIPDimDim
 IntegrationValues2<Scalar>::
 getCovarientMatrix(const bool cache,
-                   const bool force,
-                   const bool cache_dependencies) const
+                   const bool force) const
 {
-  if(covarient_evaluated_ and not force)
+  return getCovarientMatrix(IntegrationValues2<Scalar>::cacheValues(cache), IntegrationValues2<Scalar>::forceRecompute(force));
+}
+
+template <typename Scalar>
+typename IntegrationValues2<Scalar>::ConstArray_CellIPDimDim
+IntegrationValues2<Scalar>::
+getCovarientMatrix(const CacheValues cache,
+                   const ForceRecompute force,
+                   const CacheDependencies cache_dependencies) const
+{
+  if(covarient_evaluated_ and force != ForceRecompute::Yes)
     return covarient;
 
   // Only log time if values computed (i.e. don't log if values are already cached)
@@ -1560,7 +1746,9 @@ getCovarientMatrix(const bool cache,
   const int num_space_dim = int_rule->topology->getDimension();
   const int num_ip = int_rule->num_points;
 
-  auto jacobian = getJacobian(cache_dependencies,force).get_static_view();
+  auto jacobian = getJacobian(cache_dependencies == CacheDependencies::Yes ? CacheValues::Yes : CacheValues::No,
+                              force,
+                              cache_dependencies).get_static_view();
   auto aux = af.template buildStaticArray<Scalar,Cell,IP,Dim,Dim>("covarient",num_cells_, num_ip, num_space_dim,num_space_dim);
 
   Kokkos::MDRangePolicy<PHX::ExecutionSpace,Kokkos::Rank<2>> policy({0,0},{num_evaluate_cells_,num_ip});
@@ -1577,7 +1765,7 @@ getCovarientMatrix(const bool cache,
   });
   PHX::ExecutionSpace().fence();
 
-  if(cache){
+  if(cache == CacheValues::Yes){
     covarient = aux;
     covarient_evaluated_ = true;
   }
@@ -1588,20 +1776,41 @@ getCovarientMatrix(const bool cache,
 template <typename Scalar>
 typename IntegrationValues2<Scalar>::ConstArray_CellIPDimDim
 IntegrationValues2<Scalar>::
-getContravarientMatrix(const bool cache,
-                       const bool force) const
+getCovarientMatrix(const bool cache,
+                   const bool force,
+                   const bool cache_dependencies) const
 {
-  return getContravarientMatrix(cache, force, cache);
+  return getCovarientMatrix(IntegrationValues2<Scalar>::cacheValues(cache),
+                            IntegrationValues2<Scalar>::forceRecompute(force),
+                            IntegrationValues2<Scalar>::cacheDependencies(cache_dependencies));
+}
+
+template <typename Scalar>
+typename IntegrationValues2<Scalar>::ConstArray_CellIPDimDim
+IntegrationValues2<Scalar>::
+getContravarientMatrix(const CacheValues cache,
+                       const ForceRecompute force) const
+{
+  return getContravarientMatrix(cache, force, cache == CacheValues::Yes ? CacheDependencies::Yes : CacheDependencies::No);
 }
 
 template <typename Scalar>
 typename IntegrationValues2<Scalar>::ConstArray_CellIPDimDim
 IntegrationValues2<Scalar>::
 getContravarientMatrix(const bool cache,
-                       const bool force,
-                       const bool cache_dependencies) const
+                       const bool force) const
 {
-  if(contravarient_evaluated_ and not force)
+  return getContravarientMatrix(IntegrationValues2<Scalar>::cacheValues(cache), IntegrationValues2<Scalar>::forceRecompute(force));
+}
+
+template <typename Scalar>
+typename IntegrationValues2<Scalar>::ConstArray_CellIPDimDim
+IntegrationValues2<Scalar>::
+getContravarientMatrix(const CacheValues cache,
+                       const ForceRecompute force,
+                       const CacheDependencies cache_dependencies) const
+{
+  if(contravarient_evaluated_ and force != ForceRecompute::Yes)
     return contravarient;
 
   // Only log time if values computed (i.e. don't log if values are already cached)
@@ -1612,7 +1821,9 @@ getContravarientMatrix(const bool cache,
   const int num_space_dim = int_rule->topology->getDimension();
   const int num_ip = int_rule->num_points;
 
-  auto cov = getCovarientMatrix(cache_dependencies,force,cache_dependencies);
+  auto cov = getCovarientMatrix(cache_dependencies == CacheDependencies::Yes ? CacheValues::Yes : CacheValues::No,
+                                force,
+                                cache_dependencies);
   auto aux = af.template buildStaticArray<Scalar,Cell,IP,Dim,Dim>("contravarient",num_cells_, num_ip, num_space_dim,num_space_dim);
 
   const auto cell_range = std::make_pair(0,num_evaluate_cells_);
@@ -1622,7 +1833,7 @@ getContravarientMatrix(const bool cache,
   Intrepid2::RealSpaceTools<PHX::Device>::inverse(s_contravarient, s_covarient);
   PHX::ExecutionSpace().fence();
 
-  if(cache){
+  if(cache == CacheValues::Yes){
     contravarient = aux;
     contravarient_evaluated_ = true;
   }
@@ -1631,22 +1842,43 @@ getContravarientMatrix(const bool cache,
 }
 
 template <typename Scalar>
+typename IntegrationValues2<Scalar>::ConstArray_CellIPDimDim
+IntegrationValues2<Scalar>::
+getContravarientMatrix(const bool cache,
+                       const bool force,
+                       const bool cache_dependencies) const
+{
+  return getContravarientMatrix(IntegrationValues2<Scalar>::cacheValues(cache),
+                                IntegrationValues2<Scalar>::forceRecompute(force),
+                                IntegrationValues2<Scalar>::cacheDependencies(cache_dependencies));
+}
+
+template <typename Scalar>
 typename IntegrationValues2<Scalar>::ConstArray_CellIP
 IntegrationValues2<Scalar>::
-getNormContravarientMatrix(const bool cache,
-                           const bool force) const
+getNormContravarientMatrix(const CacheValues cache,
+                           const ForceRecompute force) const
 {
-  return getNormContravarientMatrix(cache, force, cache);
+  return getNormContravarientMatrix(cache, force, cache == CacheValues::Yes ? CacheDependencies::Yes : CacheDependencies::No);
 }
 
 template <typename Scalar>
 typename IntegrationValues2<Scalar>::ConstArray_CellIP
 IntegrationValues2<Scalar>::
 getNormContravarientMatrix(const bool cache,
-                           const bool force,
-                           const bool cache_dependencies) const
+                           const bool force) const
 {
-  if(norm_contravarient_evaluated_ and not force)
+  return getNormContravarientMatrix(IntegrationValues2<Scalar>::cacheValues(cache), IntegrationValues2<Scalar>::forceRecompute(force));
+}
+
+template <typename Scalar>
+typename IntegrationValues2<Scalar>::ConstArray_CellIP
+IntegrationValues2<Scalar>::
+getNormContravarientMatrix(const CacheValues cache,
+                           const ForceRecompute force,
+                           const CacheDependencies cache_dependencies) const
+{
+  if(norm_contravarient_evaluated_ and force != ForceRecompute::Yes)
     return norm_contravarient;
 
   // Only log time if values computed (i.e. don't log if values are already cached)
@@ -1657,7 +1889,9 @@ getNormContravarientMatrix(const bool cache,
   const int num_space_dim = int_rule->topology->getDimension();
   const int num_ip = int_rule->num_points;
 
-  auto con = getContravarientMatrix(cache_dependencies,force,cache_dependencies).get_static_view();
+  auto con = getContravarientMatrix(cache_dependencies == CacheDependencies::Yes ? CacheValues::Yes : CacheValues::No,
+                                    force,
+                                    cache_dependencies).get_static_view();
   auto aux = af.template buildStaticArray<Scalar,Cell,IP>("norm_contravarient",num_cells_, num_ip);
 
   // norm of g_ij
@@ -1673,7 +1907,7 @@ getNormContravarientMatrix(const bool cache,
   });
   PHX::ExecutionSpace().fence();
 
-  if(cache){
+  if(cache == CacheValues::Yes){
     norm_contravarient = aux;
     norm_contravarient_evaluated_ = true;
   }
@@ -1682,22 +1916,43 @@ getNormContravarientMatrix(const bool cache,
 }
 
 template <typename Scalar>
+typename IntegrationValues2<Scalar>::ConstArray_CellIP
+IntegrationValues2<Scalar>::
+getNormContravarientMatrix(const bool cache,
+                           const bool force,
+                           const bool cache_dependencies) const
+{
+  return getNormContravarientMatrix(IntegrationValues2<Scalar>::cacheValues(cache),
+                                    IntegrationValues2<Scalar>::forceRecompute(force),
+                                    IntegrationValues2<Scalar>::cacheDependencies(cache_dependencies));
+}
+
+template <typename Scalar>
 typename IntegrationValues2<Scalar>::ConstArray_CellIPDim
 IntegrationValues2<Scalar>::
-getCubaturePoints(const bool cache,
-                  const bool force) const
+getCubaturePoints(const CacheValues cache,
+                  const ForceRecompute force) const
 {
-  return getCubaturePoints(cache, force, cache);
+  return getCubaturePoints(cache, force, cache == CacheValues::Yes ? CacheDependencies::Yes : CacheDependencies::No);
 }
 
 template <typename Scalar>
 typename IntegrationValues2<Scalar>::ConstArray_CellIPDim
 IntegrationValues2<Scalar>::
 getCubaturePoints(const bool cache,
-                  const bool force,
-                  const bool cache_dependencies) const
+                  const bool force) const
 {
-  if(ip_coordinates_evaluated_ and not force)
+  return getCubaturePoints(IntegrationValues2<Scalar>::cacheValues(cache), IntegrationValues2<Scalar>::forceRecompute(force));
+}
+
+template <typename Scalar>
+typename IntegrationValues2<Scalar>::ConstArray_CellIPDim
+IntegrationValues2<Scalar>::
+getCubaturePoints(const CacheValues cache,
+                  const ForceRecompute force,
+                  const CacheDependencies cache_dependencies) const
+{
+  if(ip_coordinates_evaluated_ and force != ForceRecompute::Yes)
     return ip_coordinates;
 
   // Only log time if values computed (i.e. don't log if values are already cached)
@@ -1736,22 +1991,25 @@ getCubaturePoints(const bool cache,
 
   } else if(is_surface){
 
-    // Don't forget that since we are not caching this, we have to make sure the managed view remains alive while we use the non-const wrapper
-    auto const_ref_coord = getCubaturePointsRef(cache_dependencies,force,cache_dependencies);
+    // Keep the managed field alive while the non-const wrapper is in use.
+    auto const_ref_coord = getCubaturePointsRef(cache_dependencies == CacheDependencies::Yes ? CacheValues::Yes : CacheValues::No,
+                                                force,
+                                                cache_dependencies);
     auto ref_coord = PHX::getNonConstDynRankViewFromConstMDField(const_ref_coord);
 
     const auto cell_range = std::make_pair(0,num_evaluate_cells_);
-    auto s_ref_coord  = Kokkos::subview(ref_coord,     cell_range,Kokkos::ALL(),Kokkos::ALL());
     auto s_coord      = Kokkos::subview(aux.get_view(),cell_range,Kokkos::ALL(),Kokkos::ALL());
     auto s_node_coord = Kokkos::subview(node_coord,    cell_range,Kokkos::ALL(),Kokkos::ALL());
 
     Intrepid2::CellTools<PHX::Device> cell_tools;
-    cell_tools.mapToPhysicalFrame(s_coord, s_ref_coord, s_node_coord, *(int_rule->topology));
+    cell_tools.mapToPhysicalFrame(s_coord, ref_coord, s_node_coord, *(int_rule->topology));
 
   } else {
 
-    // Don't forget that since we are not caching this, we have to make sure the managed view remains alive while we use the non-const wrapper
-    auto const_ref_coord = getUniformCubaturePointsRef(false,force,false);
+    // Keep the managed field alive while the non-const wrapper is in use.
+    auto const_ref_coord = getUniformCubaturePointsRef(CacheValues::No,
+                                                       force,
+                                                       false);
     auto ref_coord = PHX::getNonConstDynRankViewFromConstMDField(const_ref_coord);
 
     const auto cell_range = std::make_pair(0,num_evaluate_cells_);
@@ -1768,7 +2026,7 @@ getCubaturePoints(const bool cache,
 
   PHX::ExecutionSpace().fence();
 
-  if(cache){
+  if(cache == CacheValues::Yes){
     ip_coordinates = aux;
     ip_coordinates_evaluated_ = true;
   }
@@ -1776,6 +2034,27 @@ getCubaturePoints(const bool cache,
   return aux;
 }
 
+template <typename Scalar>
+typename IntegrationValues2<Scalar>::ConstArray_CellIPDim
+IntegrationValues2<Scalar>::
+getCubaturePoints(const bool cache,
+                  const bool force,
+                  const bool cache_dependencies) const
+{
+  return getCubaturePoints(IntegrationValues2<Scalar>::cacheValues(cache),
+                           IntegrationValues2<Scalar>::forceRecompute(force),
+                           IntegrationValues2<Scalar>::cacheDependencies(cache_dependencies));
+}
+
+
+template <typename Scalar>
+typename IntegrationValues2<Scalar>::ConstArray_CellIPDim
+IntegrationValues2<Scalar>::
+getCubaturePointsRef(const CacheValues cache,
+                     const ForceRecompute force) const
+{
+  return getCubaturePointsRef(cache, force, cache == CacheValues::Yes ? CacheDependencies::Yes : CacheDependencies::No);
+}
 
 template <typename Scalar>
 typename IntegrationValues2<Scalar>::ConstArray_CellIPDim
@@ -1783,17 +2062,17 @@ IntegrationValues2<Scalar>::
 getCubaturePointsRef(const bool cache,
                      const bool force) const
 {
-  return getCubaturePointsRef(cache, force, cache);
+  return getCubaturePointsRef(IntegrationValues2<Scalar>::cacheValues(cache), IntegrationValues2<Scalar>::forceRecompute(force));
 }
 
 template <typename Scalar>
 typename IntegrationValues2<Scalar>::ConstArray_CellIPDim
 IntegrationValues2<Scalar>::
-getCubaturePointsRef(const bool cache,
-                     const bool force,
-                     const bool cache_dependencies) const
+getCubaturePointsRef(const CacheValues cache,
+                     const ForceRecompute force,
+                     const CacheDependencies cache_dependencies) const
 {
-  if(ref_ip_coordinates_evaluated_ and not force)
+  if(ref_ip_coordinates_evaluated_ and force != ForceRecompute::Yes)
     return ref_ip_coordinates;
 
   // Only log time if values computed (i.e. don't log if values are already cached)
@@ -1818,8 +2097,10 @@ getCubaturePointsRef(const bool cache,
 
     auto node_coord = PHX::getNonConstDynRankViewFromConstMDField(getNodeCoordinates());
 
-    // Don't forget that since we are not caching this, we have to make sure the managed view remains alive while we use the non-const wrapper
-    auto const_coord = getCubaturePoints(cache_dependencies,force,cache_dependencies);
+    // Keep the managed field alive while the non-const wrapper is in use.
+    auto const_coord = getCubaturePoints(cache_dependencies == CacheDependencies::Yes ? CacheValues::Yes : CacheValues::No,
+                                         force,
+                                         cache_dependencies);
     auto coord = PHX::getNonConstDynRankViewFromConstMDField(const_coord);
 
     const auto cell_range = std::make_pair(0,num_evaluate_cells_);
@@ -1888,7 +2169,9 @@ getCubaturePointsRef(const bool cache,
                                 "ERROR: 0-D quadrature rule infrastructure does not exist!!! Will not be able to do "
                                  << "non-natural integration rules.");
 
-    auto cub_points2 = getUniformCubaturePointsRef(cache_dependencies,force,false);
+    auto cub_points2 = getUniformCubaturePointsRef(cache_dependencies == CacheDependencies::Yes ? CacheValues::Yes : CacheValues::No,
+                                                   force,
+                                                   false);
 
     Kokkos::MDRangePolicy<PHX::ExecutionSpace,Kokkos::Rank<3>> policy({0,0,0},{num_evaluate_cells_,num_ip,num_space_dim});
     Kokkos::parallel_for(policy, KOKKOS_LAMBDA(const int & cell, const int & ip, const int & dim){
@@ -1901,12 +2184,24 @@ getCubaturePointsRef(const bool cache,
   if(requires_permutation_)
     applyPermutation(aux, permutations_);
 
-  if(cache){
+  if(cache == CacheValues::Yes){
     ref_ip_coordinates = aux;
     ref_ip_coordinates_evaluated_ = true;
   }
 
   return aux;
+}
+
+template <typename Scalar>
+typename IntegrationValues2<Scalar>::ConstArray_CellIPDim
+IntegrationValues2<Scalar>::
+getCubaturePointsRef(const bool cache,
+                     const bool force,
+                     const bool cache_dependencies) const
+{
+  return getCubaturePointsRef(IntegrationValues2<Scalar>::cacheValues(cache),
+                              IntegrationValues2<Scalar>::forceRecompute(force),
+                              IntegrationValues2<Scalar>::cacheDependencies(cache_dependencies));
 }
 
 template <typename Scalar>
@@ -1930,10 +2225,10 @@ evaluateEverything()
     getCubaturePointsRef(true);
   } else {
     if(not is_surface){
-      getUniformCubaturePointsRef(true,true,requires_permutation_);
-      getUniformCubatureWeightsRef(true,true,requires_permutation_);
+      getUniformCubaturePointsRef(CacheValues::Yes, ForceRecompute::Yes, requires_permutation_);
+      getUniformCubatureWeightsRef(CacheValues::Yes, ForceRecompute::Yes, requires_permutation_);
       if(is_side)
-        getUniformSideCubaturePointsRef(true,true,requires_permutation_);
+        getUniformSideCubaturePointsRef(CacheValues::Yes, ForceRecompute::Yes, requires_permutation_);
     }
     getCubaturePointsRef(true);
     getCubaturePoints(true);

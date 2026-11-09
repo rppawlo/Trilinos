@@ -30,6 +30,7 @@ template void PointValues2<SCALAR>::copyNodeCoords<Kokkos::DynRankView<SCALAR2,P
 \
 template void PointValues2<SCALAR>::copyPointCoords<PHX::MDField<SCALAR2> >(const PHX::MDField<SCALAR2> & in_node_coords); \
 template void PointValues2<SCALAR>::copyPointCoords<PHX::MDField<SCALAR2,BASIS,Dim> >(const PHX::MDField<SCALAR2,BASIS,Dim> & in_node_coords); \
+template void PointValues2<SCALAR>::copyPointCoords<PHX::MDField<const SCALAR2,BASIS,Dim> >(const PHX::MDField<const SCALAR2,BASIS,Dim> & in_node_coords); \
 template void PointValues2<SCALAR>::copyPointCoords<Kokkos::DynRankView<SCALAR2,PHX::Device> >(const Kokkos::DynRankView<SCALAR2,PHX::Device> & in_node_coords);
 
 POINT_VALUES_INSTANTIATION(panzer::Traits::RealType)

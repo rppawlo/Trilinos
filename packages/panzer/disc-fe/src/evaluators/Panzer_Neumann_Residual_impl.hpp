@@ -48,8 +48,9 @@ NeumannResidual(
   this->addEvaluatedField(normal_dot_flux);
   this->addDependentField(normal);
   this->addDependentField(flux);
- 
-  basis_name = panzer::basisIRLayout(basis,*ir)->name();
+
+  basis_descriptor_ = panzer::BasisDescriptor(basis->order(), basis->type());
+  integration_descriptor_ = *ir;
 
   std::string n = "Neumann Residual Evaluator";
   this->setName(n);
@@ -60,7 +61,7 @@ template<typename EvalT, typename Traits>
 void
 NeumannResidual<EvalT, Traits>::
 postRegistrationSetup(
-  typename Traits::SetupData sd,
+  typename Traits::SetupData /* sd */,
   PHX::FieldManager<Traits>& /* fm */)
 {
   num_ip = flux.extent(1);
@@ -68,8 +69,6 @@ postRegistrationSetup(
 
   TEUCHOS_ASSERT(flux.extent(1) == normal.extent(1));
   TEUCHOS_ASSERT(flux.extent(2) == normal.extent(2));
-
-  basis_index = panzer::getBasisIndex(basis_name, (*sd.worksets_)[0], this->wda);
 }
 
 //**********************************************************************
@@ -95,7 +94,13 @@ evaluateFields(
       }
     });
 
-  auto weighted_basis_scalar = this->wda(workset).bases[basis_index]->weighted_basis_scalar.get_static_view();
+  if (workset.num_cells == 0)
+    return;
+
+  auto weighted_basis_scalar = this->wda(workset)
+                                 .getBasisValues(basis_descriptor_, integration_descriptor_, true)
+                                 .getBasisValues(WeightBasis::Yes, CacheValues::Yes, ForceRecompute::No)
+                                 .get_static_view();
   auto residual_v = residual.get_static_view();
   Kokkos::parallel_for("NeumannResidual", workset.num_cells, KOKKOS_LAMBDA (const index_t cell) {
     for (std::size_t basis = 0; basis < residual_v.extent(1); ++basis) {
@@ -108,11 +113,6 @@ evaluateFields(
   // Intrepid2 integrate calls are broken for sacado scalar types. The
   // temporaries outside of views use new/delete on host, which is not
   // supported by HIP. Need to roll our own integrate call for now.
-  // if(workset.num_cells>0)
-  //   Intrepid2::FunctionSpaceTools<PHX::Device>::
-  //     integrate<ScalarT>(residual.get_view(),
-  //                        normal_dot_flux.get_view(), 
-  //                        (this->wda(workset).bases[basis_index])->weighted_basis_scalar.get_view());
 
   Kokkos::fence();
 

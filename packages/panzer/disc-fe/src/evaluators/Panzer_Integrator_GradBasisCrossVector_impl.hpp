@@ -52,7 +52,8 @@ namespace panzer
     multiplier_(multiplier),
     numDims_(resNames.size()),
     numGradDims_(ir.dl_vector->extent(2)),
-    basisName_(basis.name())
+    basisDescriptor_(basis.getBasis()->order(), basis.getBasis()->type()),
+    integrationDescriptor_(ir)
   {
     using PHX::View;
     using panzer::BASIS;
@@ -190,7 +191,6 @@ namespace panzer
     PHX::FieldManager<Traits>& /* fm */)
   {
     using Sacado::createDynRankView;
-    using panzer::getBasisIndex;
 
     // Get the PHX::Views of the fields.
     auto fields_host_mirror_ = Kokkos::create_mirror_view(fields_);
@@ -204,9 +204,6 @@ namespace panzer
     for (size_t i=0; i < fieldMults_.size(); ++i)
       field_mults_host_mirror_(i) = fieldMults_[i].get_static_view();
     Kokkos::deep_copy(kokkosFieldMults_,field_mults_host_mirror_);
-
-    // Determine the index in the Workset bases for our particular basis name.
-    basisIndex_ = getBasisIndex(basisName_, (*sd.worksets_)[0], this->wda);
   } // end of postRegistrationSetup()
 
   /////////////////////////////////////////////////////////////////////////////
@@ -428,8 +425,12 @@ namespace panzer
     using Kokkos::parallel_for;
     using Kokkos::RangePolicy;
 
-    // Grab the basis information.
-    basis_ = this->wda(workset).bases[basisIndex_]->weighted_grad_basis;
+    if (workset.num_cells == 0)
+      return;
+    // Reacquire through the workset so descriptor-based lookup refreshes lazy basis state.
+    basis_ = this->wda(workset)
+               .getBasisValues(basisDescriptor_, integrationDescriptor_, true)
+               .getGradBasisValues(WeightBasis::Yes, CacheValues::Yes, ForceRecompute::No);
 
     // The following if-block is for the sake of optimization depending on the
     // number of field multipliers.  The parallel_fors will loop over the cells

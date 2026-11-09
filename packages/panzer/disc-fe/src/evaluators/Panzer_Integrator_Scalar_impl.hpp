@@ -86,7 +86,7 @@ evaluateFields(
   typename Traits::EvalData workset)
 { 
 
-  const auto wm = this->wda(workset).int_rules[quad_index]->weighted_measure;
+  const auto wm = this->wda(workset).int_rules[quad_index]->getWeightedMeasure();
 
   auto l_tmp = tmp;
   auto l_multiplier = multiplier;

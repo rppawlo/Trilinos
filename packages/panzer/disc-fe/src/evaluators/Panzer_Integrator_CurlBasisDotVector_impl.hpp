@@ -49,9 +49,9 @@ namespace panzer
       std::vector<std::string>() */)
     :
     evalStyle_(evalStyle),
-    useDescriptors_(false),
-    multiplier_(multiplier),
-    basisName_(basis.name())
+    bd_(basis.getBasis()->order(), basis.getBasis()->type()),
+    id_(ir),
+    multiplier_(multiplier)
   {
     using PHX::View;
     using panzer::BASIS;
@@ -181,7 +181,6 @@ namespace panzer
       std::vector<PHX::FieldTag>() */)
     :
     evalStyle_(evalStyle),
-    useDescriptors_(true),
     bd_(bd),
     id_(id),
     multiplier_(multiplier),
@@ -254,7 +253,6 @@ namespace panzer
     typename Traits::SetupData sd,
     PHX::FieldManager<Traits>& fm)
   {
-    using panzer::getBasisIndex;
     using PHX::MDField;
     using std::vector;
 
@@ -263,11 +261,6 @@ namespace panzer
     for (size_t i(0); i < fieldMults_.size(); ++i)
       kokkosFieldMults_h(i) = fieldMults_[i].get_static_view();
     Kokkos::deep_copy(kokkosFieldMults_, kokkosFieldMults_h);
-    // Determine the index in the Workset bases for our particular basis
-    // name.
-    if (not useDescriptors_)
-      basisIndex_ = getBasisIndex(basisName_, (*sd.worksets_)[0], this->wda);
-
     // Set up the field that will be used to build of the result of this
     // integration.
     MDFieldArrayFactory af("",
@@ -664,10 +657,12 @@ namespace panzer
     using PHX::MDField;
     using std::vector;
 
-    // Grab the basis information.
-    const BasisValues2<double>& bv = useDescriptors_ ?
-      this->wda(workset).getBasisValues(bd_, id_) :
-      *this->wda(workset).bases[basisIndex_];
+    if (workset.num_cells == 0)
+      return;
+
+    // Reacquire through the workset so descriptor-based lookup refreshes lazy basis state.
+    const BasisValues2<double>& bv =
+      this->wda(workset).getBasisValues(bd_, id_, true);
 
     // If we're dealing with a two- or three-dimensional problem...
     if (spaceDim_ == 2)
@@ -700,8 +695,7 @@ namespace panzer
       Integrate2D<ScalarT> integrate;
       integrate.result            = result2D_;
       integrate.field             = field_;
-      using Array=typename BasisValues2<double>::ConstArray_CellBasisIP;
-      integrate.weightedCurlBasis = useDescriptors_ ? bv.getCurl2DVectorBasis(true) : Array(bv.weighted_curl_basis_scalar);
+      integrate.weightedCurlBasis = bv.getCurl2DVectorBasis(WeightBasis::Yes, CacheValues::Yes, ForceRecompute::No);
       integrate.evalStyle         = evalStyle_;
       parallel_for(workset.num_cells, integrate);
     }
@@ -735,8 +729,7 @@ namespace panzer
       Integrate3D<ScalarT, 3> integrate;
       integrate.result            = result3D_;
       integrate.field             = field_;
-      using Array=typename BasisValues2<double>::ConstArray_CellBasisIPDim;
-      integrate.weightedCurlBasis = useDescriptors_ ? bv.getCurlVectorBasis(true) : Array(bv.weighted_curl_basis_vector);
+      integrate.weightedCurlBasis = bv.getCurlVectorBasis(WeightBasis::Yes, CacheValues::Yes, ForceRecompute::No);
       integrate.evalStyle         = evalStyle_;
       parallel_for(workset.num_cells, integrate);
     } // end if spaceDim_ is 2 or 3

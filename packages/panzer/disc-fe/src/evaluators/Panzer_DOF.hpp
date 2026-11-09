@@ -48,7 +48,6 @@ private:
 
   typedef typename EvalT::ScalarT ScalarT;
 
-  bool use_descriptors_;
   panzer::BasisDescriptor bd_;
   panzer::IntegrationDescriptor id_;
   
@@ -56,9 +55,6 @@ private:
 
   PHX::MDField<ScalarT,Cell,Point> dof_ip_scalar;
   PHX::MDField<ScalarT,Cell,Point,Dim> dof_ip_vector;
-
-  std::string basis_name;
-  std::size_t basis_index;
 
   bool is_vector_basis;
 };
@@ -90,7 +86,6 @@ private:
 
   typedef panzer::Traits::Jacobian::ScalarT ScalarT;
 
-  bool use_descriptors_;
   panzer::BasisDescriptor bd_;
   panzer::IntegrationDescriptor id_;
   
@@ -98,9 +93,6 @@ private:
 
   PHX::MDField<ScalarT,Cell,Point> dof_ip_scalar;
   PHX::MDField<ScalarT,Cell,Point,Dim> dof_ip_vector;
-
-  std::string basis_name;
-  std::size_t basis_index;
 
   bool accelerate_jacobian_enabled;
   bool accelerate_jacobian;

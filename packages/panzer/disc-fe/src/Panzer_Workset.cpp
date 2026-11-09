@@ -202,7 +202,20 @@ WorksetDetails::
 getIntegrationValues(const panzer::IntegrationDescriptor & description,
                      const bool lazy_version) const
 {
-  TEUCHOS_ASSERT(setup_);
+  if(not setup_){
+    for(const auto & integration_values : int_rules){
+      if(integration_values == Teuchos::null or integration_values->int_rule == Teuchos::null)
+        continue;
+
+      if(integration_values->int_rule->getKey() == description.getKey())
+        return *integration_values;
+    }
+
+    TEUCHOS_TEST_FOR_EXCEPTION(true,
+                               std::logic_error,
+                               "WorksetDetails::getIntegrationValues : Could not find a legacy integration rule for integration order '"
+                               << description.getOrder() << "'.");
+  }
 
   // We need unique keys for the lazy copy or else we get some weird behavior
   size_t key = description.getKey();
@@ -264,7 +277,22 @@ WorksetDetails::
 getBasisValues(const panzer::BasisDescriptor & description,
                const bool lazy_version) const
 {
-  TEUCHOS_ASSERT(setup_);
+  if(not setup_){
+    for(const auto & basis_values : bases){
+      if(basis_values == Teuchos::null or basis_values->basis_layout == Teuchos::null)
+        continue;
+
+      const auto pure_basis = basis_values->basis_layout->getBasis();
+      if(pure_basis->type() == description.getType() and
+         pure_basis->order() == description.getOrder())
+        return *basis_values;
+    }
+
+    TEUCHOS_TEST_FOR_EXCEPTION(true,
+                               std::logic_error,
+                               "WorksetDetails::getBasisValues : Could not find a legacy basis for basis '"
+                               << description.getType() << ":" << description.getOrder() << "'.");
+  }
 
   // Check if one exists (can be of any integration order)
   const auto itr = basis_integration_values_map_.find(description.getKey());
@@ -296,7 +324,38 @@ getBasisValues(const panzer::BasisDescriptor & basis_description,
                const panzer::IntegrationDescriptor & integration_description,
                const bool lazy_version) const
 {
-  TEUCHOS_ASSERT(setup_);
+  if(not setup_){
+    for(std::size_t basis_index=0; basis_index<bases.size(); ++basis_index){
+      auto & basis_values = *bases[basis_index];
+      if(basis_values.basis_layout == Teuchos::null)
+        continue;
+
+      const auto pure_basis = basis_values.basis_layout->getBasis();
+      if(pure_basis->type() != basis_description.getType())
+        continue;
+      if(pure_basis->order() != basis_description.getOrder())
+        continue;
+
+      for(const auto & integration_values : int_rules){
+        if(integration_values == Teuchos::null or integration_values->int_rule == Teuchos::null)
+          continue;
+        if(integration_values->int_rule->getKey() != integration_description.getKey())
+          continue;
+
+        BasisIRLayout candidate_layout(basis_description.getType(), basis_description.getOrder(), *integration_values->int_rule);
+        if(candidate_layout.name() != basis_values.basis_layout->name())
+          continue;
+
+        return basis_values;
+      }
+    }
+
+    TEUCHOS_TEST_FOR_EXCEPTION(true,
+                               std::logic_error,
+                               "WorksetDetails::getBasisValues : Could not find a legacy basis for basis '"
+                               << basis_description.getType() << ":" << basis_description.getOrder()
+                               << "' and integration order '" << integration_description.getOrder() << "'.");
+  }
 
   // We need unique keys for the lazy copy or else we get some weird behavior
   size_t basis_key = basis_description.getKey();
@@ -331,9 +390,9 @@ getBasisValues(const panzer::BasisDescriptor & basis_description,
     biv = Teuchos::rcp(new BasisValues2<double>());
 
     if(integration_description.getType() == IntegrationDescriptor::VOLUME)
-      biv->setupUniform(bir, iv.getUniformCubaturePointsRef(false), iv.getJacobian(false), iv.getJacobianDeterminant(false), iv.getJacobianInverse(false));
+      biv->setupUniform(bir, iv.getUniformCubaturePointsRef(), iv.getJacobian(), iv.getJacobianDeterminant(), iv.getJacobianInverse());
     else
-      biv->setup(bir, iv.getCubaturePointsRef(false), iv.getJacobian(false), iv.getJacobianDeterminant(false), iv.getJacobianInverse(false));
+      biv->setup(bir, iv.getCubaturePointsRef(), iv.getJacobian(), iv.getJacobianDeterminant(), iv.getJacobianInverse());
 
     if(not options_.orientations_.is_null()){
       std::vector<Intrepid2::Orientation> workset_orientations;
@@ -345,7 +404,7 @@ getBasisValues(const panzer::BasisDescriptor & basis_description,
                        (integration_description.getType() == IntegrationDescriptor::CV_SIDE) or
                        (integration_description.getType() == IntegrationDescriptor::CV_VOLUME);
     if(not is_cv)
-      biv->setWeightedMeasure(iv.getWeightedMeasure(false));
+      biv->setWeightedMeasure(iv.getWeightedMeasure(CacheValues::Yes, ForceRecompute::No));
     biv->setCellNodeCoordinates(cell_node_coordinates);
 
   } else {

@@ -57,8 +57,9 @@ WeakDirichletResidual(
   this->addDependentField(dof);
   this->addDependentField(value);
   this->addDependentField(sigma);
- 
-  basis_name = panzer::basisIRLayout(basis,*ir)->name();
+
+  basis_descriptor_ = panzer::BasisDescriptor(basis->order(), basis->type());
+  integration_descriptor_ = *ir;
 
   std::string n = "Weak Dirichlet Residual Evaluator";
   this->setName(n);
@@ -69,7 +70,7 @@ template<typename EvalT, typename Traits>
 void
 WeakDirichletResidual<EvalT, Traits>::
 postRegistrationSetup(
-  typename Traits::SetupData sd,
+  typename Traits::SetupData /* sd */,
   PHX::FieldManager<Traits>& /* fm */)
 {
   num_ip = flux.extent(1);
@@ -77,8 +78,6 @@ postRegistrationSetup(
 
   TEUCHOS_ASSERT(flux.extent(1) == normal.extent(1));
   TEUCHOS_ASSERT(flux.extent(2) == normal.extent(2));
-
-  basis_index = panzer::getBasisIndex(basis_name, (*sd.worksets_)[0], this->wda);
 }
 
 //**********************************************************************
@@ -98,11 +97,15 @@ evaluateFields(
     }
   }
 
-  if(workset.num_cells>0)
+  if(workset.num_cells>0) {
+    const auto weighted_basis = this->wda(workset)
+                                  .getBasisValues(basis_descriptor_, integration_descriptor_, true)
+                                  .getBasisValues(WeightBasis::Yes, CacheValues::Yes, ForceRecompute::No);
     Intrepid2::FunctionSpaceTools<PHX::Device>::
       integrate(residual.get_view(),
-                normal_dot_flux_plus_pen.get_view(), 
-                (this->wda(workset).bases[basis_index])->weighted_basis_scalar.get_view());
+                normal_dot_flux_plus_pen.get_view(),
+                weighted_basis.get_view());
+  }
   
 }
 

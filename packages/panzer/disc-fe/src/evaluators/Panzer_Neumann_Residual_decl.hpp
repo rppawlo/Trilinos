@@ -54,8 +54,8 @@ class NeumannResidual
   PHX::MDField<const ScalarT> flux;
   PHX::MDField<const ScalarT> normal;
 
-  std::string basis_name;
-  std::size_t basis_index;
+  panzer::BasisDescriptor basis_descriptor_;
+  panzer::IntegrationDescriptor integration_descriptor_;
   std::size_t num_ip;
   std::size_t num_dim;
 

@@ -72,24 +72,24 @@ template<typename EvalT, typename Traits>
 void ResponseScatterEvaluator_IPCoordinates<EvalT,Traits>::
 evaluateFields(typename Traits::EvalData workset)
 {
-  // Kokkos::DynRankView<double,PHX::Device>& workset_coords = (this->wda(workset).int_rules[ir_index_])->ip_coordinates;
   IntegrationValues2<double> & iv = *this->wda(workset).int_rules[ir_index_];
+  const auto ip_coordinates = iv.getCubaturePoints();
 
-  if (tmpCoords_.size() != Teuchos::as<std::size_t>(iv.ip_coordinates.extent(2))) {
-    tmpCoords_.resize(iv.ip_coordinates.extent(2));
+  if (tmpCoords_.size() != Teuchos::as<std::size_t>(ip_coordinates.extent(2))) {
+    tmpCoords_.resize(ip_coordinates.extent(2));
     for(std::size_t dim=0;dim<tmpCoords_.size();dim++)
       tmpCoords_[dim].clear();
   }
 
-  auto ip_coordinates_h = Kokkos::create_mirror_view(PHX::as_view(iv.ip_coordinates));
-  Kokkos::deep_copy(ip_coordinates_h, PHX::as_view(iv.ip_coordinates));
+  auto ip_coordinates_h = Kokkos::create_mirror_view(PHX::as_view(ip_coordinates));
+  Kokkos::deep_copy(ip_coordinates_h, PHX::as_view(ip_coordinates));
 
   // This ordering is for the DataTransferKit.  It blocks all x
   // coordinates for a set of points, then all y coordinates and if
   // required all z coordinates.
-  for (int dim = 0; dim < iv.ip_coordinates.extent_int(2); ++dim)
+  for (int dim = 0; dim < ip_coordinates.extent_int(2); ++dim)
     for (index_t cell = 0; cell < workset.num_cells; ++cell)
-      for (int ip = 0; ip < iv.ip_coordinates.extent_int(1); ++ip)
+      for (int ip = 0; ip < ip_coordinates.extent_int(1); ++ip)
         tmpCoords_[dim].push_back(ip_coordinates_h(static_cast<int>(cell),ip,dim));
 }
 

@@ -46,7 +46,6 @@ private:
 
   typedef typename EvalT::ScalarT ScalarT;
 
-  bool use_descriptors_;
   panzer::BasisDescriptor bd_;
   panzer::IntegrationDescriptor id_;
 
@@ -54,9 +53,6 @@ private:
   PHX::MDField<const ScalarT,Cell,Point> dof_value;
   // <cell,point,dim>
   PHX::MDField<ScalarT> dof_gradient;
-
-  std::string basis_name;
-  std::size_t basis_index;
 };
 
 }

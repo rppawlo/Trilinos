@@ -24,8 +24,6 @@ PointValues_Evaluator<EvalT, Traits>::
 PointValues_Evaluator(
   const Teuchos::ParameterList& p)
 {
-  basis_index = 0;
-
   Teuchos::RCP<const panzer::PointRule> pointRule 
      = p.get< Teuchos::RCP<const panzer::PointRule> >("Point Rule");
   Teuchos::RCP<const Kokkos::DynRankView<double,PHX::Device> > userArray
@@ -39,8 +37,6 @@ template <typename EvalT, typename TRAITST>
 PointValues_Evaluator<EvalT,TRAITST>::PointValues_Evaluator(const Teuchos::RCP<const panzer::PointRule> & pointRule,
                                                             const Kokkos::DynRankView<double,PHX::Device> & userArray)
 {
-  basis_index = 0;
-
   initialize(pointRule,Teuchos::ptrFromRef(userArray),Teuchos::null);
 }
 
@@ -49,8 +45,6 @@ template <typename EvalT, typename TRAITST>
 PointValues_Evaluator<EvalT,TRAITST>::PointValues_Evaluator(const Teuchos::RCP<const panzer::PointRule> & pointRule,
                                                             const PHX::MDField<double, panzer::IP, panzer::Dim> & userArray)
 {
-  basis_index = 0;
-
   initialize(pointRule,Teuchos::ptrFromRef(userArray),Teuchos::null);
 }
 
@@ -59,8 +53,6 @@ template <typename EvalT, typename TRAITST>
 PointValues_Evaluator<EvalT,TRAITST>::PointValues_Evaluator(const Teuchos::RCP<const panzer::PointRule> & pointRule,
                                                             const Teuchos::RCP<const panzer::PureBasis> & pureBasis)
 {
-  basis_index = 0;
-
   Teuchos::Ptr<const PHX::MDField<double, panzer::IP, panzer::Dim> > userArray;
   initialize(pointRule,userArray,pureBasis);
 }
@@ -73,8 +65,10 @@ void PointValues_Evaluator<EvalT,TRAITST>::initialize(const Teuchos::RCP<const p
                                                       const Teuchos::RCP<const panzer::PureBasis> & pureBasis)
 {
   basis = pureBasis;
+  if(basis != Teuchos::null)
+    basis_descriptor = panzer::BasisDescriptor(basis->order(), basis->type());
 
-  if(userArray!=Teuchos::null && basis==Teuchos::null) 
+  if(userArray!=Teuchos::null && basis==Teuchos::null)
     useBasisValuesRefArray = false;
   else if(userArray==Teuchos::null && basis!=Teuchos::null) 
     useBasisValuesRefArray = true;
@@ -114,7 +108,7 @@ template<typename EvalT, typename Traits>
 void
 PointValues_Evaluator<EvalT, Traits>::
 postRegistrationSetup(
-  typename Traits::SetupData sd,
+  typename Traits::SetupData /* sd */,
   PHX::FieldManager<Traits>& fm)
 {
   // setup the pointers for evaluation
@@ -126,8 +120,6 @@ postRegistrationSetup(
   this->utils.setFieldData(pointValues.point_coords,fm);
 
   if(useBasisValuesRefArray) {
-    basis_index = panzer::getPureBasisIndex(basis->name(), (*sd.worksets_)[0], this->wda);
-
     // basis better have coordinates if you want to use them! Assertion to protect
     // a silent failure.
     TEUCHOS_ASSERT(basis->supportsBasisCoordinates());
@@ -142,11 +134,12 @@ evaluateFields(
   typename Traits::EvalData workset)
 { 
   if(useBasisValuesRefArray) {
-    panzer::BasisValues2<double> & basisValues = *this->wda(workset).bases[basis_index];
+    const auto& basis_values = this->wda(workset).getBasisValues(basis_descriptor, true);
+    const auto basis_coordinates_ref = basis_values.getBasisCoordinatesRef(CacheValues::Yes, ForceRecompute::No);
 
     // evaluate the point values (construct jacobians etc...)
     pointValues.evaluateValues(this->wda(workset).cell_node_coordinates,
-                               basisValues.basis_coordinates_ref,
+                               basis_coordinates_ref,
                                workset.num_cells);
   }
   else {

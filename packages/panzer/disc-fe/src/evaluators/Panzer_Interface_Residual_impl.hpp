@@ -48,8 +48,9 @@ InterfaceResidual(
   this->addEvaluatedField(normal_dot_flux);
   this->addDependentField(normal);
   this->addDependentField(flux);
- 
-  basis_name = panzer::basisIRLayout(basis,*ir)->name();
+
+  basis_descriptor_ = panzer::BasisDescriptor(basis->order(), basis->type());
+  integration_descriptor_ = *ir;
 
   std::string n = "Interface Residual Evaluator";
   this->setName(n);
@@ -60,7 +61,7 @@ template<typename EvalT, typename Traits>
 void
 InterfaceResidual<EvalT, Traits>::
 postRegistrationSetup(
-  typename Traits::SetupData sd,
+  typename Traits::SetupData /* sd */,
   PHX::FieldManager<Traits>& /* fm */)
 {
   num_ip = flux.extent(1);
@@ -68,8 +69,6 @@ postRegistrationSetup(
 
   TEUCHOS_ASSERT(flux.extent(1) == normal.extent(1));
   TEUCHOS_ASSERT(flux.extent(2) == normal.extent(2));
-
-  basis_index = panzer::getBasisIndex(basis_name, (*sd.worksets_)[0], this->wda);
 }
 
 //**********************************************************************
@@ -90,12 +89,16 @@ evaluateFields(
     }
   }
 
-  // const Kokkos::DynRankView<double,PHX::Device> & weighted_basis = this->wda(workset).bases[basis_index]->weighted_basis;
-  const Teuchos::RCP<const BasisValues2<double> > bv = this->wda(workset).bases[basis_index];
+  if (workset.num_cells == 0)
+    return;
+
+  const auto weighted_basis = this->wda(workset)
+                                .getBasisValues(basis_descriptor_, integration_descriptor_, true)
+                                .getBasisValues(WeightBasis::Yes, CacheValues::Yes, ForceRecompute::No);
   for (index_t cell = 0; cell < workset.num_cells; ++cell) {
     for (std::size_t basis = 0; basis < residual.extent(1); ++basis) {
       for (std::size_t qp = 0; qp < num_ip; ++qp) {
-        residual(cell,basis) += normal_dot_flux(cell,qp)*bv->weighted_basis_scalar(cell,basis,qp);
+        residual(cell,basis) += normal_dot_flux(cell,qp)*weighted_basis(cell,basis,qp);
       }
     }
   }
@@ -103,8 +106,8 @@ evaluateFields(
   if(workset.num_cells>0)
     Intrepid2::FunctionSpaceTools<PHX::Device>::
       integrate(residual.get_view(),
-                normal_dot_flux.get_view(), 
-                (this->wda(workset).bases[basis_index])->weighted_basis_scalar.get_view());
+                normal_dot_flux.get_view(),
+                weighted_basis.get_view());
 }
 
 //**********************************************************************

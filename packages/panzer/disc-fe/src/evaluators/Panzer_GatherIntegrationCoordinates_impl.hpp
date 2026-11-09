@@ -58,10 +58,9 @@ postRegistrationSetup(typename TRAITS::SetupData sd,
 template<typename EvalT,typename TRAITS> 
 void panzer::GatherIntegrationCoordinates<EvalT, TRAITS>::
 evaluateFields(typename TRAITS::EvalData workset)
-{ 
-  // const Kokkos::DynRankView<double,PHX::Device> & quadCoords = this->wda(workset).int_rules[quadIndex_]->ip_coordinates;  
+{
   const IntegrationValues2<double> & iv = *this->wda(workset).int_rules[quadIndex_];
-  auto s_ip_coordinates = iv.ip_coordinates.get_static_view();
+  auto s_ip_coordinates = iv.getCubaturePoints().get_static_view();
   auto d_quadCoordinates = quadCoordinates_.get_static_view();
 
   // just copy the array

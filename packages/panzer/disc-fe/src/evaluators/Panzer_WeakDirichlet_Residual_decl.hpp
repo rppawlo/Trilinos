@@ -58,8 +58,8 @@ class WeakDirichletResidual
   PHX::MDField<const ScalarT> dof;
   PHX::MDField<const ScalarT> value;
 
-  std::string basis_name;
-  std::size_t basis_index;
+  panzer::BasisDescriptor basis_descriptor_;
+  panzer::IntegrationDescriptor integration_descriptor_;
   std::size_t num_ip;
   std::size_t num_dim;
 

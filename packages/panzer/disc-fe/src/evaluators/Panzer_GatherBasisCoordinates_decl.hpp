@@ -21,6 +21,7 @@
 #include "Panzer_Traits.hpp"
 #include "Panzer_CloneableEvaluator.hpp"
 
+#include "Panzer_BasisDescriptor.hpp"
 #include "Panzer_PureBasis.hpp"
 
 #include "Panzer_Evaluator_WithBaseImpl.hpp"
@@ -49,7 +50,7 @@ private:
   typedef typename EvalT::ScalarT ScalarT;
 
   std::string basisName_;
-  std::vector<std::string>::size_type basisIndex_; 
+  panzer::BasisDescriptor basisDescriptor_;
   PHX::MDField<ScalarT,Cell,BASIS,Dim> basisCoordinates_;
 
   GatherBasisCoordinates();

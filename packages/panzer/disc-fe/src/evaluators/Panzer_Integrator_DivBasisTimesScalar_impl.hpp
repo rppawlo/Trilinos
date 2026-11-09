@@ -50,7 +50,8 @@ namespace panzer
     :
     evalStyle_(evalStyle),
     multiplier_(multiplier),
-    basisName_(basis.name())
+    basisDescriptor_(basis.getBasis()->order(), basis.getBasis()->type()),
+    integrationDescriptor_(ir)
   {
     using PHX::View;
     using panzer::BASIS;
@@ -154,7 +155,6 @@ namespace panzer
     PHX::FieldManager<Traits>& /* fm */)
   {
     using Sacado::createDynRankView;
-    using panzer::getBasisIndex;
 
     auto kokkosFieldMults_h = Kokkos::create_mirror_view(kokkosFieldMults_);
 
@@ -174,9 +174,6 @@ namespace panzer
 	tmp_ = PHX::View<ScalarT*>("panzer::Integrator::DivBasisTimesScalar::tmp_",field_.extent(0));
       }
     }
-
-    // Determine the index in the Workset bases for our particular basis name.
-    basisIndex_ = getBasisIndex(basisName_, (*sd.worksets_)[0], this->wda);
   } // end of postRegistrationSetup()
 
   /////////////////////////////////////////////////////////////////////////////
@@ -371,8 +368,13 @@ namespace panzer
     using Kokkos::parallel_for;
     using Kokkos::TeamPolicy;
 
-    // Grab the basis information.
-    basis_ = this->wda(workset).bases[basisIndex_]->weighted_div_basis;
+    if (workset.num_cells == 0)
+      return;
+
+    // Reacquire through the workset so descriptor-based lookup refreshes lazy basis state.
+    basis_ = this->wda(workset)
+               .getBasisValues(basisDescriptor_, integrationDescriptor_, true)
+               .getDivVectorBasis(WeightBasis::Yes, CacheValues::Yes, ForceRecompute::No);
 
     bool use_shared_memory = panzer::HP::inst().useSharedMemory<ScalarT>();
 

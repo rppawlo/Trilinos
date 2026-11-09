@@ -15,6 +15,7 @@
 #include "Phalanx_Evaluator_Macros.hpp"
 #include "Phalanx_MDField.hpp"
 #include "Panzer_Evaluator_Macros.hpp"
+#include "Panzer_IntegrationDescriptor.hpp"
 
 namespace panzer {
     
@@ -60,7 +61,7 @@ class Normals
     using ScalarT = typename EvalT::ScalarT;
 
   int side_id;
-  int quad_order, quad_index;
+  panzer::IntegrationDescriptor integration_descriptor;
 
   std::size_t num_qp, num_dim;
 

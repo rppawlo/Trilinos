@@ -42,7 +42,8 @@ namespace panzer
     const Teuchos::RCP<PHX::DataLayout>& vecDL       /* = Teuchos::null */)
     :
     evalStyle_(evalStyle),
-    basisName_(basis.name())
+    basisDescriptor_(basis.getBasis()->order(), basis.getBasis()->type()),
+    integrationDescriptor_(ir)
   {
     using PHX::View;
     using panzer::BASIS;
@@ -142,14 +143,10 @@ namespace panzer
     typename Traits::SetupData sd,
     PHX::FieldManager<Traits>& /* fm */)
   {
-    using panzer::getBasisIndex;
     using std::size_t;
 
     // Get the PHX::View of the tensor.
     kokkosTensor_ = tensor_.get_static_view();
-
-    // Determine the index in the Workset bases for our particular basis name.
-    basisIndex_ = getBasisIndex(basisName_, (*sd.worksets_)[0], this->wda);
 
     // Allocate temporary if not using shared memory
     bool use_shared_memory = panzer::HP::inst().useSharedMemory<ScalarT>();
@@ -308,8 +305,12 @@ namespace panzer
     using Kokkos::parallel_for;
     using Kokkos::TeamPolicy;
 
-    // Grab the basis information.
-    basis_ = this->wda(workset).bases[basisIndex_]->weighted_grad_basis;
+    if (workset.num_cells == 0)
+      return;
+    // Reacquire through the workset so descriptor-based lookup refreshes lazy basis state.
+    basis_ = this->wda(workset)
+               .getBasisValues(basisDescriptor_, integrationDescriptor_, true)
+               .getGradBasisValues(WeightBasis::Yes, CacheValues::Yes, ForceRecompute::No);
 
     bool use_shared_memory = panzer::HP::inst().useSharedMemory<ScalarT>();
     if (use_shared_memory) {

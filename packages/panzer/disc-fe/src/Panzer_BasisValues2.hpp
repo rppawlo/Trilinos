@@ -18,6 +18,7 @@
 
 #include "Panzer_BasisIRLayout.hpp"
 #include "Panzer_ArrayTraits.hpp"
+#include "Panzer_EvaluationPolicy.hpp"
 
 namespace panzer {
 
@@ -106,12 +107,24 @@ namespace panzer {
     void setupArrays(const Teuchos::RCP<const panzer::BasisIRLayout>& basis,
                      bool computeDerivatives=true);
 
+    /**
+     * \brief Evaluate basis values for a uniform reference point layout
+     *
+     * \note This deprecated eager-evaluation path always caches the computed arrays.
+     * \note This deprecated eager-evaluation path always forces recomputation of those cached arrays.
+     */
     void evaluateValues(const PHX::MDField<Scalar,IP,Dim> & cub_points,
                         const PHX::MDField<Scalar,Cell,IP,Dim,Dim> & jac,
                         const PHX::MDField<Scalar,Cell,IP> & jac_det,
                         const PHX::MDField<Scalar,Cell,IP,Dim,Dim> & jac_inv,
                         const int in_num_cells = -1);
 
+    /**
+     * \brief Evaluate weighted basis values for a uniform reference point layout
+     *
+     * \note This deprecated eager-evaluation path always caches the computed arrays.
+     * \note This deprecated eager-evaluation path always forces recomputation of those cached arrays.
+     */
     void evaluateValues(const PHX::MDField<Scalar,IP,Dim> & cub_points,
                         const PHX::MDField<Scalar,Cell,IP,Dim,Dim> & jac,
                         const PHX::MDField<Scalar,Cell,IP> & jac_det,
@@ -136,6 +149,12 @@ namespace panzer {
                           const int in_num_cells = -1);
 
 
+    /**
+     * \brief Evaluate weighted basis values for a non-uniform reference point layout
+     *
+     * \note This deprecated eager-evaluation path always caches the computed arrays.
+     * \note This deprecated eager-evaluation path always forces recomputation of those cached arrays.
+     */
     void evaluateValues(const PHX::MDField<Scalar,Cell,IP,Dim> & cub_points,
                         const PHX::MDField<Scalar,Cell,IP,Dim,Dim> & jac,
                         const PHX::MDField<Scalar,Cell,IP> & jac_det,
@@ -184,14 +203,14 @@ namespace panzer {
     mutable Array_CellBasisIPDim weighted_curl_basis_vector;          // <Cell,BASIS,IP,Dim>
     mutable Array_CellBasisIP weighted_div_basis;                     // <Cell,BASIS,IP>
 
-    /** Carterisan coordinates for basis coefficients
+    /** Cartesian coordinates for basis coefficients
 
         NOTE: This quantity is not always available.  Certain bases
         may not have a corresponding coordiante value
     */
     mutable Array_BasisDim basis_coordinates_ref;     // <BASIS,Dim>
 
-    /** Carterisan coordinates for basis coefficients
+    /** Cartesian coordinates for basis coefficients
 
         NOTE: This quantity is not always available.  Certain bases
         may not have a corresponding coordiante value
@@ -341,9 +360,21 @@ namespace panzer {
     void
     setCellNodeCoordinates(PHX::MDField<Scalar,Cell,NODE,Dim> node_coordinates);
 
-    /// Explicitly release cached lazy-evaluation data while preserving setup metadata.
+    /// Explicitly release cached lazy-evaluation data while preserving setup state.
     void
     releaseCachedData();
+
+    static constexpr CacheValues cacheValues(const bool value)
+    { return value ? CacheValues::Yes : CacheValues::No; }
+
+    static constexpr ForceRecompute forceRecompute(const bool value)
+    { return value ? ForceRecompute::Yes : ForceRecompute::No; }
+
+    static constexpr CacheDependencies cacheDependencies(const bool value)
+    { return value ? CacheDependencies::Yes : CacheDependencies::No; }
+
+    static constexpr WeightBasis weightBasis(const bool value)
+    { return value ? WeightBasis::Yes : WeightBasis::No; }
 
     /// Check if reference point space is uniform across all cells (faster evaluation)
     bool
@@ -367,11 +398,23 @@ namespace panzer {
      * \throws If reference points are not uniform
      * \throws If basis does not support a coordinate space
      *
-     * \param[in] cache If true, the returned object will be cached for later use
-     * \param[in] force Force re-evaluation of cached array
+     * \param[in] cache Whether to cache the returned object for later use
+     * \param[in] force Whether to force re-evaluation of the cached array
      *
-     * return Array <basis, dim>
+     * \return Array <basis, dim>
     */
+    ConstArray_BasisDim
+    getBasisCoordinatesRef(const CacheValues cache,
+                           const ForceRecompute force = ForceRecompute::No) const;
+
+    /**
+     * \brief Compatibility overload using boolean cache controls
+     *
+     * \param[in] cache If true, the returned object will be cached for later use
+     * \param[in] force If true, force re-evaluation of the cached array
+     *
+     * \return Array <basis, dim>
+     */
     ConstArray_BasisDim
     getBasisCoordinatesRef(const bool cache = true,
                            const bool force = false) const;
@@ -382,8 +425,20 @@ namespace panzer {
      * \throws If not a scalar basis
      * \throws If reference points are not uniform
      *
+     * \param[in] cache Whether to cache the returned object for later use
+     * \param[in] force Whether to force re-evaluation of the cached array
+     *
+     * \return Array <basis, point>
+     */
+    ConstArray_BasisIP
+    getBasisValuesRef(const CacheValues cache,
+                      const ForceRecompute force = ForceRecompute::No) const;
+
+    /**
+     * \brief Compatibility overload using boolean cache controls
+     *
      * \param[in] cache If true, the returned object will be cached for later use
-     * \param[in] force Force re-evaluation of cached array
+     * \param[in] force If true, force re-evaluation of the cached array
      *
      * \return Array <basis, point>
      */
@@ -397,8 +452,20 @@ namespace panzer {
      * \throws If not a vector basis
      * \throws If reference points are not uniform
      *
+     * \param[in] cache Whether to cache the returned object for later use
+     * \param[in] force Whether to force re-evaluation of the cached array
+     *
+     * \return Array <basis, point, dim>
+     */
+    ConstArray_BasisIPDim
+    getVectorBasisValuesRef(const CacheValues cache,
+                            const ForceRecompute force = ForceRecompute::No) const;
+
+    /**
+     * \brief Compatibility overload using boolean cache controls
+     *
      * \param[in] cache If true, the returned object will be cached for later use
-     * \param[in] force Force re-evaluation of cached array
+     * \param[in] force If true, force re-evaluation of the cached array
      *
      * \return Array <basis, point, dim>
      */
@@ -412,8 +479,20 @@ namespace panzer {
      * \throws If not a scalar basis
      * \throws If reference points are not uniform
      *
+     * \param[in] cache Whether to cache the returned object for later use
+     * \param[in] force Whether to force re-evaluation of the cached array
+     *
+     * \return Array <basis, point, dim>
+     */
+    ConstArray_BasisIPDim
+    getGradBasisValuesRef(const CacheValues cache,
+                          const ForceRecompute force = ForceRecompute::No) const;
+
+    /**
+     * \brief Compatibility overload using boolean cache controls
+     *
      * \param[in] cache If true, the returned object will be cached for later use
-     * \param[in] force Force re-evaluation of cached array
+     * \param[in] force If true, force re-evaluation of the cached array
      *
      * \return Array <basis, point, dim>
      */
@@ -428,8 +507,20 @@ namespace panzer {
      * \throws If not a 2D space
      * \throws If not a HCurl basis
      *
+     * \param[in] cache Whether to cache the returned object for later use
+     * \param[in] force Whether to force re-evaluation of the cached array
+     *
+     * \return Array <basis, point>
+     */
+    ConstArray_BasisIP
+    getCurl2DVectorBasisRef(const CacheValues cache,
+                            const ForceRecompute force = ForceRecompute::No) const;
+
+    /**
+     * \brief Compatibility overload using boolean cache controls
+     *
      * \param[in] cache If true, the returned object will be cached for later use
-     * \param[in] force Force re-evaluation of cached array
+     * \param[in] force If true, force re-evaluation of the cached array
      *
      * \return Array <basis, point>
      */
@@ -444,8 +535,20 @@ namespace panzer {
      * \throws If not a 3D space
      * \throws If not a HCurl basis
      *
+     * \param[in] cache Whether to cache the returned object for later use
+     * \param[in] force Whether to force re-evaluation of the cached array
+     *
+     * \return Array <basis, point, dim>
+     */
+    ConstArray_BasisIPDim
+    getCurlVectorBasisRef(const CacheValues cache,
+                          const ForceRecompute force = ForceRecompute::No) const;
+
+    /**
+     * \brief Compatibility overload using boolean cache controls
+     *
      * \param[in] cache If true, the returned object will be cached for later use
-     * \param[in] force Force re-evaluation of cached array
+     * \param[in] force If true, force re-evaluation of the cached array
      *
      * \return Array <basis, point, dim>
      */
@@ -460,8 +563,20 @@ namespace panzer {
      * \throws If not a 3D space
      * \throws If not a HDiv basis
      *
+     * \param[in] cache Whether to cache the returned object for later use
+     * \param[in] force Whether to force re-evaluation of the cached array
+     *
+     * \return Array <basis, point>
+     */
+    ConstArray_BasisIP
+    getDivVectorBasisRef(const CacheValues cache,
+                         const ForceRecompute force = ForceRecompute::No) const;
+
+    /**
+     * \brief Compatibility overload using boolean cache controls
+     *
      * \param[in] cache If true, the returned object will be cached for later use
-     * \param[in] force Force re-evaluation of cached array
+     * \param[in] force If true, force re-evaluation of the cached array
      *
      * \return Array <basis, point>
      */
@@ -473,12 +588,24 @@ namespace panzer {
     // Mesh evaluations
 
     /**
-     * \brief Carterisan coordinates for basis coefficients in mesh space
+     * \brief Cartesian coordinates for basis coefficients in mesh space
      *
      * \throws If basis does not support a coordinate space
      *
-     * return Array <cell, basis, dim>
+     * \return Array <cell, basis, dim>
     */
+    ConstArray_CellBasisDim
+    getBasisCoordinates(const CacheValues cache,
+                        const ForceRecompute force = ForceRecompute::No) const;
+
+    /**
+     * \brief Compatibility overload using boolean cache controls
+     *
+     * \param[in] cache If true, the returned object will be cached for later use
+     * \param[in] force If true, force re-evaluation of the cached array
+     *
+     * \return Array <cell, basis, dim>
+     */
     ConstArray_CellBasisDim
     getBasisCoordinates(const bool cache = true,
                         const bool force = false) const;
@@ -488,9 +615,29 @@ namespace panzer {
      *
      * \throws If not a scalar basis
      *
-     * \param[in] weighted Add cubature weighting for integration purposes
+     * \param[in] weighting Whether to add cubature weighting for integration purposes
+     * \param[in] cache Whether to cache the returned object for later use
+     * \param[in] force Whether to force re-evaluation of the cached array
+     *
+     * \return Array <cell, basis, point>
+     */
+    ConstArray_CellBasisIP
+    getBasisValues(const WeightBasis weighting,
+                   const CacheValues cache = CacheValues::Yes,
+                   const ForceRecompute force = ForceRecompute::No) const;
+
+    ConstArray_CellBasisIP
+    getBasisValues(const WeightBasis weighting,
+                   const CacheValues cache,
+                   const ForceRecompute force,
+                   const CacheDependencies cache_dependencies) const;
+
+    /**
+     * \brief Compatibility overload using boolean weighting and cache controls
+     *
+     * \param[in] weighted If true, add cubature weighting for integration purposes
      * \param[in] cache If true, the returned object will be cached for later use
-     * \param[in] force Force re-evaluation of cached array
+     * \param[in] force If true, force re-evaluation of the cached array
      *
      * \return Array <cell, basis, point>
      */
@@ -499,6 +646,16 @@ namespace panzer {
                    const bool cache = true,
                    const bool force = false) const;
 
+    /**
+     * \brief Compatibility overload using boolean weighting and cache controls
+     *
+     * \param[in] weighted If true, add cubature weighting for integration purposes
+     * \param[in] cache If true, the returned object will be cached for later use
+     * \param[in] force If true, force re-evaluation of the cached array
+     * \param[in] cache_dependencies If true, cache dependent arrays needed by this evaluation
+     *
+     * \return Array <cell, basis, point>
+     */
     ConstArray_CellBasisIP
     getBasisValues(const bool weighted,
                    const bool cache,
@@ -510,9 +667,29 @@ namespace panzer {
      *
      * \throws If not a vector basis
      *
-     * \param[in] weighted Add cubature weighting for integration purposes
+     * \param[in] weighting Whether to add cubature weighting for integration purposes
+     * \param[in] cache Whether to cache the returned object for later use
+     * \param[in] force Whether to force re-evaluation of the cached array
+     *
+     * \return Array <cell, basis, point, dim>
+     */
+    ConstArray_CellBasisIPDim
+    getVectorBasisValues(const WeightBasis weighting,
+                         const CacheValues cache = CacheValues::Yes,
+                         const ForceRecompute force = ForceRecompute::No) const;
+
+    ConstArray_CellBasisIPDim
+    getVectorBasisValues(const WeightBasis weighting,
+                         const CacheValues cache,
+                         const ForceRecompute force,
+                         const CacheDependencies cache_dependencies) const;
+
+    /**
+     * \brief Compatibility overload using boolean weighting and cache controls
+     *
+     * \param[in] weighted If true, add cubature weighting for integration purposes
      * \param[in] cache If true, the returned object will be cached for later use
-     * \param[in] force Force re-evaluation of cached array
+     * \param[in] force If true, force re-evaluation of the cached array
      *
      * \return Array <cell, basis, point, dim>
      */
@@ -521,6 +698,16 @@ namespace panzer {
                          const bool cache = true,
                          const bool force = false) const;
 
+    /**
+     * \brief Compatibility overload using boolean weighting and cache controls
+     *
+     * \param[in] weighted If true, add cubature weighting for integration purposes
+     * \param[in] cache If true, the returned object will be cached for later use
+     * \param[in] force If true, force re-evaluation of the cached array
+     * \param[in] cache_dependencies If true, cache dependent arrays needed by this evaluation
+     *
+     * \return Array <cell, basis, point, dim>
+     */
     ConstArray_CellBasisIPDim
     getVectorBasisValues(const bool weighted,
                          const bool cache,
@@ -532,9 +719,29 @@ namespace panzer {
      *
      * \throws If not a scalar basis
      *
-     * \param[in] weighted Add cubature weighting for integration purposes
+     * \param[in] weighting Whether to add cubature weighting for integration purposes
+     * \param[in] cache Whether to cache the returned object for later use
+     * \param[in] force Whether to force re-evaluation of the cached array
+     *
+     * \return Array <cell, basis, point, dim>
+     */
+    ConstArray_CellBasisIPDim
+    getGradBasisValues(const WeightBasis weighting,
+                       const CacheValues cache = CacheValues::Yes,
+                       const ForceRecompute force = ForceRecompute::No) const;
+
+    ConstArray_CellBasisIPDim
+    getGradBasisValues(const WeightBasis weighting,
+                       const CacheValues cache,
+                       const ForceRecompute force,
+                       const CacheDependencies cache_dependencies) const;
+
+    /**
+     * \brief Compatibility overload using boolean weighting and cache controls
+     *
+     * \param[in] weighted If true, add cubature weighting for integration purposes
      * \param[in] cache If true, the returned object will be cached for later use
-     * \param[in] force Force re-evaluation of cached array
+     * \param[in] force If true, force re-evaluation of the cached array
      *
      * \return Array <cell, basis, point, dim>
      */
@@ -543,6 +750,16 @@ namespace panzer {
                        const bool cache = true,
                        const bool force = false) const;
 
+    /**
+     * \brief Compatibility overload using boolean weighting and cache controls
+     *
+     * \param[in] weighted If true, add cubature weighting for integration purposes
+     * \param[in] cache If true, the returned object will be cached for later use
+     * \param[in] force If true, force re-evaluation of the cached array
+     * \param[in] cache_dependencies If true, cache dependent arrays needed by this evaluation
+     *
+     * \return Array <cell, basis, point, dim>
+     */
     ConstArray_CellBasisIPDim
     getGradBasisValues(const bool weighted,
                        const bool cache,
@@ -555,9 +772,29 @@ namespace panzer {
      * \throws If not a HCurl basis
      * \throws If not a 2D space
      *
-     * \param[in] weighted Add cubature weighting for integration purposes
+     * \param[in] weighting Whether to add cubature weighting for integration purposes
+     * \param[in] cache Whether to cache the returned object for later use
+     * \param[in] force Whether to force re-evaluation of the cached array
+     *
+     * \return Array <cell, basis, point>
+     */
+    ConstArray_CellBasisIP
+    getCurl2DVectorBasis(const WeightBasis weighting,
+                         const CacheValues cache = CacheValues::Yes,
+                         const ForceRecompute force = ForceRecompute::No) const;
+
+    ConstArray_CellBasisIP
+    getCurl2DVectorBasis(const WeightBasis weighting,
+                         const CacheValues cache,
+                         const ForceRecompute force,
+                         const CacheDependencies cache_dependencies) const;
+
+    /**
+     * \brief Compatibility overload using boolean weighting and cache controls
+     *
+     * \param[in] weighted If true, add cubature weighting for integration purposes
      * \param[in] cache If true, the returned object will be cached for later use
-     * \param[in] force Force re-evaluation of cached array
+     * \param[in] force If true, force re-evaluation of the cached array
      *
      * \return Array <cell, basis, point>
      */
@@ -566,6 +803,16 @@ namespace panzer {
                          const bool cache = true,
                          const bool force = false) const;
 
+    /**
+     * \brief Compatibility overload using boolean weighting and cache controls
+     *
+     * \param[in] weighted If true, add cubature weighting for integration purposes
+     * \param[in] cache If true, the returned object will be cached for later use
+     * \param[in] force If true, force re-evaluation of the cached array
+     * \param[in] cache_dependencies If true, cache dependent arrays needed by this evaluation
+     *
+     * \return Array <cell, basis, point>
+     */
     ConstArray_CellBasisIP
     getCurl2DVectorBasis(const bool weighted,
                          const bool cache,
@@ -578,9 +825,29 @@ namespace panzer {
      * \throws If not a HCurl basis
      * \throws If not a 3D space
      *
-     * \param[in] weighted Add cubature weighting for integration purposes
+     * \param[in] weighting Whether to add cubature weighting for integration purposes
+     * \param[in] cache Whether to cache the returned object for later use
+     * \param[in] force Whether to force re-evaluation of the cached array
+     *
+     * \return Array <cell, basis, point, dim>
+     */
+    ConstArray_CellBasisIPDim
+    getCurlVectorBasis(const WeightBasis weighting,
+                       const CacheValues cache = CacheValues::Yes,
+                       const ForceRecompute force = ForceRecompute::No) const;
+
+    ConstArray_CellBasisIPDim
+    getCurlVectorBasis(const WeightBasis weighting,
+                       const CacheValues cache,
+                       const ForceRecompute force,
+                       const CacheDependencies cache_dependencies) const;
+
+    /**
+     * \brief Compatibility overload using boolean weighting and cache controls
+     *
+     * \param[in] weighted If true, add cubature weighting for integration purposes
      * \param[in] cache If true, the returned object will be cached for later use
-     * \param[in] force Force re-evaluation of cached array
+     * \param[in] force If true, force re-evaluation of the cached array
      *
      * \return Array <cell, basis, point, dim>
      */
@@ -589,6 +856,16 @@ namespace panzer {
                        const bool cache = true,
                        const bool force = false) const;
 
+    /**
+     * \brief Compatibility overload using boolean weighting and cache controls
+     *
+     * \param[in] weighted If true, add cubature weighting for integration purposes
+     * \param[in] cache If true, the returned object will be cached for later use
+     * \param[in] force If true, force re-evaluation of the cached array
+     * \param[in] cache_dependencies If true, cache dependent arrays needed by this evaluation
+     *
+     * \return Array <cell, basis, point, dim>
+     */
     ConstArray_CellBasisIPDim
     getCurlVectorBasis(const bool weighted,
                        const bool cache,
@@ -601,9 +878,29 @@ namespace panzer {
      * \throws If not a HDiv basis
      * \throws If not a 3D space
      *
-     * \param[in] weighted Add cubature weighting for integration purposes
+     * \param[in] weighting Whether to add cubature weighting for integration purposes
+     * \param[in] cache Whether to cache the returned object for later use
+     * \param[in] force Whether to force re-evaluation of the cached array
+     *
+     * \return Array <cell, basis, point>
+     */
+    ConstArray_CellBasisIP
+    getDivVectorBasis(const WeightBasis weighting,
+                      const CacheValues cache = CacheValues::Yes,
+                      const ForceRecompute force = ForceRecompute::No) const;
+
+    ConstArray_CellBasisIP
+    getDivVectorBasis(const WeightBasis weighting,
+                      const CacheValues cache,
+                      const ForceRecompute force,
+                      const CacheDependencies cache_dependencies) const;
+
+    /**
+     * \brief Compatibility overload using boolean weighting and cache controls
+     *
+     * \param[in] weighted If true, add cubature weighting for integration purposes
      * \param[in] cache If true, the returned object will be cached for later use
-     * \param[in] force Force re-evaluation of cached array
+     * \param[in] force If true, force re-evaluation of the cached array
      *
      * \return Array <cell, basis, point>
      */
@@ -612,6 +909,16 @@ namespace panzer {
                       const bool cache = true,
                       const bool force = false) const;
 
+    /**
+     * \brief Compatibility overload using boolean weighting and cache controls
+     *
+     * \param[in] weighted If true, add cubature weighting for integration purposes
+     * \param[in] cache If true, the returned object will be cached for later use
+     * \param[in] force If true, force re-evaluation of the cached array
+     * \param[in] cache_dependencies If true, cache dependent arrays needed by this evaluation
+     *
+     * \return Array <cell, basis, point>
+     */
     ConstArray_CellBasisIP
     getDivVectorBasis(const bool weighted,
                       const bool cache,

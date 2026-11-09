@@ -14,6 +14,7 @@
 #include <string>
 #include "Phalanx_Evaluator_Macros.hpp"
 #include "Phalanx_MDField.hpp"
+#include "Panzer_BasisDescriptor.hpp"
 #include "Panzer_PointValues2.hpp"
 #include "Panzer_Evaluator_Macros.hpp"
 
@@ -51,7 +52,7 @@ class PointValues_Evaluator
 
   bool useBasisValuesRefArray; // if true then basis is non-null
   Teuchos::RCP<const panzer::PureBasis> basis;
-  std::size_t basis_index;
+  panzer::BasisDescriptor basis_descriptor;
 
   //! Initialization method to unify the constructors.
   template <typename ArrayT>

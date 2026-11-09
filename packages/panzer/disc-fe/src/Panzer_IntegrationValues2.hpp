@@ -17,6 +17,7 @@
 #include "Panzer_IntegrationRule.hpp"
 #include "Panzer_ArrayTraits.hpp"
 #include "Panzer_Dimension.hpp"
+#include "Panzer_EvaluationPolicy.hpp"
 #include "Phalanx_MDField.hpp"
 #include "Intrepid2_Cubature.hpp"
 
@@ -190,8 +191,22 @@ namespace panzer {
      * \note DEPRECATED Please use getCubaturePointsRef call instead
      * \note Option is only supported for volume integration, and even then, may not align with the getCubaturePointsRef call
      *
+     * \param[in] cache Whether to store the result in the IntegrationValues2 object cache
+     * \param[in] force Whether to force re-evaluation of the cached array
+     * \param[in] apply_permutation ADVANCED Do not change this unless you know what it does (it can break things)
+     *
+     * \return Array <point, dim>
+     */
+    ConstArray_IPDim
+    getUniformCubaturePointsRef(const CacheValues cache,
+                                const ForceRecompute force = ForceRecompute::No,
+                                const bool apply_permutation = true) const;
+
+    /**
+     * \brief Compatibility overload using boolean cache controls
+     *
      * \param[in] cache If true, the result will be stored in the IntegrationValues2 class
-     * \param[in] force Force the re-evaluation of the array
+     * \param[in] force If true, force re-evaluation of the cached array
      * \param[in] apply_permutation ADVANCED Do not change this unless you know what it does (it can break things)
      *
      * \return Array <point, dim>
@@ -207,8 +222,22 @@ namespace panzer {
      * \note DEPRECATED Please use getCubaturePointsRef call instead
      * \note Option is only supported for side integration, and even then, may not align with the getCubaturePointsRef call
      *
+     * \param[in] cache Whether to store the result in the IntegrationValues2 object cache
+     * \param[in] force Whether to force re-evaluation of the cached array
+     * \param[in] apply_permutation ADVANCED Do not change this unless you know what it does (it can break things)
+     *
+     * \return Array <point, dim>
+     */
+    ConstArray_IPDim
+    getUniformSideCubaturePointsRef(const CacheValues cache,
+                                    const ForceRecompute force = ForceRecompute::No,
+                                    const bool apply_permutation = true) const;
+
+    /**
+     * \brief Compatibility overload using boolean cache controls
+     *
      * \param[in] cache If true, the result will be stored in the IntegrationValues2 class
-     * \param[in] force Force the re-evaluation of the array
+     * \param[in] force If true, force re-evaluation of the cached array
      * \param[in] apply_permutation ADVANCED Do not change this unless you know what it does (it can break things)
      *
      * \return Array <point, dim>
@@ -224,8 +253,22 @@ namespace panzer {
      * \note DEPRECATED Please do not use
      * \note Option is only supported for some integration types
      *
+     * \param[in] cache Whether to store the result in the IntegrationValues2 object cache
+     * \param[in] force Whether to force re-evaluation of the cached array
+     * \param[in] apply_permutation ADVANCED Do not change this unless you know what it does (it can break things)
+     *
+     * \return Array <point>
+     */
+    ConstArray_IP
+    getUniformCubatureWeightsRef(const CacheValues cache,
+                                 const ForceRecompute force = ForceRecompute::No,
+                                 const bool apply_permutation = true) const;
+
+    /**
+     * \brief Compatibility overload using boolean cache controls
+     *
      * \param[in] cache If true, the result will be stored in the IntegrationValues2 class
-     * \param[in] force Force the re-evaluation of the array
+     * \param[in] force If true, force re-evaluation of the cached array
      * \param[in] apply_permutation ADVANCED Do not change this unless you know what it does (it can break things)
      *
      * \return Array <point>
@@ -249,8 +292,20 @@ namespace panzer {
      *
      * \note Support: VOLUME, SURFACE, SIDE, CV_VOLUME, CV_SIDE, CV_BOUNDARY
      *     *
+     * \param[in] cache Whether to store the result in the IntegrationValues2 object cache
+     * \param[in] force Whether to force re-evaluation of the cached array
+     *
+     * \return Array <cell, point, dim, dim>
+     */
+    ConstArray_CellIPDimDim
+    getJacobian(const CacheValues cache,
+                const ForceRecompute force = ForceRecompute::No) const;
+
+    /**
+     * \brief Compatibility overload using boolean cache controls
+     *
      * \param[in] cache If true, the result will be stored in the IntegrationValues2 class
-     * \param[in] force Force the re-evaluation of the array
+     * \param[in] force If true, force re-evaluation of the cached array
      *
      * \return Array <cell, point, dim, dim>
      */
@@ -258,14 +313,35 @@ namespace panzer {
     getJacobian(const bool cache = true,
                 const bool force = false) const;
 
+    ConstArray_CellIPDimDim
+    getJacobian(const CacheValues cache,
+                const ForceRecompute force,
+                const CacheDependencies cache_dependencies) const;
 
     /**
      * \brief Get the inverse of the Jacobian matrix evaluated at the cubature points
      *
      * \note Support: VOLUME, SURFACE, SIDE, CV_VOLUME, CV_SIDE, CV_BOUNDARY
      *     *
+     * \param[in] cache Whether to store the result in the IntegrationValues2 object cache
+     * \param[in] force Whether to force re-evaluation of the cached array
+     *
+     * \return Array <cell, point, dim, dim>
+     */
+    ConstArray_CellIPDimDim
+    getJacobianInverse(const CacheValues cache,
+                       const ForceRecompute force = ForceRecompute::No) const;
+
+    ConstArray_CellIPDimDim
+    getJacobianInverse(const CacheValues cache,
+                       const ForceRecompute force,
+                       const CacheDependencies cache_dependencies) const;
+
+    /**
+     * \brief Compatibility overload using boolean cache controls
+     *
      * \param[in] cache If true, the result will be stored in the IntegrationValues2 class
-     * \param[in] force Force the re-evaluation of the array
+     * \param[in] force If true, force re-evaluation of the cached array
      *
      * \return Array <cell, point, dim, dim>
      */
@@ -273,6 +349,15 @@ namespace panzer {
     getJacobianInverse(const bool cache = true,
                        const bool force = false) const;
 
+    /**
+     * \brief Compatibility overload using boolean cache controls
+     *
+     * \param[in] cache If true, the result will be stored in the IntegrationValues2 class
+     * \param[in] force If true, force re-evaluation of the cached array
+     * \param[in] cache_dependencies If true, cache dependent arrays needed by this evaluation
+     *
+     * \return Array <cell, point, dim, dim>
+     */
     ConstArray_CellIPDimDim
     getJacobianInverse(const bool cache,
                        const bool force,
@@ -283,8 +368,25 @@ namespace panzer {
      *
      * \note Support: VOLUME, SURFACE, SIDE, CV_VOLUME, CV_SIDE, CV_BOUNDARY
      *     *
+     * \param[in] cache Whether to store the result in the IntegrationValues2 object cache
+     * \param[in] force Whether to force re-evaluation of the cached array
+     *
+     * \return Array <cell, point>
+     */
+    ConstArray_CellIP
+    getJacobianDeterminant(const CacheValues cache,
+                           const ForceRecompute force = ForceRecompute::No) const;
+
+    ConstArray_CellIP
+    getJacobianDeterminant(const CacheValues cache,
+                           const ForceRecompute force,
+                           const CacheDependencies cache_dependencies) const;
+
+    /**
+     * \brief Compatibility overload using boolean cache controls
+     *
      * \param[in] cache If true, the result will be stored in the IntegrationValues2 class
-     * \param[in] force Force the re-evaluation of the array
+     * \param[in] force If true, force re-evaluation of the cached array
      *
      * \return Array <cell, point>
      */
@@ -292,6 +394,15 @@ namespace panzer {
     getJacobianDeterminant(const bool cache = true,
                            const bool force = false) const;
 
+    /**
+     * \brief Compatibility overload using boolean cache controls
+     *
+     * \param[in] cache If true, the result will be stored in the IntegrationValues2 class
+     * \param[in] force If true, force re-evaluation of the cached array
+     * \param[in] cache_dependencies If true, cache dependent arrays needed by this evaluation
+     *
+     * \return Array <cell, point>
+     */
     ConstArray_CellIP
     getJacobianDeterminant(const bool cache,
                            const bool force,
@@ -302,8 +413,25 @@ namespace panzer {
      *
      * \note Support: VOLUME, SURFACE, SIDE, CV_VOLUME, CV_BOUNDARY
      *     *
+     * \param[in] cache Whether to store the result in the IntegrationValues2 object cache
+     * \param[in] force Whether to force re-evaluation of the cached array
+     *
+     * \return Array <cell, point>
+     */
+    ConstArray_CellIP
+    getWeightedMeasure(const CacheValues cache,
+                       const ForceRecompute force = ForceRecompute::No) const;
+
+    ConstArray_CellIP
+    getWeightedMeasure(const CacheValues cache,
+                       const ForceRecompute force,
+                       const CacheDependencies cache_dependencies) const;
+
+    /**
+     * \brief Compatibility overload using boolean cache controls
+     *
      * \param[in] cache If true, the result will be stored in the IntegrationValues2 class
-     * \param[in] force Force the re-evaluation of the array
+     * \param[in] force If true, force re-evaluation of the cached array
      *
      * \return Array <cell, point>
      */
@@ -311,6 +439,15 @@ namespace panzer {
     getWeightedMeasure(const bool cache = true,
                        const bool force = false) const;
 
+    /**
+     * \brief Compatibility overload using boolean cache controls
+     *
+     * \param[in] cache If true, the result will be stored in the IntegrationValues2 class
+     * \param[in] force If true, force re-evaluation of the cached array
+     * \param[in] cache_dependencies If true, cache dependent arrays needed by this evaluation
+     *
+     * \return Array <cell, point>
+     */
     ConstArray_CellIP
     getWeightedMeasure(const bool cache,
                        const bool force,
@@ -321,8 +458,20 @@ namespace panzer {
      *
      * \note Support: CV_SIDE
      *     *
+     * \param[in] cache Whether to store the result in the IntegrationValues2 object cache
+     * \param[in] force Whether to force re-evaluation of the cached array
+     *
+     * \return Array <cell, point, dim>
+     */
+    ConstArray_CellIPDim
+    getWeightedNormals(const CacheValues cache,
+                       const ForceRecompute force = ForceRecompute::No) const;
+
+    /**
+     * \brief Compatibility overload using boolean cache controls
+     *
      * \param[in] cache If true, the result will be stored in the IntegrationValues2 class
-     * \param[in] force Force the re-evaluation of the array
+     * \param[in] force If true, force re-evaluation of the cached array
      *
      * \return Array <cell, point, dim>
      */
@@ -335,8 +484,20 @@ namespace panzer {
      *
      * \note Support: SURFACE
      *     *
+     * \param[in] cache Whether to store the result in the IntegrationValues2 object cache
+     * \param[in] force Whether to force re-evaluation of the cached array
+     *
+     * \return Array <cell, point, dim>
+     */
+    ConstArray_CellIPDim
+    getSurfaceNormals(const CacheValues cache,
+                      const ForceRecompute force = ForceRecompute::No) const;
+
+    /**
+     * \brief Compatibility overload using boolean cache controls
+     *
      * \param[in] cache If true, the result will be stored in the IntegrationValues2 class
-     * \param[in] force Force the re-evaluation of the array
+     * \param[in] force If true, force re-evaluation of the cached array
      *
      * \return Array <cell, point, dim>
      */
@@ -349,8 +510,25 @@ namespace panzer {
      *
      * \note Support: SURFACE
      *     *
+     * \param[in] cache Whether to store the result in the IntegrationValues2 object cache
+     * \param[in] force Whether to force re-evaluation of the cached array
+     *
+     * \return Array <cell, point, 3, 3>
+     */
+    ConstArray_CellIPDimDim
+    getSurfaceRotationMatrices(const CacheValues cache,
+                               const ForceRecompute force = ForceRecompute::No) const;
+
+    ConstArray_CellIPDimDim
+    getSurfaceRotationMatrices(const CacheValues cache,
+                               const ForceRecompute force,
+                               const CacheDependencies cache_dependencies) const;
+
+    /**
+     * \brief Compatibility overload using boolean cache controls
+     *
      * \param[in] cache If true, the result will be stored in the IntegrationValues2 class
-     * \param[in] force Force the re-evaluation of the array
+     * \param[in] force If true, force re-evaluation of the cached array
      *
      * \return Array <cell, point, 3, 3>
      */
@@ -358,6 +536,15 @@ namespace panzer {
     getSurfaceRotationMatrices(const bool cache = true,
                                const bool force = false) const;
 
+    /**
+     * \brief Compatibility overload using boolean cache controls
+     *
+     * \param[in] cache If true, the result will be stored in the IntegrationValues2 class
+     * \param[in] force If true, force re-evaluation of the cached array
+     * \param[in] cache_dependencies If true, cache dependent arrays needed by this evaluation
+     *
+     * \return Array <cell, point, 3, 3>
+     */
     ConstArray_CellIPDimDim
     getSurfaceRotationMatrices(const bool cache,
                                const bool force,
@@ -370,8 +557,25 @@ namespace panzer {
      *
      * \note Support: VOLUME, SURFACE, SIDE, CV_VOLUME, CV_SIDE, CV_BOUNDARY
      *     *
+     * \param[in] cache Whether to store the result in the IntegrationValues2 object cache
+     * \param[in] force Whether to force re-evaluation of the cached array
+     *
+     * \return Array <cell, point, dim, dim>
+     */
+    ConstArray_CellIPDimDim
+    getCovarientMatrix(const CacheValues cache,
+                       const ForceRecompute force = ForceRecompute::No) const;
+
+    ConstArray_CellIPDimDim
+    getCovarientMatrix(const CacheValues cache,
+                       const ForceRecompute force,
+                       const CacheDependencies cache_dependencies) const;
+
+    /**
+     * \brief Compatibility overload using boolean cache controls
+     *
      * \param[in] cache If true, the result will be stored in the IntegrationValues2 class
-     * \param[in] force Force the re-evaluation of the array
+     * \param[in] force If true, force re-evaluation of the cached array
      *
      * \return Array <cell, point, dim, dim>
      */
@@ -379,6 +583,15 @@ namespace panzer {
     getCovarientMatrix(const bool cache = true,
                        const bool force = false) const;
 
+    /**
+     * \brief Compatibility overload using boolean cache controls
+     *
+     * \param[in] cache If true, the result will be stored in the IntegrationValues2 class
+     * \param[in] force If true, force re-evaluation of the cached array
+     * \param[in] cache_dependencies If true, cache dependent arrays needed by this evaluation
+     *
+     * \return Array <cell, point, dim, dim>
+     */
     ConstArray_CellIPDimDim
     getCovarientMatrix(const bool cache,
                        const bool force,
@@ -391,8 +604,25 @@ namespace panzer {
      *
      * \note Support: VOLUME, SURFACE, SIDE, CV_VOLUME, CV_SIDE, CV_BOUNDARY
      *     *
+     * \param[in] cache Whether to store the result in the IntegrationValues2 object cache
+     * \param[in] force Whether to force re-evaluation of the cached array
+     *
+     * \return Array <cell, point, dim, dim>
+     */
+    ConstArray_CellIPDimDim
+    getContravarientMatrix(const CacheValues cache,
+                           const ForceRecompute force = ForceRecompute::No) const;
+
+    ConstArray_CellIPDimDim
+    getContravarientMatrix(const CacheValues cache,
+                           const ForceRecompute force,
+                           const CacheDependencies cache_dependencies) const;
+
+    /**
+     * \brief Compatibility overload using boolean cache controls
+     *
      * \param[in] cache If true, the result will be stored in the IntegrationValues2 class
-     * \param[in] force Force the re-evaluation of the array
+     * \param[in] force If true, force re-evaluation of the cached array
      *
      * \return Array <cell, point, dim, dim>
      */
@@ -400,6 +630,15 @@ namespace panzer {
     getContravarientMatrix(const bool cache = true,
                            const bool force = false) const;
 
+    /**
+     * \brief Compatibility overload using boolean cache controls
+     *
+     * \param[in] cache If true, the result will be stored in the IntegrationValues2 class
+     * \param[in] force If true, force re-evaluation of the cached array
+     * \param[in] cache_dependencies If true, cache dependent arrays needed by this evaluation
+     *
+     * \return Array <cell, point, dim, dim>
+     */
     ConstArray_CellIPDimDim
     getContravarientMatrix(const bool cache,
                            const bool force,
@@ -412,8 +651,25 @@ namespace panzer {
      *
      * \note Support: VOLUME, SURFACE, SIDE, CV_VOLUME, CV_SIDE, CV_BOUNDARY
      *     *
+     * \param[in] cache Whether to store the result in the IntegrationValues2 object cache
+     * \param[in] force Whether to force re-evaluation of the cached array
+     *
+     * \return Array <cell, point>
+     */
+    ConstArray_CellIP
+    getNormContravarientMatrix(const CacheValues cache,
+                               const ForceRecompute force = ForceRecompute::No) const;
+
+    ConstArray_CellIP
+    getNormContravarientMatrix(const CacheValues cache,
+                               const ForceRecompute force,
+                               const CacheDependencies cache_dependencies) const;
+
+    /**
+     * \brief Compatibility overload using boolean cache controls
+     *
      * \param[in] cache If true, the result will be stored in the IntegrationValues2 class
-     * \param[in] force Force the re-evaluation of the array
+     * \param[in] force If true, force re-evaluation of the cached array
      *
      * \return Array <cell, point>
      */
@@ -421,6 +677,15 @@ namespace panzer {
     getNormContravarientMatrix(const bool cache = true,
                                const bool force = false) const;
 
+    /**
+     * \brief Compatibility overload using boolean cache controls
+     *
+     * \param[in] cache If true, the result will be stored in the IntegrationValues2 class
+     * \param[in] force If true, force re-evaluation of the cached array
+     * \param[in] cache_dependencies If true, cache dependent arrays needed by this evaluation
+     *
+     * \return Array <cell, point>
+     */
     ConstArray_CellIP
     getNormContravarientMatrix(const bool cache,
                                const bool force,
@@ -431,8 +696,25 @@ namespace panzer {
      *
      * \note Support: VOLUME, SURFACE, SIDE, CV_VOLUME, CV_SIDE, CV_BOUNDARY
      *     *
+     * \param[in] cache Whether to store the result in the IntegrationValues2 object cache
+     * \param[in] force Whether to force re-evaluation of the cached array
+     *
+     * \return Array <cell, point, dim>
+     */
+    ConstArray_CellIPDim
+    getCubaturePoints(const CacheValues cache,
+                      const ForceRecompute force = ForceRecompute::No) const;
+
+    ConstArray_CellIPDim
+    getCubaturePoints(const CacheValues cache,
+                      const ForceRecompute force,
+                      const CacheDependencies cache_dependencies) const;
+
+    /**
+     * \brief Compatibility overload using boolean cache controls
+     *
      * \param[in] cache If true, the result will be stored in the IntegrationValues2 class
-     * \param[in] force Force the re-evaluation of the array
+     * \param[in] force If true, force re-evaluation of the cached array
      *
      * \return Array <cell, point, dim>
      */
@@ -440,6 +722,15 @@ namespace panzer {
     getCubaturePoints(const bool cache = true,
                       const bool force = false) const;
 
+    /**
+     * \brief Compatibility overload using boolean cache controls
+     *
+     * \param[in] cache If true, the result will be stored in the IntegrationValues2 class
+     * \param[in] force If true, force re-evaluation of the cached array
+     * \param[in] cache_dependencies If true, cache dependent arrays needed by this evaluation
+     *
+     * \return Array <cell, point, dim>
+     */
     ConstArray_CellIPDim
     getCubaturePoints(const bool cache,
                       const bool force,
@@ -450,8 +741,25 @@ namespace panzer {
      *
      * \note Support: VOLUME, SURFACE, SIDE, CV_VOLUME, CV_SIDE, CV_BOUNDARY
      *     *
+     * \param[in] cache Whether to store the result in the IntegrationValues2 object cache
+     * \param[in] force Whether to force re-evaluation of the cached array
+     *
+     * \return Array <cell, point, dim>
+     */
+    ConstArray_CellIPDim
+    getCubaturePointsRef(const CacheValues cache,
+                         const ForceRecompute force = ForceRecompute::No) const;
+
+    ConstArray_CellIPDim
+    getCubaturePointsRef(const CacheValues cache,
+                         const ForceRecompute force,
+                         const CacheDependencies cache_dependencies) const;
+
+    /**
+     * \brief Compatibility overload using boolean cache controls
+     *
      * \param[in] cache If true, the result will be stored in the IntegrationValues2 class
-     * \param[in] force Force the re-evaluation of the array
+     * \param[in] force If true, force re-evaluation of the cached array
      *
      * \return Array <cell, point, dim>
      */
@@ -459,6 +767,15 @@ namespace panzer {
     getCubaturePointsRef(const bool cache = true,
                          const bool force = false) const;
 
+    /**
+     * \brief Compatibility overload using boolean cache controls
+     *
+     * \param[in] cache If true, the result will be stored in the IntegrationValues2 class
+     * \param[in] force If true, force re-evaluation of the cached array
+     * \param[in] cache_dependencies If true, cache dependent arrays needed by this evaluation
+     *
+     * \return Array <cell, point, dim>
+     */
     ConstArray_CellIPDim
     getCubaturePointsRef(const bool cache,
                          const bool force,
@@ -473,9 +790,18 @@ namespace panzer {
     getIntegrationRule() const
     {return int_rule;}
 
-    /// Explicitly release cached lazy-evaluation data while preserving setup metadata.
+    /// Explicitly release cached lazy-evaluation data while preserving setup state.
     void
     releaseCachedData();
+
+    static constexpr CacheValues cacheValues(const bool value)
+    { return value ? CacheValues::Yes : CacheValues::No; }
+
+    static constexpr ForceRecompute forceRecompute(const bool value)
+    { return value ? ForceRecompute::Yes : ForceRecompute::No; }
+
+    static constexpr CacheDependencies cacheDependencies(const bool value)
+    { return value ? CacheDependencies::Yes : CacheDependencies::No; }
 
     // =====================================================================================================
 

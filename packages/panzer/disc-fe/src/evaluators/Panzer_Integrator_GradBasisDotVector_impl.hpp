@@ -45,7 +45,8 @@ namespace panzer
     :
     evalStyle_(evalStyle),
     multiplier_(multiplier),
-    basisName_(basis.name())
+    basisDescriptor_(basis.getBasis()->order(), basis.getBasis()->type()),
+    integrationDescriptor_(ir)
   {
     using PHX::View;
     using panzer::BASIS;
@@ -155,7 +156,6 @@ namespace panzer
     typename Traits::SetupData sd,
     PHX::FieldManager<Traits>& /* fm */)
   {
-    using panzer::getBasisIndex;
     using std::size_t;
 
     // Get the PHX::Views of the field multipliers.
@@ -163,9 +163,6 @@ namespace panzer
     for (size_t i(0); i < fieldMults_.size(); ++i)
       field_mults_host_mirror(i) = fieldMults_[i].get_static_view();
     Kokkos::deep_copy(kokkosFieldMults_,field_mults_host_mirror);
-
-    // Determine the index in the Workset bases for our particular basis name.
-    basisIndex_ = getBasisIndex(basisName_, (*sd.worksets_)[0], this->wda);
 
     // Allocate temporary if not using shared memory
     bool use_shared_memory = panzer::HP::inst().useSharedMemory<ScalarT>();
@@ -336,8 +333,12 @@ namespace panzer
     using Kokkos::parallel_for;
     using Kokkos::TeamPolicy;
 
-    // Grab the basis information.
-    basis_ = this->wda(workset).bases[basisIndex_]->weighted_grad_basis;
+    if (workset.num_cells == 0)
+      return;
+    // Reacquire through the workset so descriptor-based lookup refreshes lazy basis state.
+    basis_ = this->wda(workset)
+               .getBasisValues(basisDescriptor_, integrationDescriptor_, true)
+               .getGradBasisValues(WeightBasis::Yes, CacheValues::Yes, ForceRecompute::No);
 
     bool use_shared_memory = panzer::HP::inst().useSharedMemory<ScalarT>();
     if (use_shared_memory) {
