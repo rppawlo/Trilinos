@@ -595,14 +595,13 @@ releaseCachedData()
 {
   resetArrays();
 
-  // These setup-time fields are intentionally not released here. Some lazy rebuild
-  // paths (notably cubature-point regeneration) wrap them in temporary non-const
-  // views and use them inside Kokkos/OpenMP kernels. Clearing them here caused a
-  // post-release rebuild segfault in the integration_values2 test, so we preserve
-  // them as reusable setup state rather than treating them as releasable caches.
-//  cub_points = Array_IPDim();
-//  side_cub_points = Array_IPDim();
-//  cub_weights = Array_IP();
+  cub_points = Array_IPDim();
+  side_cub_points = Array_IPDim();
+  cub_weights = Array_IP();
+
+  // Node coordinates are setup state for lazy rebuilds. They must remain
+  // available after releaseCachedData() so physical/reference point and
+  // Jacobian getters can rebuild their cached data on demand.
 //  node_coordinates = Array_CellBASISDim();
   jac = Array_CellIPDimDim();
   jac_inv = Array_CellIPDimDim();

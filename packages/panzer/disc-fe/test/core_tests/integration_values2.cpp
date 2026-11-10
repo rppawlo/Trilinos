@@ -27,6 +27,69 @@ using panzer::IntegrationRule;
 
 namespace panzer {
 
+  static PHX::MDField<double,Cell,NODE,Dim>
+  buildUnitQuadNodeCoordinates(const int num_cells,
+                               const int num_nodes)
+  {
+    const int base_cell_dimension = 2;
+    panzer::MDFieldArrayFactory af("prefix_",true);
+    auto node_coordinates = af.buildStaticArray<double,Cell,NODE,Dim>("nc",num_cells,num_nodes,base_cell_dimension);
+
+    typedef panzer::ArrayTraits<double,PHX::MDField<double> >::size_type size_type;
+    const size_type x = 0;
+    const size_type y = 1;
+    auto node_coordinates_k = node_coordinates.get_view();
+    Kokkos::parallel_for("initialize unit quad node coords",node_coordinates.extent(0),
+                         KOKKOS_LAMBDA (const int cell) {
+      node_coordinates_k(cell,0,x) = 0.0;
+      node_coordinates_k(cell,0,y) = 0.0;
+      node_coordinates_k(cell,1,x) = 1.0;
+      node_coordinates_k(cell,1,y) = 0.0;
+      node_coordinates_k(cell,2,x) = 1.0;
+      node_coordinates_k(cell,2,y) = 1.0;
+      node_coordinates_k(cell,3,x) = 0.0;
+      node_coordinates_k(cell,3,y) = 1.0;
+    });
+
+    return node_coordinates;
+  }
+
+  template <typename ViewA, typename ViewB>
+  static void
+  testFloatingEqualityRank3(const ViewA& expected,
+                            const ViewB& actual,
+                            const double tolerance,
+                            Teuchos::FancyOStream& out,
+                            bool& success)
+  {
+    TEST_EQUALITY(expected.extent_int(0), actual.extent_int(0));
+    TEST_EQUALITY(expected.extent_int(1), actual.extent_int(1));
+    TEST_EQUALITY(expected.extent_int(2), actual.extent_int(2));
+    for(int i=0; i<expected.extent_int(0); ++i)
+      for(int j=0; j<expected.extent_int(1); ++j)
+        for(int k=0; k<expected.extent_int(2); ++k)
+          TEST_FLOATING_EQUALITY(expected(i,j,k), actual(i,j,k), tolerance);
+  }
+
+  template <typename ViewA, typename ViewB>
+  static void
+  testFloatingEqualityRank4(const ViewA& expected,
+                            const ViewB& actual,
+                            const double tolerance,
+                            Teuchos::FancyOStream& out,
+                            bool& success)
+  {
+    TEST_EQUALITY(expected.extent_int(0), actual.extent_int(0));
+    TEST_EQUALITY(expected.extent_int(1), actual.extent_int(1));
+    TEST_EQUALITY(expected.extent_int(2), actual.extent_int(2));
+    TEST_EQUALITY(expected.extent_int(3), actual.extent_int(3));
+    for(int i=0; i<expected.extent_int(0); ++i)
+      for(int j=0; j<expected.extent_int(1); ++j)
+        for(int k=0; k<expected.extent_int(2); ++k)
+          for(int l=0; l<expected.extent_int(3); ++l)
+            TEST_FLOATING_EQUALITY(expected(i,j,k,l), actual(i,j,k,l), tolerance);
+  }
+
   TEUCHOS_UNIT_TEST(integration_values, volume)
   {
     Teuchos::RCP<shards::CellTopology> topo =
@@ -134,7 +197,16 @@ namespace panzer {
     auto cached_jac_again = int_values.getJacobian(true);
     TEST_EQUALITY(cached_jac_again.get_view().data(), int_values.jac.get_view().data());
 
+    auto cached_ref_points = int_values.getUniformCubaturePointsRef(true, false, false);
+    auto cached_weights = int_values.getUniformCubatureWeightsRef(true, false, false);
+    TEST_EQUALITY(cached_ref_points.extent_int(0), int_rule->num_points);
+    TEST_EQUALITY(cached_weights.extent_int(0), int_rule->num_points);
+    TEST_EQUALITY(int_values.cub_points.extent_int(0), int_rule->num_points);
+    TEST_EQUALITY(int_values.cub_weights.extent_int(0), int_rule->num_points);
+
     int_values.releaseCachedData();
+    TEST_EQUALITY(int_values.cub_points.size(), 0);
+    TEST_EQUALITY(int_values.cub_weights.size(), 0);
     TEST_EQUALITY(int_values.jac.size(), 0);
     TEST_EQUALITY(int_values.jac_det.size(), 0);
     TEST_EQUALITY(int_values.weighted_measure.size(), 0);
@@ -369,6 +441,90 @@ namespace panzer {
 
   }
 
+  TEUCHOS_UNIT_TEST(integration_values, control_volume_release_rebuild)
+  {
+    Teuchos::RCP<shards::CellTopology> topo =
+       Teuchos::rcp(new shards::CellTopology(shards::getCellTopologyData< shards::Quadrilateral<4> >()));
+
+    const int num_cells = 2;
+    const panzer::CellData cell_data(num_cells,topo);
+
+    std::string cv_type = "volume";
+    RCP<IntegrationRule> int_rule_vol =
+      rcp(new IntegrationRule(cell_data, cv_type));
+
+    cv_type = "side";
+    RCP<IntegrationRule> int_rule_side =
+      rcp(new IntegrationRule(cell_data, cv_type));
+
+    const int num_nodes = int_rule_vol->topology->getNodeCount();
+    auto node_coordinates = buildUnitQuadNodeCoordinates(num_cells,num_nodes);
+
+    panzer::IntegrationValues2<double> int_values_vol("prefix_");
+    int_values_vol.setup(int_rule_vol, node_coordinates);
+
+    auto cached_vol_points = int_values_vol.getCubaturePoints(true);
+    auto cached_vol_ref_points = int_values_vol.getCubaturePointsRef(true);
+    TEST_EQUALITY(cached_vol_points.extent(0), num_cells);
+    TEST_EQUALITY(cached_vol_ref_points.extent(0), num_cells);
+    auto cached_vol_points_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),cached_vol_points.get_view());
+    auto cached_vol_ref_points_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),cached_vol_ref_points.get_view());
+
+    int_values_vol.releaseCachedData();
+    TEST_EQUALITY(int_values_vol.ip_coordinates.size(), 0);
+    TEST_EQUALITY(int_values_vol.ref_ip_coordinates.size(), 0);
+    TEST_EQUALITY(int_values_vol.node_coordinates.extent(0), num_cells);
+
+    TEST_NOTHROW(int_values_vol.getCubaturePoints(true));
+    TEST_NOTHROW(int_values_vol.getCubaturePointsRef(true));
+    auto rebuilt_vol_points = int_values_vol.getCubaturePoints(true);
+    auto rebuilt_vol_ref_points = int_values_vol.getCubaturePointsRef(true);
+    TEST_EQUALITY(rebuilt_vol_points.extent(0), num_cells);
+    TEST_EQUALITY(rebuilt_vol_points.extent_int(1), int_rule_vol->num_points);
+    TEST_EQUALITY(rebuilt_vol_ref_points.extent(0), num_cells);
+    TEST_EQUALITY(rebuilt_vol_ref_points.extent_int(1), int_rule_vol->num_points);
+    auto rebuilt_vol_points_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),rebuilt_vol_points.get_view());
+    auto rebuilt_vol_ref_points_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),rebuilt_vol_ref_points.get_view());
+    testFloatingEqualityRank3(cached_vol_points_host, rebuilt_vol_points_host, 1.0e-14, out, success);
+    testFloatingEqualityRank3(cached_vol_ref_points_host, rebuilt_vol_ref_points_host, 1.0e-14, out, success);
+
+    panzer::IntegrationValues2<double> int_values_side("prefix_");
+    int_values_side.setup(int_rule_side, node_coordinates);
+
+    TEST_NOTHROW(int_values_side.getCubaturePoints(true));
+    TEST_NOTHROW(int_values_side.getCubaturePointsRef(true));
+    TEST_NOTHROW(int_values_side.getWeightedNormals(true));
+    auto cached_side_points = int_values_side.getCubaturePoints(true);
+    auto cached_side_ref_points = int_values_side.getCubaturePointsRef(true);
+    auto cached_side_weighted_normals = int_values_side.getWeightedNormals(true);
+    auto cached_side_points_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),cached_side_points.get_view());
+    auto cached_side_ref_points_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),cached_side_ref_points.get_view());
+    auto cached_side_weighted_normals_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),cached_side_weighted_normals.get_view());
+
+    int_values_side.releaseCachedData();
+    TEST_EQUALITY(int_values_side.ip_coordinates.size(), 0);
+    TEST_EQUALITY(int_values_side.ref_ip_coordinates.size(), 0);
+    TEST_EQUALITY(int_values_side.weighted_normals.size(), 0);
+    TEST_EQUALITY(int_values_side.node_coordinates.extent(0), num_cells);
+
+    TEST_NOTHROW(int_values_side.getCubaturePoints(true));
+    TEST_NOTHROW(int_values_side.getCubaturePointsRef(true));
+    TEST_NOTHROW(int_values_side.getWeightedNormals(true));
+    auto rebuilt_side_points = int_values_side.getCubaturePoints(true);
+    auto rebuilt_side_ref_points = int_values_side.getCubaturePointsRef(true);
+    auto rebuilt_side_weighted_normals = int_values_side.getWeightedNormals(true);
+    TEST_EQUALITY(rebuilt_side_points.extent(0), num_cells);
+    TEST_EQUALITY(rebuilt_side_points.extent_int(1), int_rule_side->num_points);
+    TEST_EQUALITY(rebuilt_side_ref_points.extent(0), num_cells);
+    TEST_EQUALITY(rebuilt_side_ref_points.extent_int(1), int_rule_side->num_points);
+    auto rebuilt_side_points_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),rebuilt_side_points.get_view());
+    auto rebuilt_side_ref_points_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),rebuilt_side_ref_points.get_view());
+    auto rebuilt_side_weighted_normals_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),rebuilt_side_weighted_normals.get_view());
+    testFloatingEqualityRank3(cached_side_points_host, rebuilt_side_points_host, 1.0e-14, out, success);
+    testFloatingEqualityRank3(cached_side_ref_points_host, rebuilt_side_ref_points_host, 1.0e-14, out, success);
+    testFloatingEqualityRank3(cached_side_weighted_normals_host, rebuilt_side_weighted_normals_host, 1.0e-14, out, success);
+  }
+
   TEUCHOS_UNIT_TEST(integration_values, surface_quadrature){
 
     /*
@@ -492,7 +648,9 @@ namespace panzer {
 
     // This test will focus on normals and points
     const auto normals = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),int_values.getSurfaceNormals().get_static_view());
+    const auto rotation_matrices = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),int_values.getSurfaceRotationMatrices().get_static_view());
     const auto points = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),int_values.getCubaturePoints().get_static_view());
+    const auto ref_points = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),int_values.getCubaturePointsRef().get_static_view());
     const int num_points_per_cell = points.extent_int(1);
     const int num_points_per_face = num_points_per_cell / 4;
 
@@ -587,5 +745,34 @@ namespace panzer {
 
       }
     }
+
+    int_values.releaseCachedData();
+    TEST_EQUALITY(int_values.ip_coordinates.size(), 0);
+    TEST_EQUALITY(int_values.ref_ip_coordinates.size(), 0);
+    TEST_EQUALITY(int_values.surface_normals.size(), 0);
+    TEST_EQUALITY(int_values.surface_rotation_matrices.size(), 0);
+    TEST_EQUALITY(int_values.node_coordinates.extent(0), 2);
+
+    TEST_NOTHROW(int_values.getCubaturePoints(true));
+    TEST_NOTHROW(int_values.getCubaturePointsRef(true));
+    TEST_NOTHROW(int_values.getSurfaceNormals(true));
+    TEST_NOTHROW(int_values.getSurfaceRotationMatrices(true));
+
+    auto rebuilt_points = int_values.getCubaturePoints(true);
+    auto rebuilt_ref_points = int_values.getCubaturePointsRef(true);
+    auto rebuilt_normals = int_values.getSurfaceNormals(true);
+    auto rebuilt_rotation_matrices = int_values.getSurfaceRotationMatrices(true);
+    TEST_EQUALITY(rebuilt_points.extent(0), 2);
+    TEST_EQUALITY(rebuilt_points.extent_int(1), int_rule->num_points);
+    TEST_EQUALITY(rebuilt_ref_points.extent(0), 2);
+    TEST_EQUALITY(rebuilt_ref_points.extent_int(1), int_rule->num_points);
+    const auto rebuilt_points_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),rebuilt_points.get_static_view());
+    const auto rebuilt_ref_points_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),rebuilt_ref_points.get_static_view());
+    const auto rebuilt_normals_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),rebuilt_normals.get_static_view());
+    const auto rebuilt_rotation_matrices_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),rebuilt_rotation_matrices.get_static_view());
+    testFloatingEqualityRank3(points, rebuilt_points_host, 1.0e-14, out, success);
+    testFloatingEqualityRank3(ref_points, rebuilt_ref_points_host, 1.0e-14, out, success);
+    testFloatingEqualityRank3(normals, rebuilt_normals_host, 1.0e-14, out, success);
+    testFloatingEqualityRank4(rotation_matrices, rebuilt_rotation_matrices_host, 1.0e-14, out, success);
   }
 }
