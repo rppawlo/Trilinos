@@ -56,6 +56,21 @@ namespace panzer {
 
   template <typename ViewA, typename ViewB>
   static void
+  testFloatingEqualityRank2(const ViewA& expected,
+                            const ViewB& actual,
+                            const double tolerance,
+                            Teuchos::FancyOStream& out,
+                            bool& success)
+  {
+    TEST_EQUALITY(expected.extent_int(0), actual.extent_int(0));
+    TEST_EQUALITY(expected.extent_int(1), actual.extent_int(1));
+    for(int i=0; i<expected.extent_int(0); ++i)
+      for(int j=0; j<expected.extent_int(1); ++j)
+        TEST_FLOATING_EQUALITY(expected(i,j), actual(i,j), tolerance);
+  }
+
+  template <typename ViewA, typename ViewB>
+  static void
   testFloatingEqualityRank3(const ViewA& expected,
                             const ViewB& actual,
                             const double tolerance,
@@ -291,6 +306,91 @@ namespace panzer {
     TEST_EQUALITY(weighted_values_with_dependencies.weighted_measure.extent(0), num_cells);
     TEST_EQUALITY(weighted_values_with_dependencies.jac_det.extent(0), num_cells);
     TEST_EQUALITY(weighted_values_with_dependencies.jac.extent(0), num_cells);
+  }
+
+  TEUCHOS_UNIT_TEST(integration_values, geometry_metric_release_rebuild)
+  {
+    Teuchos::RCP<shards::CellTopology> topo =
+       Teuchos::rcp(new shards::CellTopology(shards::getCellTopologyData< shards::Quadrilateral<4> >()));
+
+    const int num_cells = 2;
+    const panzer::CellData cell_data(num_cells,topo);
+
+    const int cubature_degree = 2;
+    RCP<IntegrationRule> int_rule =
+      rcp(new IntegrationRule(cubature_degree, cell_data));
+
+    const int num_nodes = int_rule->topology->getNodeCount();
+    auto node_coordinates = buildUnitQuadNodeCoordinates(num_cells,num_nodes);
+
+    panzer::IntegrationValues2<double> int_values("prefix_");
+    int_values.setup(int_rule, node_coordinates);
+
+    auto cached_jacobian = int_values.getJacobian(true);
+    auto cached_jacobian_inverse = int_values.getJacobianInverse(true, false, true);
+    auto cached_jacobian_determinant = int_values.getJacobianDeterminant(true, false, true);
+    auto cached_weighted_measure = int_values.getWeightedMeasure(true, false, true);
+    auto cached_covarient = int_values.getCovarientMatrix(true, false, true);
+    auto cached_contravarient = int_values.getContravarientMatrix(true, false, true);
+    auto cached_norm_contravarient = int_values.getNormContravarientMatrix(true, false, true);
+
+    auto cached_jacobian_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),cached_jacobian.get_view());
+    auto cached_jacobian_inverse_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),cached_jacobian_inverse.get_view());
+    auto cached_jacobian_determinant_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),cached_jacobian_determinant.get_view());
+    auto cached_weighted_measure_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),cached_weighted_measure.get_view());
+    auto cached_covarient_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),cached_covarient.get_view());
+    auto cached_contravarient_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),cached_contravarient.get_view());
+    auto cached_norm_contravarient_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),cached_norm_contravarient.get_view());
+
+    int_values.releaseCachedData();
+    TEST_EQUALITY(int_values.jac.size(), 0);
+    TEST_EQUALITY(int_values.jac_inv.size(), 0);
+    TEST_EQUALITY(int_values.jac_det.size(), 0);
+    TEST_EQUALITY(int_values.weighted_measure.size(), 0);
+    TEST_EQUALITY(int_values.covarient.size(), 0);
+    TEST_EQUALITY(int_values.contravarient.size(), 0);
+    TEST_EQUALITY(int_values.norm_contravarient.size(), 0);
+    TEST_EQUALITY(int_values.node_coordinates.extent(0), num_cells);
+
+    TEST_NOTHROW(int_values.getJacobian(true));
+    TEST_NOTHROW(int_values.getJacobianInverse(true, false, true));
+    TEST_NOTHROW(int_values.getJacobianDeterminant(true, false, true));
+    TEST_NOTHROW(int_values.getWeightedMeasure(true, false, true));
+    TEST_NOTHROW(int_values.getCovarientMatrix(true, false, true));
+    TEST_NOTHROW(int_values.getContravarientMatrix(true, false, true));
+    TEST_NOTHROW(int_values.getNormContravarientMatrix(true, false, true));
+
+    auto rebuilt_jacobian = int_values.getJacobian(true);
+    auto rebuilt_jacobian_inverse = int_values.getJacobianInverse(true, false, true);
+    auto rebuilt_jacobian_determinant = int_values.getJacobianDeterminant(true, false, true);
+    auto rebuilt_weighted_measure = int_values.getWeightedMeasure(true, false, true);
+    auto rebuilt_covarient = int_values.getCovarientMatrix(true, false, true);
+    auto rebuilt_contravarient = int_values.getContravarientMatrix(true, false, true);
+    auto rebuilt_norm_contravarient = int_values.getNormContravarientMatrix(true, false, true);
+
+    TEST_EQUALITY(rebuilt_jacobian.extent(0), num_cells);
+    TEST_EQUALITY(rebuilt_jacobian_inverse.extent(0), num_cells);
+    TEST_EQUALITY(rebuilt_jacobian_determinant.extent(0), num_cells);
+    TEST_EQUALITY(rebuilt_weighted_measure.extent(0), num_cells);
+    TEST_EQUALITY(rebuilt_covarient.extent(0), num_cells);
+    TEST_EQUALITY(rebuilt_contravarient.extent(0), num_cells);
+    TEST_EQUALITY(rebuilt_norm_contravarient.extent(0), num_cells);
+
+    auto rebuilt_jacobian_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),rebuilt_jacobian.get_view());
+    auto rebuilt_jacobian_inverse_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),rebuilt_jacobian_inverse.get_view());
+    auto rebuilt_jacobian_determinant_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),rebuilt_jacobian_determinant.get_view());
+    auto rebuilt_weighted_measure_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),rebuilt_weighted_measure.get_view());
+    auto rebuilt_covarient_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),rebuilt_covarient.get_view());
+    auto rebuilt_contravarient_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),rebuilt_contravarient.get_view());
+    auto rebuilt_norm_contravarient_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),rebuilt_norm_contravarient.get_view());
+
+    testFloatingEqualityRank4(cached_jacobian_host, rebuilt_jacobian_host, 1.0e-14, out, success);
+    testFloatingEqualityRank4(cached_jacobian_inverse_host, rebuilt_jacobian_inverse_host, 1.0e-14, out, success);
+    testFloatingEqualityRank2(cached_jacobian_determinant_host, rebuilt_jacobian_determinant_host, 1.0e-14, out, success);
+    testFloatingEqualityRank2(cached_weighted_measure_host, rebuilt_weighted_measure_host, 1.0e-14, out, success);
+    testFloatingEqualityRank4(cached_covarient_host, rebuilt_covarient_host, 1.0e-14, out, success);
+    testFloatingEqualityRank4(cached_contravarient_host, rebuilt_contravarient_host, 1.0e-14, out, success);
+    testFloatingEqualityRank2(cached_norm_contravarient_host, rebuilt_norm_contravarient_host, 1.0e-14, out, success);
   }
 
   TEUCHOS_UNIT_TEST(integration_values, control_volume)

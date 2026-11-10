@@ -1371,17 +1371,19 @@ getWeightedMeasure(const CacheValues cache,
 
     if (!int_rule->isSide()) {
 
-      auto s_jac_det = Kokkos::subview(getJacobianDeterminant(cache_dependencies == CacheDependencies::Yes ? CacheValues::Yes : CacheValues::No,
-                                                             force,
-                                                             cache_dependencies).get_view(),cell_range,Kokkos::ALL());
+      auto jacobian_determinant = getJacobianDeterminant(cache_dependencies == CacheDependencies::Yes ? CacheValues::Yes : CacheValues::No,
+                                                         force,
+                                                         cache_dependencies);
+      auto s_jac_det = Kokkos::subview(jacobian_determinant.get_view(),cell_range,Kokkos::ALL());
       Intrepid2::FunctionSpaceTools<PHX::Device>::
       computeCellMeasure(s_weighted_measure, s_jac_det, cubature_weights.get_view());
 
     } else if(int_rule->spatial_dimension==3) {
 
-      auto s_jac = Kokkos::subview(getJacobian(cache_dependencies == CacheDependencies::Yes ? CacheValues::Yes : CacheValues::No,
-                             force,
-                             cache_dependencies).get_view(),cell_range,Kokkos::ALL(),Kokkos::ALL(),Kokkos::ALL());
+      auto jacobian = getJacobian(cache_dependencies == CacheDependencies::Yes ? CacheValues::Yes : CacheValues::No,
+                                  force,
+                                  cache_dependencies);
+      auto s_jac = Kokkos::subview(jacobian.get_view(),cell_range,Kokkos::ALL(),Kokkos::ALL(),Kokkos::ALL());
       auto scratch = af.template buildStaticArray<Scalar,Point>("scratch_for_compute_measure", num_evaluate_cells_*num_ip*num_space_dim*num_space_dim);
       Intrepid2::FunctionSpaceTools<PHX::Device>::
       computeFaceMeasure(s_weighted_measure, s_jac, cubature_weights.get_view(),
@@ -1390,9 +1392,10 @@ getWeightedMeasure(const CacheValues cache,
 
     } else if(int_rule->spatial_dimension==2) {
 
-      auto s_jac = Kokkos::subview(getJacobian(cache_dependencies == CacheDependencies::Yes ? CacheValues::Yes : CacheValues::No,
-                             force,
-                             cache_dependencies).get_view(),cell_range,Kokkos::ALL(),Kokkos::ALL(),Kokkos::ALL());
+      auto jacobian = getJacobian(cache_dependencies == CacheDependencies::Yes ? CacheValues::Yes : CacheValues::No,
+                                  force,
+                                  cache_dependencies);
+      auto s_jac = Kokkos::subview(jacobian.get_view(),cell_range,Kokkos::ALL(),Kokkos::ALL(),Kokkos::ALL());
       auto scratch = af.template buildStaticArray<Scalar,Point>("scratch_for_compute_measure", num_evaluate_cells_*num_ip*num_space_dim*num_space_dim);
       Intrepid2::FunctionSpaceTools<PHX::Device>::
       computeEdgeMeasure(s_weighted_measure, s_jac, cubature_weights.get_view(),
@@ -1537,7 +1540,8 @@ getSurfaceNormals(const CacheValues cache,
     if(cell_dim == 1){
 
       const int other_subcell_index = (subcell_index==0) ? 1 : 0;
-      auto in_node_coordinates_k = getNodeCoordinates().get_view();
+      auto node_coordinates_field = getNodeCoordinates();
+      auto in_node_coordinates_k = node_coordinates_field.get_view();
       const auto min = std::numeric_limits<typename Sacado::ScalarType<Scalar>::type>::min();
 
       Kokkos::parallel_for("compute normals 1D",num_evaluate_cells_,KOKKOS_LAMBDA (const int cell) {
@@ -1653,8 +1657,9 @@ getSurfaceRotationMatrices(const CacheValues cache,
   const int cell_dim = int_rule->topology->getDimension();
 
   // This call will handle all the error checking
-  auto normals = getSurfaceNormals(cache_dependencies == CacheDependencies::Yes ? CacheValues::Yes : CacheValues::No,
-                                   force).get_static_view();
+  auto normals_field = getSurfaceNormals(cache_dependencies == CacheDependencies::Yes ? CacheValues::Yes : CacheValues::No,
+                                         force);
+  auto normals = normals_field.get_static_view();
   auto aux = af.template buildStaticArray<Scalar,Cell,IP,Dim,Dim>("surface_rotation_matrices",num_cells_, num_ip, 3, 3);
 
   Kokkos::MDRangePolicy<PHX::ExecutionSpace,Kokkos::Rank<2>> policy({0,0},{num_evaluate_cells_,num_ip});
@@ -1745,9 +1750,10 @@ getCovarientMatrix(const CacheValues cache,
   const int num_space_dim = int_rule->topology->getDimension();
   const int num_ip = int_rule->num_points;
 
-  auto jacobian = getJacobian(cache_dependencies == CacheDependencies::Yes ? CacheValues::Yes : CacheValues::No,
-                              force,
-                              cache_dependencies).get_static_view();
+  auto jacobian_field = getJacobian(cache_dependencies == CacheDependencies::Yes ? CacheValues::Yes : CacheValues::No,
+                                    force,
+                                    cache_dependencies);
+  auto jacobian = jacobian_field.get_static_view();
   auto aux = af.template buildStaticArray<Scalar,Cell,IP,Dim,Dim>("covarient",num_cells_, num_ip, num_space_dim,num_space_dim);
 
   Kokkos::MDRangePolicy<PHX::ExecutionSpace,Kokkos::Rank<2>> policy({0,0},{num_evaluate_cells_,num_ip});
@@ -1888,9 +1894,10 @@ getNormContravarientMatrix(const CacheValues cache,
   const int num_space_dim = int_rule->topology->getDimension();
   const int num_ip = int_rule->num_points;
 
-  auto con = getContravarientMatrix(cache_dependencies == CacheDependencies::Yes ? CacheValues::Yes : CacheValues::No,
-                                    force,
-                                    cache_dependencies).get_static_view();
+  auto contravarient_field = getContravarientMatrix(cache_dependencies == CacheDependencies::Yes ? CacheValues::Yes : CacheValues::No,
+                                                    force,
+                                                    cache_dependencies);
+  auto con = contravarient_field.get_static_view();
   auto aux = af.template buildStaticArray<Scalar,Cell,IP>("norm_contravarient",num_cells_, num_ip);
 
   // norm of g_ij
