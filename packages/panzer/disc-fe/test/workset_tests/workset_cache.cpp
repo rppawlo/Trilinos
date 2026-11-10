@@ -62,6 +62,26 @@ LocalMeshPartition buildQuadPartition()
   return partition;
 }
 
+LocalMeshPartition buildEmptyQuadPartition()
+{
+  LocalMeshPartition partition;
+
+  partition.num_owned_cells = 0;
+  partition.num_ghstd_cells = 0;
+  partition.num_virtual_cells = 0;
+  partition.subcell_index = -1;
+  partition.subcell_dimension = 2;
+  partition.element_block_name = "block_0";
+  partition.sideset_name = "";
+  partition.cell_topology = Teuchos::rcp(new shards::CellTopology(shards::getCellTopologyData<shards::Quadrilateral<4> >()));
+
+  partition.local_cells = PHX::View<panzer::LocalOrdinal*>("local_cells",0);
+  partition.cell_nodes = PHX::View<double***>("cell_nodes",0,4,2);
+  partition.has_connectivity = false;
+
+  return partition;
+}
+
 } // end anonymous namespace
 
 TEUCHOS_UNIT_TEST(workset_cache, integration_values_by_descriptor)
@@ -160,6 +180,23 @@ TEUCHOS_UNIT_TEST(workset_cache, point_and_basis_point_values_by_descriptor)
   const BasisValues2<double> * lazy_basis_values_again = &workset.getBasisValues(basis_descriptor, point_descriptor, true);
   TEST_EQUALITY(lazy_basis_values, lazy_basis_values_again);
   TEST_INEQUALITY(basis_values, lazy_basis_values);
+}
+
+TEUCHOS_UNIT_TEST(workset_cache, lazy_basis_coordinates_empty_workset)
+{
+  WorksetDetails workset;
+  WorksetOptions options;
+  workset.setup(buildEmptyQuadPartition(), options);
+
+  const BasisDescriptor basis_descriptor(1, "HGrad");
+  BasisValues2<double>::ConstArray_CellBasisDim basis_coordinates;
+
+  TEST_NOTHROW(basis_coordinates = workset.getBasisValues(basis_descriptor, true)
+                                      .getBasisCoordinates(CacheValues::Yes, ForceRecompute::Yes));
+
+  TEST_EQUALITY(basis_coordinates.extent_int(0), 0);
+  TEST_EQUALITY(basis_coordinates.extent_int(1), 4);
+  TEST_EQUALITY(basis_coordinates.extent_int(2), 2);
 }
 
 } // end namespace panzer

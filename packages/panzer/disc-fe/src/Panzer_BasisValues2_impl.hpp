@@ -1062,17 +1062,25 @@ getBasisCoordinates(const CacheValues cache,
   if(basis_coordinates_evaluated_ and force != ForceRecompute::Yes)
     return basis_coordinates;
 
-  TEUCHOS_ASSERT(cell_node_coordinates_.size() > 0);
-
-  const std::pair<int,int> cell_range(0,num_evaluate_cells_);
-  const auto s_node_coordinates = Kokkos::subview(cell_node_coordinates_.get_view(),cell_range,Kokkos::ALL(),Kokkos::ALL());
-
   MDFieldArrayFactory af(prefix,getExtendedDimensions(),true);
 
   const int num_card  = basis_layout->cardinality();
   const int num_dim   = basis_layout->dimension();
 
   auto tmp_basis_coordinates = af.buildStaticArray<Scalar, Cell, BASIS, IP>("basis_coordinates",  num_cells_, num_card, num_dim);
+
+  if(num_evaluate_cells_ == 0){
+    if(cache == CacheValues::Yes){
+      basis_coordinates = tmp_basis_coordinates;
+      basis_coordinates_evaluated_ = true;
+    }
+    return tmp_basis_coordinates;
+  }
+
+  TEUCHOS_ASSERT(cell_node_coordinates_.size() > 0);
+
+  const std::pair<int,int> cell_range(0,num_evaluate_cells_);
+  const auto s_node_coordinates = Kokkos::subview(cell_node_coordinates_.get_view(),cell_range,Kokkos::ALL(),Kokkos::ALL());
   auto s_aux = Kokkos::subview(tmp_basis_coordinates.get_view(),cell_range,Kokkos::ALL(),Kokkos::ALL());
 
   // Keep the managed field alive while the non-const wrapper is in use.
