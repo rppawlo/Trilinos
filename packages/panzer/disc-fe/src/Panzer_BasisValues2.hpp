@@ -16,6 +16,7 @@
 #include "Intrepid2_Basis.hpp"
 #include "Intrepid2_Orientation.hpp"
 
+#include "PanzerDiscFE_config.hpp"
 #include "Panzer_BasisIRLayout.hpp"
 #include "Panzer_ArrayTraits.hpp"
 #include "Panzer_EvaluationPolicy.hpp"
@@ -375,7 +376,11 @@ namespace panzer {
     void evaluateBasisCoordinates(const PHX::MDField<Scalar,Cell,NODE,Dim> & node_coordinates,
                                   const int in_num_cells = -1);
 
+#ifndef PANZER_HIDE_DEPRECATED_CODE
+  public:
+#else
   private:
+#endif
 
     mutable Array_BasisIP     basis_ref_scalar;           // <BASIS,IP>
     mutable Array_CellBasisIP basis_scalar;               // <Cell,BASIS,IP>

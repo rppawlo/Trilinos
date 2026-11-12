@@ -821,7 +821,11 @@ namespace panzer {
     void
     evaluateEverything();
 
-  private:
+  #ifndef PANZER_HIDE_DEPRECATED_CODE
+public:
+#else
+private:
+#endif
 
     // Reference space quantities
     mutable Array_IPDim cub_points;              // <IP,Dim>
