@@ -50,7 +50,7 @@ template <typename EvalT,typename Traits>
 void SimpleSource<EvalT,Traits>::evaluateFields(typename Traits::EvalData workset)
 {
   using panzer::index_t;
-  auto ip_coordinates = workset.int_rules[ir_index]->ip_coordinates.get_static_view();
+  auto ip_coordinates = workset.int_rules[ir_index]->getCubaturePoints().get_static_view();
   auto source_v = source.get_static_view();
   Kokkos::parallel_for ("SimpleSource", workset.num_cells, KOKKOS_LAMBDA (const index_t cell) {
     for (int point = 0; point < source_v.extent_int(1); ++point) {

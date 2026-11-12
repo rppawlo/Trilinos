@@ -71,7 +71,7 @@ namespace mini_em {
     const double epsilon = epsilon_;
     const double timeScale = timeScale_;
 
-    const auto coords = workset.int_rules[ir_index]->ip_coordinates.get_static_view();
+    const auto coords = workset.int_rules[ir_index]->getCubaturePoints().get_static_view();
     auto tmp_source = source.get_static_view();
 
     if (ir_dim == 3) {

@@ -123,10 +123,10 @@ BasisValues2(const std::string & pre,
 
 template <typename Scalar>
 void panzer::BasisValues2<Scalar>::
-evaluateValues(const PHX::MDField<Scalar,IP,Dim> & cub_points,
-               const PHX::MDField<Scalar,Cell,IP,Dim,Dim> & jac,
-               const PHX::MDField<Scalar,Cell,IP> & jac_det,
-               const PHX::MDField<Scalar,Cell,IP,Dim,Dim> & jac_inv,
+evaluateValues(const PHX::MDField<const Scalar,IP,Dim> & cub_points,
+               const PHX::MDField<const Scalar,Cell,IP,Dim,Dim> & jac,
+               const PHX::MDField<const Scalar,Cell,IP> & jac_det,
+               const PHX::MDField<const Scalar,Cell,IP,Dim,Dim> & jac_inv,
                const int in_num_cells)
 {
   PANZER_FUNC_TIME_MONITOR_DIFF("panzer::basisValues2::evaluateValues(5 arg)",bv_ev_5);
@@ -186,12 +186,12 @@ evaluateValues(const PHX::MDField<Scalar,IP,Dim> & cub_points,
 
 template <typename Scalar>
 void panzer::BasisValues2<Scalar>::
-evaluateValues(const PHX::MDField<Scalar,IP,Dim> & cub_points,
-               const PHX::MDField<Scalar,Cell,IP,Dim,Dim> & jac,
-               const PHX::MDField<Scalar,Cell,IP> & jac_det,
-               const PHX::MDField<Scalar,Cell,IP,Dim,Dim> & jac_inv,
-               const PHX::MDField<Scalar,Cell,IP> & weighted_measure,
-               const PHX::MDField<Scalar,Cell,NODE,Dim> & node_coordinates,
+evaluateValues(const PHX::MDField<const Scalar,IP,Dim> & cub_points,
+               const PHX::MDField<const Scalar,Cell,IP,Dim,Dim> & jac,
+               const PHX::MDField<const Scalar,Cell,IP> & jac_det,
+               const PHX::MDField<const Scalar,Cell,IP,Dim,Dim> & jac_inv,
+               const PHX::MDField<const Scalar,Cell,IP> & weighted_measure,
+               const PHX::MDField<const Scalar,Cell,NODE,Dim> & node_coordinates,
                bool use_node_coordinates,
                const int in_num_cells)
 {
@@ -240,12 +240,12 @@ evaluateValues(const PHX::MDField<Scalar,IP,Dim> & cub_points,
 
 template <typename Scalar>
 void panzer::BasisValues2<Scalar>::
-evaluateValues(const PHX::MDField<Scalar,Cell,IP,Dim> & cub_points,
-               const PHX::MDField<Scalar,Cell,IP,Dim,Dim> & jac,
-               const PHX::MDField<Scalar,Cell,IP> & jac_det,
-               const PHX::MDField<Scalar,Cell,IP,Dim,Dim> & jac_inv,
-               const PHX::MDField<Scalar,Cell,IP> & weighted_measure,
-               const PHX::MDField<Scalar,Cell,NODE,Dim> & node_coordinates,
+evaluateValues(const PHX::MDField<const Scalar,Cell,IP,Dim> & cub_points,
+               const PHX::MDField<const Scalar,Cell,IP,Dim,Dim> & jac,
+               const PHX::MDField<const Scalar,Cell,IP> & jac_det,
+               const PHX::MDField<const Scalar,Cell,IP,Dim,Dim> & jac_inv,
+               const PHX::MDField<const Scalar,Cell,IP> & weighted_measure,
+               const PHX::MDField<const Scalar,Cell,NODE,Dim> & node_coordinates,
                bool use_node_coordinates,
                const int in_num_cells)
 {
@@ -302,10 +302,10 @@ evaluateValues(const PHX::MDField<Scalar,Cell,IP,Dim> & cub_points,
 
 template <typename Scalar>
 void panzer::BasisValues2<Scalar>::
-evaluateValuesCV(const PHX::MDField<Scalar,Cell,IP,Dim> & cub_points,
-                 const PHX::MDField<Scalar,Cell,IP,Dim,Dim> & jac,
-                 const PHX::MDField<Scalar,Cell,IP> & jac_det,
-                 const PHX::MDField<Scalar,Cell,IP,Dim,Dim> & jac_inv)
+evaluateValuesCV(const PHX::MDField<const Scalar,Cell,IP,Dim> & cub_points,
+                 const PHX::MDField<const Scalar,Cell,IP,Dim,Dim> & jac,
+                 const PHX::MDField<const Scalar,Cell,IP> & jac_det,
+                 const PHX::MDField<const Scalar,Cell,IP,Dim,Dim> & jac_inv)
 {
   PANZER_FUNC_TIME_MONITOR_DIFF("panzer::basisValues2::evaluateValuesCV(5 arg)",bv_ev_cv_5);
 
@@ -316,11 +316,11 @@ evaluateValuesCV(const PHX::MDField<Scalar,Cell,IP,Dim> & cub_points,
 
 template <typename Scalar>
 void panzer::BasisValues2<Scalar>::
-evaluateValuesCV(const PHX::MDField<Scalar,Cell,IP,Dim> & cell_cub_points,
-                 const PHX::MDField<Scalar,Cell,IP,Dim,Dim> & jac,
-                 const PHX::MDField<Scalar,Cell,IP> & jac_det,
-                 const PHX::MDField<Scalar,Cell,IP,Dim,Dim> & jac_inv,
-                 const PHX::MDField<Scalar,Cell,NODE,Dim> & node_coordinates,
+evaluateValuesCV(const PHX::MDField<const Scalar,Cell,IP,Dim> & cell_cub_points,
+                 const PHX::MDField<const Scalar,Cell,IP,Dim,Dim> & jac,
+                 const PHX::MDField<const Scalar,Cell,IP> & jac_det,
+                 const PHX::MDField<const Scalar,Cell,IP,Dim,Dim> & jac_inv,
+                 const PHX::MDField<const Scalar,Cell,NODE,Dim> & node_coordinates,
                  bool use_node_coordinates,
                  const int in_num_cells)
 {

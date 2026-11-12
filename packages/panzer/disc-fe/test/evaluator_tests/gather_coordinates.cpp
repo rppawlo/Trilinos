@@ -98,11 +98,11 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL(gather_coordinates,basis,EvalType)
 
   RCP<BasisValues2<double> > basisValues = rcp(new BasisValues2<double>("",true));
   basisValues->setupArrays(basisLayout);
-  basisValues->evaluateValues(quadValues->cub_points,
-                              quadValues->jac,
-                              quadValues->jac_det,
-                              quadValues->jac_inv,
-                              quadValues->weighted_measure,
+  basisValues->evaluateValues(quadValues->getUniformCubaturePointsRef(),
+                              quadValues->getJacobian(),
+                              quadValues->getJacobianDeterminant(),
+                              quadValues->getJacobianInverse(),
+                              quadValues->getWeightedMeasure(),
                               coords);
                               // quadValues->node_coordinates);
 
@@ -236,11 +236,11 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL(gather_coordinates,integration,EvalType)
 
   RCP<BasisValues2<double> > basisValues = rcp(new BasisValues2<double>("",true));
   basisValues->setupArrays(basisLayout);
-  basisValues->evaluateValues(quadValues->cub_points,
-                              quadValues->jac,
-                              quadValues->jac_det,
-                              quadValues->jac_inv,
-                              quadValues->weighted_measure,
+  basisValues->evaluateValues(quadValues->getUniformCubaturePointsRef(),
+                              quadValues->getJacobian(),
+                              quadValues->getJacobianDeterminant(),
+                              quadValues->getJacobianInverse(),
+                              quadValues->getWeightedMeasure(),
                               coords);
                               // quadValues->node_coordinates);
 
@@ -316,7 +316,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL(gather_coordinates,integration,EvalType)
   fmCoords.print(out,true);
 
   int error = false;
-  auto q_coords = quadValues->ip_coordinates;
+  auto q_coords = quadValues->getCubaturePoints();
   Kokkos::parallel_reduce(fmCoords.extent_int(0), KOKKOS_LAMBDA (int cell, int &err) {
     for(int pt=0;pt<fmCoords.extent_int(1);++pt)
       for(int d=0;d<fmCoords.extent_int(2);++d)

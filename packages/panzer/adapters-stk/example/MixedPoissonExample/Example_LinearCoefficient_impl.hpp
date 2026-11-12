@@ -46,7 +46,7 @@ template <typename EvalT,typename Traits>
 void LinearCoefficient<EvalT,Traits>::evaluateFields(typename Traits::EvalData workset)
 {
   auto c = coeff.get_static_view();
-  auto ip_coords = this->wda(workset).int_rules[ir_index]->ip_coordinates.get_static_view();
+  auto ip_coords = this->wda(workset).int_rules[ir_index]->getCubaturePoints().get_static_view();
   const int d = direction;
 
   const int num_points = c.extent_int(1);

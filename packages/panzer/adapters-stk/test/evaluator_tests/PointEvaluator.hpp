@@ -22,7 +22,7 @@ template <typename ScalarT>
 class PointEvaluation {
 public:
    // virtual void evaluateContainer(const Kokkos::DynRankView<double,PHX::Device> & points,
-   virtual void evaluateContainer(const PHX::MDField<ScalarT,panzer::Cell,panzer::IP,panzer::Dim> & points,
+   virtual void evaluateContainer(const PHX::MDField<const ScalarT,panzer::Cell,panzer::IP,panzer::Dim> & points,
                                   PHX::MDField<ScalarT> & field) const = 0;
 };
 
@@ -109,9 +109,9 @@ evaluateFields(
   typename Traits::EvalData workset)
 {
    if(isVector)
-      function->evaluateContainer(this->wda(workset).int_rules[quad_index]->ip_coordinates,vectorField);
-   else 
-      function->evaluateContainer(this->wda(workset).int_rules[quad_index]->ip_coordinates,vectorField);
+      function->evaluateContainer(this->wda(workset).int_rules[quad_index]->getCubaturePoints(),vectorField);
+   else
+      function->evaluateContainer(this->wda(workset).int_rules[quad_index]->getCubaturePoints(),scalar);
 }
 
 //**********************************************************************

@@ -64,7 +64,7 @@ void GaussianPulse<EvalT,Traits>::evaluateFields(typename Traits::EvalData works
 
   const double factor = std::exp(-(time-2.0*beta)*(time-2.0*beta)/beta/beta);
   const double scale = 1.0/alpha/alpha;
-  const auto coords = workset.int_rules[ir_index]->ip_coordinates.get_static_view();
+  const auto coords = workset.int_rules[ir_index]->getCubaturePoints().get_static_view();
   auto tmp_current = current;
   if (ir_dim == 3) {
     const int num_points = current.extent_int(1);

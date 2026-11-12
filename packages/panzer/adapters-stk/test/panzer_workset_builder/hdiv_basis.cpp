@@ -274,12 +274,12 @@ namespace panzer {
     out << (*worksets[0].basis_names)[0]
         << " " << (*worksets[0].basis_names)[1] << std::endl;
 
-    auto hdiv_weighted_basis_vector = hdiv_basis_values.weighted_basis_vector;
+    auto hdiv_weighted_basis_vector = hdiv_basis_values.getWeightedVectorBasisValuesForPhalanxEvaluatorRegistration();
     auto hdiv_weighted_basis_vector_view = PHX::as_view(hdiv_weighted_basis_vector);
     auto hdiv_weighted_basis_vector_h = Kokkos::create_mirror_view(hdiv_weighted_basis_vector_view);
     Kokkos::deep_copy(hdiv_weighted_basis_vector_h, hdiv_weighted_basis_vector_view);
 
-    auto hdiv_basis_vector = hdiv_basis_values.basis_vector;
+    auto hdiv_basis_vector = hdiv_basis_values.getVectorBasisValuesForPhalanxEvaluatorRegistration();
     auto hdiv_basis_vector_view = PHX::as_view(hdiv_basis_vector);
     auto hdiv_basis_vector_h = Kokkos::create_mirror_view(hdiv_basis_vector_view);
     Kokkos::deep_copy(hdiv_basis_vector_h, hdiv_basis_vector_view);

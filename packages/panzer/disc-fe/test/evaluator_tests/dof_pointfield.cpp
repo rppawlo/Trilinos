@@ -140,8 +140,8 @@ RefCoordEvaluator(
   quadValues = p.get< Teuchos::RCP<panzer::IntegrationValues2<double> > >("Quad Values");
 
   // grab information from quadrature rule
-  coordsLayout = Teuchos::rcp(new PHX::MDALayout<panzer::Point,panzer::Dim>(quadValues->int_rule->num_points,
-                                                                         quadValues->int_rule->spatial_dimension));
+  coordsLayout = Teuchos::rcp(new PHX::MDALayout<panzer::Point,panzer::Dim>(quadValues->getIntegrationRule()->num_points,
+                                                                         quadValues->getIntegrationRule()->spatial_dimension));
   fieldValue = PHX::MDField<ScalarT,panzer::Point,panzer::Dim>(name, coordsLayout);
 
   this->addEvaluatedField(fieldValue);
@@ -156,7 +156,7 @@ evaluateFields(
   typename Traits::EvalData  /* workset */)
 {
   auto lfieldValue = fieldValue;
-  auto lcub_points = quadValues->cub_points;
+  auto lcub_points = quadValues->getUniformCubaturePointsRef();
   Kokkos::parallel_for(1, KOKKOS_LAMBDA (int ) {
       for(int cell=0;cell<lfieldValue.extent_int(0);cell++)
 	for(int pt=0;pt<lfieldValue.extent_int(1);pt++)
@@ -217,7 +217,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_1_DECL(dof_pointfield,value,EvalType)
   Teuchos::RCP<panzer::BasisValues2<double> > basisValues
      = Teuchos::rcp(new panzer::BasisValues2<double>("",true,true));
   basisValues->setupArrays(basisLayout);
-  basisValues->evaluateValues(quadValues->cub_points,quadValues->jac,quadValues->jac_det,quadValues->jac_inv,quadValues->weighted_measure,coords);
+  basisValues->evaluateValues(quadValues->getUniformCubaturePointsRef(),quadValues->getJacobian(),quadValues->getJacobianDeterminant(),quadValues->getJacobianInverse(),quadValues->getWeightedMeasure(),coords);
 
   // construct workset
   workset->cell_local_ids.push_back(0); workset->cell_local_ids.push_back(1);

@@ -92,7 +92,7 @@ evaluateFields(
   using Kokkos::parallel_for;
   using panzer::index_t;
 
-  const auto& coords = workset.int_rules[irIndex_]->ip_coordinates;
+  const auto& coords = workset.int_rules[irIndex_]->getCubaturePoints();
 
   // Loop over the cells in the workset.
   parallel_for(workset.num_cells, [=] (const index_t cell)

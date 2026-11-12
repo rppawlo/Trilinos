@@ -56,7 +56,7 @@ template <typename EvalT,typename Traits>
 void CurlSolution<EvalT,Traits>::evaluateFields(typename Traits::EvalData workset)
 { 
   using panzer::index_t;
-  auto ip_coordinates = this->wda(workset).int_rules[ir_index]->ip_coordinates.get_static_view();
+  auto ip_coordinates = this->wda(workset).int_rules[ir_index]->getCubaturePoints().get_static_view();
   auto solution_v = solution.get_static_view();
   auto solution_curl_v = solution_curl.get_static_view();
 

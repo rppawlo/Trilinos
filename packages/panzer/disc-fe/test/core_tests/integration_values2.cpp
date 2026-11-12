@@ -198,114 +198,77 @@ namespace panzer {
     panzer::IntegrationValues2<double> int_values("prefix_");
     int_values.setup(int_rule, node_coordinates);
 
-    TEST_EQUALITY(int_values.jac.extent(0), 0);
-
     auto uncached_jac = int_values.getJacobian(false);
     TEST_EQUALITY(uncached_jac.extent(0), num_cells);
-    TEST_EQUALITY(int_values.jac.extent(0), 0);
 
     auto cached_jac = int_values.getJacobian(true);
     TEST_EQUALITY(cached_jac.extent(0), num_cells);
-    TEST_EQUALITY(int_values.jac.extent(0), num_cells);
-    TEST_EQUALITY(cached_jac.get_view().data(), int_values.jac.get_view().data());
 
     auto cached_jac_again = int_values.getJacobian(true);
-    TEST_EQUALITY(cached_jac_again.get_view().data(), int_values.jac.get_view().data());
+    TEST_EQUALITY(cached_jac_again.get_view().data(), cached_jac.get_view().data());
 
     auto cached_ref_points = int_values.getUniformCubaturePointsRef(true, false, false);
     auto cached_weights = int_values.getUniformCubatureWeightsRef(true, false, false);
     TEST_EQUALITY(cached_ref_points.extent_int(0), int_rule->num_points);
     TEST_EQUALITY(cached_weights.extent_int(0), int_rule->num_points);
-    TEST_EQUALITY(int_values.cub_points.extent_int(0), int_rule->num_points);
-    TEST_EQUALITY(int_values.cub_weights.extent_int(0), int_rule->num_points);
 
     int_values.releaseCachedData();
-    TEST_EQUALITY(int_values.cub_points.size(), 0);
-    TEST_EQUALITY(int_values.cub_weights.size(), 0);
-    TEST_EQUALITY(int_values.jac.size(), 0);
-    TEST_EQUALITY(int_values.jac_det.size(), 0);
-    TEST_EQUALITY(int_values.weighted_measure.size(), 0);
 
     auto rebuilt_cached_jac = int_values.getJacobian(true);
     TEST_EQUALITY(rebuilt_cached_jac.extent(0), num_cells);
-    TEST_EQUALITY(int_values.jac.extent(0), num_cells);
-    TEST_EQUALITY(rebuilt_cached_jac.get_view().data(), int_values.jac.get_view().data());
 
     panzer::IntegrationValues2<double> det_values("prefix_");
     det_values.setup(int_rule, node_coordinates);
 
     auto uncached_det_with_cached_dependencies = det_values.getJacobianDeterminant(false, false, true);
     TEST_EQUALITY(uncached_det_with_cached_dependencies.extent(0), num_cells);
-    TEST_EQUALITY(det_values.jac_det.extent(0), 0);
-    TEST_EQUALITY(det_values.jac.extent(0), num_cells);
 
     panzer::IntegrationValues2<double> det_values_default_cache("prefix_");
     det_values_default_cache.setup(int_rule, node_coordinates);
 
     auto cached_det_default = det_values_default_cache.getJacobianDeterminant(true, false);
     TEST_EQUALITY(cached_det_default.extent(0), num_cells);
-    TEST_EQUALITY(det_values_default_cache.jac_det.extent(0), num_cells);
-    TEST_EQUALITY(det_values_default_cache.jac.extent(0), num_cells);
 
     panzer::IntegrationValues2<double> det_values_without_dependencies("prefix_");
     det_values_without_dependencies.setup(int_rule, node_coordinates);
 
     auto cached_det_without_dependencies = det_values_without_dependencies.getJacobianDeterminant(true, false, false);
     TEST_EQUALITY(cached_det_without_dependencies.extent(0), num_cells);
-    TEST_EQUALITY(det_values_without_dependencies.jac_det.extent(0), num_cells);
-    TEST_EQUALITY(det_values_without_dependencies.jac.extent(0), 0);
 
     panzer::IntegrationValues2<double> det_values_with_dependencies("prefix_");
     det_values_with_dependencies.setup(int_rule, node_coordinates);
 
     auto cached_det_with_dependencies = det_values_with_dependencies.getJacobianDeterminant(true, false, true);
     TEST_EQUALITY(cached_det_with_dependencies.extent(0), num_cells);
-    TEST_EQUALITY(det_values_with_dependencies.jac_det.extent(0), num_cells);
-    TEST_EQUALITY(det_values_with_dependencies.jac.extent(0), num_cells);
 
     panzer::IntegrationValues2<double> weighted_values("prefix_");
     weighted_values.setup(int_rule, node_coordinates);
 
     auto uncached_weighted_with_cached_dependencies = weighted_values.getWeightedMeasure(false, false, true);
     TEST_EQUALITY(uncached_weighted_with_cached_dependencies.extent(0), num_cells);
-    TEST_EQUALITY(weighted_values.weighted_measure.extent(0), 0);
-    TEST_EQUALITY(weighted_values.jac_det.extent(0), num_cells);
 
     panzer::IntegrationValues2<double> weighted_values_default_cache("prefix_");
     weighted_values_default_cache.setup(int_rule, node_coordinates);
 
     auto cached_weighted_default = weighted_values_default_cache.getWeightedMeasure(true, false);
     TEST_EQUALITY(cached_weighted_default.extent(0), num_cells);
-    TEST_EQUALITY(weighted_values_default_cache.weighted_measure.extent(0), num_cells);
-    TEST_EQUALITY(weighted_values_default_cache.jac_det.extent(0), num_cells);
-    TEST_EQUALITY(weighted_values_default_cache.jac.extent(0), num_cells);
 
     panzer::IntegrationValues2<double> weighted_values_without_dependencies("prefix_");
     weighted_values_without_dependencies.setup(int_rule, node_coordinates);
 
     auto cached_weighted_without_dependencies = weighted_values_without_dependencies.getWeightedMeasure(true, false, false);
     TEST_EQUALITY(cached_weighted_without_dependencies.extent(0), num_cells);
-    TEST_EQUALITY(weighted_values_without_dependencies.weighted_measure.extent(0), num_cells);
-    TEST_EQUALITY(weighted_values_without_dependencies.jac_det.extent(0), 0);
 
     panzer::IntegrationValues2<double> weighted_values_with_dependencies("prefix_");
     weighted_values_with_dependencies.setup(int_rule, node_coordinates);
 
     auto cached_weighted_with_dependencies = weighted_values_with_dependencies.getWeightedMeasure(true, false, true);
     TEST_EQUALITY(cached_weighted_with_dependencies.extent(0), num_cells);
-    TEST_EQUALITY(weighted_values_with_dependencies.weighted_measure.extent(0), num_cells);
-    TEST_EQUALITY(weighted_values_with_dependencies.jac_det.extent(0), num_cells);
 
     weighted_values_with_dependencies.releaseCachedData();
-    TEST_EQUALITY(weighted_values_with_dependencies.weighted_measure.size(), 0);
-    TEST_EQUALITY(weighted_values_with_dependencies.jac_det.size(), 0);
-    TEST_EQUALITY(weighted_values_with_dependencies.jac.size(), 0);
 
     auto rebuilt_cached_weighted = weighted_values_with_dependencies.getWeightedMeasure(true, false, true);
     TEST_EQUALITY(rebuilt_cached_weighted.extent(0), num_cells);
-    TEST_EQUALITY(weighted_values_with_dependencies.weighted_measure.extent(0), num_cells);
-    TEST_EQUALITY(weighted_values_with_dependencies.jac_det.extent(0), num_cells);
-    TEST_EQUALITY(weighted_values_with_dependencies.jac.extent(0), num_cells);
   }
 
   TEUCHOS_UNIT_TEST(integration_values, geometry_metric_release_rebuild)
@@ -343,14 +306,6 @@ namespace panzer {
     auto cached_norm_contravarient_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),cached_norm_contravarient.get_view());
 
     int_values.releaseCachedData();
-    TEST_EQUALITY(int_values.jac.size(), 0);
-    TEST_EQUALITY(int_values.jac_inv.size(), 0);
-    TEST_EQUALITY(int_values.jac_det.size(), 0);
-    TEST_EQUALITY(int_values.weighted_measure.size(), 0);
-    TEST_EQUALITY(int_values.covarient.size(), 0);
-    TEST_EQUALITY(int_values.contravarient.size(), 0);
-    TEST_EQUALITY(int_values.norm_contravarient.size(), 0);
-    TEST_EQUALITY(int_values.node_coordinates.extent(0), num_cells);
 
     TEST_NOTHROW(int_values.getJacobian(true));
     TEST_NOTHROW(int_values.getJacobianInverse(true, false, true));
@@ -571,9 +526,6 @@ namespace panzer {
     auto cached_vol_ref_points_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),cached_vol_ref_points.get_view());
 
     int_values_vol.releaseCachedData();
-    TEST_EQUALITY(int_values_vol.ip_coordinates.size(), 0);
-    TEST_EQUALITY(int_values_vol.ref_ip_coordinates.size(), 0);
-    TEST_EQUALITY(int_values_vol.node_coordinates.extent(0), num_cells);
 
     TEST_NOTHROW(int_values_vol.getCubaturePoints(true));
     TEST_NOTHROW(int_values_vol.getCubaturePointsRef(true));
@@ -602,10 +554,6 @@ namespace panzer {
     auto cached_side_weighted_normals_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),cached_side_weighted_normals.get_view());
 
     int_values_side.releaseCachedData();
-    TEST_EQUALITY(int_values_side.ip_coordinates.size(), 0);
-    TEST_EQUALITY(int_values_side.ref_ip_coordinates.size(), 0);
-    TEST_EQUALITY(int_values_side.weighted_normals.size(), 0);
-    TEST_EQUALITY(int_values_side.node_coordinates.extent(0), num_cells);
 
     TEST_NOTHROW(int_values_side.getCubaturePoints(true));
     TEST_NOTHROW(int_values_side.getCubaturePointsRef(true));
@@ -847,11 +795,6 @@ namespace panzer {
     }
 
     int_values.releaseCachedData();
-    TEST_EQUALITY(int_values.ip_coordinates.size(), 0);
-    TEST_EQUALITY(int_values.ref_ip_coordinates.size(), 0);
-    TEST_EQUALITY(int_values.surface_normals.size(), 0);
-    TEST_EQUALITY(int_values.surface_rotation_matrices.size(), 0);
-    TEST_EQUALITY(int_values.node_coordinates.extent(0), 2);
 
     TEST_NOTHROW(int_values.getCubaturePoints(true));
     TEST_NOTHROW(int_values.getCubaturePointsRef(true));

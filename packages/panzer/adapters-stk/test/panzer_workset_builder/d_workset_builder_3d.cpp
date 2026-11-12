@@ -49,46 +49,46 @@ std::string prws (const panzer::Workset& w) {
     const panzer::WorksetDetails& d = w.details(i);
     for (size_t j = 0; j < d.int_rules.size(); ++j) {
       const panzer::IntegrationValues2<double>& ir = *d.int_rules[j];
-      const int num_ip = ir.ip_coordinates.extent_int(1);
-      const size_t num_dim = ir.ip_coordinates.extent(2);
+      const int num_ip = ir.getCubaturePoints().extent_int(1);
+      const size_t num_dim = ir.getCubaturePoints().extent(2);
       ss << "int_rule " << j << ":\n";
       ss << "cub_points:\n";
       for (int ip = 0; ip < num_ip; ++ip) {
         for (size_t dim = 0; dim < num_dim; ++dim)
-          ss << " " << ir.cub_points(ip, dim);
+          ss << " " << ir.getUniformCubaturePointsRef()(ip, dim);
         ss << "\n";
       }
       ss << "side_cub_points:\n";
       for (int ip = 0; ip < num_ip; ++ip) {
-        for (size_t dim = 0; dim < ir.side_cub_points.extent(1); ++dim)
-          ss << " " << ir.side_cub_points(ip, dim);
+        for (size_t dim = 0; dim < ir.getCubaturePointsRef().extent(1); ++dim)
+          ss << " " << ir.getCubaturePointsRef()(ip, dim);
         ss << "\n";
       }
       ss << "cub_weights:\n";
       for (int ip = 0; ip < num_ip; ++ip)
-        ss << " " << ir.cub_weights(ip);
+        ss << " " << ir.getUniformCubatureWeightsRef()(ip);
       ss << "\n";
       for (size_t cell = 0; cell < w.num_cells; ++cell) {
         ss << "cell " << cell << ":\n";
         ss << "ip_coordinates:\n";
         for (int ip = 0; ip < num_ip; ++ip) {
           for (size_t dim = 0; dim < num_dim; ++dim)
-            ss << " " << ir.ip_coordinates(cell, ip, dim);
+            ss << " " << ir.getCubaturePoints()(cell, ip, dim);
           ss << "\n";
         }
         ss << "jac_det:\n";
         for (int ip = 0; ip < num_ip; ++ip)
-          ss << " " << ir.jac_det(cell, ip);
+          ss << " " << ir.getJacobianDeterminant()(cell, ip);
         ss << "\n";
         ss << "weighted_measure:\n";
         for (int ip = 0; ip < num_ip; ++ip)
-          ss << " " << ir.weighted_measure(cell, ip);
+          ss << " " << ir.getWeightedMeasure()(cell, ip);
         ss << "\n";
         ss << "jac:\n";
         for (int ip = 0; ip < num_ip; ++ip) {
           for (size_t d0 = 0; d0 < num_dim; ++d0) {
             for (size_t d1 = 0; d1 < num_dim; ++d1)
-              ss << " " << ir.jac(cell, ip, d0, d1);
+              ss << " " << ir.getJacobian()(cell, ip, d0, d1);
             ss << " |";
           }
           ss << "\n";
@@ -97,7 +97,7 @@ std::string prws (const panzer::Workset& w) {
         for (int ip = 0; ip < num_ip; ++ip) {
           for (size_t d0 = 0; d0 < num_dim; ++d0) {
             for (size_t d1 = 0; d1 < num_dim; ++d1)
-              ss << " " << ir.jac_inv(cell, ip, d0, d1);
+              ss << " " << ir.getJacobianInverse()(cell, ip, d0, d1);
             ss << " |";
           }
           ss << "\n";
@@ -260,14 +260,14 @@ void testIpMatch(const panzer::WorksetDetails& d0, const panzer::WorksetDetails&
 {
   TEST_EQUALITY(d0.int_rules.size(), d1.int_rules.size());
   for (std::size_t iri = 0; iri < d0.int_rules.size(); ++iri) {
-    const std::size_t num_ip = d0.int_rules[iri]->cub_points.extent(0),
-      num_dim = d0.int_rules[iri]->cub_points.extent(1);
+    const std::size_t num_ip = d0.int_rules[iri]->getUniformCubaturePointsRef().extent(0),
+      num_dim = d0.int_rules[iri]->getUniformCubaturePointsRef().extent(1);
 
-    auto d0_rules_view = d0.int_rules[iri]->ip_coordinates.get_view();
+    auto d0_rules_view = d0.int_rules[iri]->getCubaturePoints().get_view();
     auto d0_rules_h = Kokkos::create_mirror_view(d0_rules_view);
     Kokkos::deep_copy(d0_rules_h, d0_rules_view);
 
-    auto d1_rules_view = d1.int_rules[iri]->ip_coordinates.get_view();
+    auto d1_rules_view = d1.int_rules[iri]->getCubaturePoints().get_view();
     auto d1_rules_h = Kokkos::create_mirror_view(d1_rules_view);
     Kokkos::deep_copy(d1_rules_h, d1_rules_view);
 

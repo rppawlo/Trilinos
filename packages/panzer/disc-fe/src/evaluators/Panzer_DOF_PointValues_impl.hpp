@@ -32,7 +32,7 @@ namespace panzer {
 //**********************************************************************
 
 //**********************************************************************
-template<typename EvalT, typename TRAITS>                   
+template<typename EvalT, typename TRAITS>
 DOF_PointValues<EvalT, TRAITS>::
 DOF_PointValues(const Teuchos::ParameterList & p)
 {
@@ -63,16 +63,16 @@ DOF_PointValues(const Teuchos::ParameterList & p)
                 evalName,
      	        pointRule->dl_scalar);
      this->addEvaluatedField(dof_ip_scalar);
-     this->addNonConstDependentField(basisValues->basis_ref_scalar);
-     this->addNonConstDependentField(basisValues->basis_scalar);
+     this->addNonConstDependentField(basisValues->getBasisValuesRefForPhalanxEvaluatorRegistration());
+     this->addNonConstDependentField(basisValues->getBasisValuesForPhalanxEvaluatorRegistration());
   }
   else if(basis->isVectorBasis()) {
      dof_ip_vector = PHX::MDField<ScalarT,Cell,Point,Dim>(
                 evalName,
      	        pointRule->dl_vector);
      this->addEvaluatedField(dof_ip_vector);
-     this->addNonConstDependentField(basisValues->basis_ref_vector);
-     this->addNonConstDependentField(basisValues->basis_vector);
+     this->addNonConstDependentField(basisValues->getVectorBasisValuesRefForPhalanxEvaluatorRegistration());
+     this->addNonConstDependentField(basisValues->getVectorBasisValuesForPhalanxEvaluatorRegistration());
   }
   else
   { TEUCHOS_ASSERT(false); }
@@ -82,41 +82,41 @@ DOF_PointValues(const Teuchos::ParameterList & p)
 }
 
 //**********************************************************************
-template<typename EvalT, typename TRAITS>                   
+template<typename EvalT, typename TRAITS>
 void DOF_PointValues<EvalT, TRAITS>::
 postRegistrationSetup(typename TRAITS::SetupData /* sd */,
                       PHX::FieldManager<TRAITS>& fm)
 {
   if(!is_vector_basis) {
-    this->utils.setFieldData(basisValues->basis_ref_scalar,fm);
-    this->utils.setFieldData(basisValues->basis_scalar,fm);
+    this->utils.setFieldData(basisValues->getBasisValuesRefForPhalanxEvaluatorRegistration(),fm);
+    this->utils.setFieldData(basisValues->getBasisValuesForPhalanxEvaluatorRegistration(),fm);
   }
   else {
-    this->utils.setFieldData(basisValues->basis_ref_vector,fm);      
-    this->utils.setFieldData(basisValues->basis_vector,fm);           
+    this->utils.setFieldData(basisValues->getVectorBasisValuesRefForPhalanxEvaluatorRegistration(),fm);
+    this->utils.setFieldData(basisValues->getVectorBasisValuesForPhalanxEvaluatorRegistration(),fm);
   }
 }
 
 //**********************************************************************
-template<typename EvalT, typename TRAITS>                   
+template<typename EvalT, typename TRAITS>
 void DOF_PointValues<EvalT, TRAITS>::
 evaluateFields(typename TRAITS::EvalData workset)
-{ 
+{
   const int vector_size = panzer::HP::inst().vectorSize<ScalarT>();
 
   if(is_vector_basis) {
-    int spaceDim  = basisValues->basis_vector.extent(3);
+    int spaceDim  = basisValues->getVectorBasisValuesForPhalanxEvaluatorRegistration().extent(3);
     if(spaceDim==3) {
-      dof_functors::EvaluateDOFWithSens_Vector<ScalarT,typename BasisValues2<double>::Array_CellBasisIPDim,3> functor(dof_basis.get_static_view(),dof_ip_vector.get_static_view(),basisValues->basis_vector);
+      dof_functors::EvaluateDOFWithSens_Vector<ScalarT,typename BasisValues2<double>::Array_CellBasisIPDim,3> functor(dof_basis.get_static_view(),dof_ip_vector.get_static_view(),basisValues->getVectorBasisValuesForPhalanxEvaluatorRegistration());
       Kokkos::parallel_for(Kokkos::TeamPolicy<PHX::ExecutionSpace>(workset.num_cells,Kokkos::AUTO(),vector_size),functor);
     }
     else {
-      dof_functors::EvaluateDOFWithSens_Vector<ScalarT,typename BasisValues2<double>::Array_CellBasisIPDim,2> functor(dof_basis.get_static_view(),dof_ip_vector.get_static_view(),basisValues->basis_vector);
+      dof_functors::EvaluateDOFWithSens_Vector<ScalarT,typename BasisValues2<double>::Array_CellBasisIPDim,2> functor(dof_basis.get_static_view(),dof_ip_vector.get_static_view(),basisValues->getVectorBasisValuesForPhalanxEvaluatorRegistration());
       Kokkos::parallel_for(Kokkos::TeamPolicy<PHX::ExecutionSpace>(workset.num_cells,Kokkos::AUTO(),vector_size),functor);
     }
   }
   else {
-    dof_functors::EvaluateDOFWithSens_Scalar<ScalarT,typename BasisValues2<double>::Array_CellBasisIP> functor(dof_basis,dof_ip_scalar,basisValues->basis_scalar);
+    dof_functors::EvaluateDOFWithSens_Scalar<ScalarT,typename BasisValues2<double>::Array_CellBasisIP> functor(dof_basis,dof_ip_scalar,basisValues->getBasisValuesForPhalanxEvaluatorRegistration());
     Kokkos::parallel_for(workset.num_cells,functor);
   }
 }
@@ -128,7 +128,7 @@ evaluateFields(typename TRAITS::EvalData workset)
 //**********************************************************************
 
 //**********************************************************************
-template<typename TRAITS>                   
+template<typename TRAITS>
 DOF_PointValues<typename TRAITS::Jacobian, TRAITS>::
 DOF_PointValues(const Teuchos::ParameterList & p)
 {
@@ -172,16 +172,16 @@ DOF_PointValues(const Teuchos::ParameterList & p)
                 evalName,
      	        pointRule->dl_scalar);
      this->addEvaluatedField(dof_ip_scalar);
-     this->addNonConstDependentField(basisValues->basis_ref_scalar);
-     this->addNonConstDependentField(basisValues->basis_scalar);
+     this->addNonConstDependentField(basisValues->getBasisValuesRefForPhalanxEvaluatorRegistration());
+     this->addNonConstDependentField(basisValues->getBasisValuesForPhalanxEvaluatorRegistration());
   }
   else if(basis->isVectorBasis()) {
      dof_ip_vector = PHX::MDField<ScalarT,Cell,Point,Dim>(
                 evalName,
      	        pointRule->dl_vector);
      this->addEvaluatedField(dof_ip_vector);
-     this->addNonConstDependentField(basisValues->basis_ref_vector);
-     this->addNonConstDependentField(basisValues->basis_vector);
+     this->addNonConstDependentField(basisValues->getVectorBasisValuesRefForPhalanxEvaluatorRegistration());
+     this->addNonConstDependentField(basisValues->getVectorBasisValuesForPhalanxEvaluatorRegistration());
   }
   else
   { TEUCHOS_ASSERT(false); }
@@ -191,59 +191,59 @@ DOF_PointValues(const Teuchos::ParameterList & p)
 }
 
 //**********************************************************************
-template<typename TRAITS>                   
+template<typename TRAITS>
 void DOF_PointValues<typename TRAITS::Jacobian, TRAITS>::
 postRegistrationSetup(typename TRAITS::SetupData /* sd */,
                       PHX::FieldManager<TRAITS>& fm)
 {
   if(!is_vector_basis) {
-    this->utils.setFieldData(basisValues->basis_ref_scalar,fm);      
-    this->utils.setFieldData(basisValues->basis_scalar,fm);           
+    this->utils.setFieldData(basisValues->getBasisValuesRefForPhalanxEvaluatorRegistration(),fm);
+    this->utils.setFieldData(basisValues->getBasisValuesForPhalanxEvaluatorRegistration(),fm);
   }
   else {
-    this->utils.setFieldData(basisValues->basis_ref_vector,fm);      
-    this->utils.setFieldData(basisValues->basis_vector,fm);           
+    this->utils.setFieldData(basisValues->getVectorBasisValuesRefForPhalanxEvaluatorRegistration(),fm);
+    this->utils.setFieldData(basisValues->getVectorBasisValuesForPhalanxEvaluatorRegistration(),fm);
   }
 }
 
 //**********************************************************************
-template<typename TRAITS>                   
+template<typename TRAITS>
 void DOF_PointValues<typename TRAITS::Jacobian, TRAITS>::
 evaluateFields(typename TRAITS::EvalData workset)
-{ 
+{
   const int vector_size = panzer::HP::inst().vectorSize<ScalarT>();
 
   if(is_vector_basis) {
     if(accelerate_jacobian) {
-      int spaceDim  = basisValues->basis_vector.extent(3);
+      int spaceDim  = basisValues->getVectorBasisValuesForPhalanxEvaluatorRegistration().extent(3);
       if(spaceDim==3) {
-        dof_functors::EvaluateDOFFastSens_Vector<ScalarT,typename BasisValues2<double>::Array_CellBasisIPDim,3> functor(dof_basis,dof_ip_vector,offsets_array,basisValues->basis_vector);
+        dof_functors::EvaluateDOFFastSens_Vector<ScalarT,typename BasisValues2<double>::Array_CellBasisIPDim,3> functor(dof_basis,dof_ip_vector,offsets_array,basisValues->getVectorBasisValuesForPhalanxEvaluatorRegistration());
         Kokkos::parallel_for(workset.num_cells,functor);
       }
       else {
-        dof_functors::EvaluateDOFFastSens_Vector<ScalarT,typename BasisValues2<double>::Array_CellBasisIPDim,2> functor(dof_basis,dof_ip_vector,offsets_array,basisValues->basis_vector);
+        dof_functors::EvaluateDOFFastSens_Vector<ScalarT,typename BasisValues2<double>::Array_CellBasisIPDim,2> functor(dof_basis,dof_ip_vector,offsets_array,basisValues->getVectorBasisValuesForPhalanxEvaluatorRegistration());
         Kokkos::parallel_for(workset.num_cells,functor);
       }
     }
     else {
-      int spaceDim  = basisValues->basis_vector.extent(3);
+      int spaceDim  = basisValues->getVectorBasisValuesForPhalanxEvaluatorRegistration().extent(3);
       if(spaceDim==3) {
-        dof_functors::EvaluateDOFWithSens_Vector<ScalarT,typename BasisValues2<double>::Array_CellBasisIPDim,3> functor(dof_basis.get_static_view(),dof_ip_vector.get_static_view(),basisValues->basis_vector);
+        dof_functors::EvaluateDOFWithSens_Vector<ScalarT,typename BasisValues2<double>::Array_CellBasisIPDim,3> functor(dof_basis.get_static_view(),dof_ip_vector.get_static_view(),basisValues->getVectorBasisValuesForPhalanxEvaluatorRegistration());
 	Kokkos::parallel_for(Kokkos::TeamPolicy<PHX::ExecutionSpace>(workset.num_cells,Kokkos::AUTO(),vector_size),functor);
       }
       else {
-        dof_functors::EvaluateDOFWithSens_Vector<ScalarT,typename BasisValues2<double>::Array_CellBasisIPDim,2> functor(dof_basis.get_static_view(),dof_ip_vector.get_static_view(),basisValues->basis_vector);
+        dof_functors::EvaluateDOFWithSens_Vector<ScalarT,typename BasisValues2<double>::Array_CellBasisIPDim,2> functor(dof_basis.get_static_view(),dof_ip_vector.get_static_view(),basisValues->getVectorBasisValuesForPhalanxEvaluatorRegistration());
 	Kokkos::parallel_for(Kokkos::TeamPolicy<PHX::ExecutionSpace>(workset.num_cells,Kokkos::AUTO(),vector_size),functor);
       }
     }
   }
   else {
     if(accelerate_jacobian) {
-      dof_functors::EvaluateDOFFastSens_Scalar<ScalarT,typename BasisValues2<double>::Array_CellBasisIP> functor(dof_basis,dof_ip_scalar,offsets_array,basisValues->basis_scalar);
+      dof_functors::EvaluateDOFFastSens_Scalar<ScalarT,typename BasisValues2<double>::Array_CellBasisIP> functor(dof_basis,dof_ip_scalar,offsets_array,basisValues->getBasisValuesForPhalanxEvaluatorRegistration());
       Kokkos::parallel_for(workset.num_cells,functor);
     }
     else {
-      dof_functors::EvaluateDOFWithSens_Scalar<ScalarT,typename BasisValues2<double>::Array_CellBasisIP> functor(dof_basis,dof_ip_scalar,basisValues->basis_scalar);
+      dof_functors::EvaluateDOFWithSens_Scalar<ScalarT,typename BasisValues2<double>::Array_CellBasisIP> functor(dof_basis,dof_ip_scalar,basisValues->getBasisValuesForPhalanxEvaluatorRegistration());
       Kokkos::parallel_for(workset.num_cells,functor);
     }
   }

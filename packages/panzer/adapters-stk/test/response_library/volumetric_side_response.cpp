@@ -129,32 +129,32 @@ namespace panzer_stk {
         TEST_EQUALITY((*worksets)[0].num_cells,3);
         TEST_EQUALITY((*worksets)[0].subcell_dim,0);
         TEST_EQUALITY((*worksets)[0].subcell_index,0);
-        TEST_ASSERT(!(*worksets)[0].int_rules[0]->int_rule->isSide());
+        TEST_ASSERT(!(*worksets)[0].int_rules[0]->getIntegrationRule()->isSide());
 
         TEST_EQUALITY((*worksets)[1].num_cells,1);
         TEST_EQUALITY((*worksets)[1].subcell_dim,0);
         TEST_EQUALITY((*worksets)[1].subcell_index,0);
-        TEST_ASSERT(!(*worksets)[1].int_rules[0]->int_rule->isSide());
+        TEST_ASSERT(!(*worksets)[1].int_rules[0]->getIntegrationRule()->isSide());
 
         TEST_EQUALITY((*worksets)[2].num_cells,3);
         TEST_EQUALITY((*worksets)[2].subcell_dim,0);
         TEST_EQUALITY((*worksets)[2].subcell_index,3);
-        TEST_ASSERT(!(*worksets)[2].int_rules[0]->int_rule->isSide());
+        TEST_ASSERT(!(*worksets)[2].int_rules[0]->getIntegrationRule()->isSide());
 
         TEST_EQUALITY((*worksets)[3].num_cells,1);
         TEST_EQUALITY((*worksets)[3].subcell_dim,0);
         TEST_EQUALITY((*worksets)[3].subcell_index,3);
-        TEST_ASSERT(!(*worksets)[3].int_rules[0]->int_rule->isSide());
+        TEST_ASSERT(!(*worksets)[3].int_rules[0]->getIntegrationRule()->isSide());
 
         TEST_EQUALITY((*worksets)[4].num_cells,3);
         TEST_EQUALITY((*worksets)[4].subcell_dim,1);
         TEST_EQUALITY((*worksets)[4].subcell_index,3);
-        TEST_ASSERT(!(*worksets)[4].int_rules[0]->int_rule->isSide());
+        TEST_ASSERT(!(*worksets)[4].int_rules[0]->getIntegrationRule()->isSide());
 
         TEST_EQUALITY((*worksets)[5].num_cells,1);
         TEST_EQUALITY((*worksets)[5].subcell_dim,1);
         TEST_EQUALITY((*worksets)[5].subcell_index,3);
-        TEST_ASSERT(!(*worksets)[5].int_rules[0]->int_rule->isSide());
+        TEST_ASSERT(!(*worksets)[5].int_rules[0]->getIntegrationRule()->isSide());
       }
       else {
         TEST_ASSERT(worksets!=Teuchos::null);
@@ -199,7 +199,7 @@ namespace panzer_stk {
         TEST_EQUALITY((*worksets)[0].num_cells,2);
         TEST_EQUALITY((*worksets)[0].subcell_dim,0);
         TEST_EQUALITY((*worksets)[0].subcell_index,0);
-        TEST_ASSERT(!(*worksets)[0].int_rules[0]->int_rule->isSide());
+        TEST_ASSERT(!(*worksets)[0].int_rules[0]->getIntegrationRule()->isSide());
 
         panzer::Workset & current = (*worksets)[0];
         for(panzer::index_t i=0;i<current.num_cells;i++) {
@@ -209,12 +209,12 @@ namespace panzer_stk {
         TEST_EQUALITY((*worksets)[1].num_cells,2);
         TEST_EQUALITY((*worksets)[1].subcell_dim,0);
         TEST_EQUALITY((*worksets)[1].subcell_index,3);
-        TEST_ASSERT(!(*worksets)[1].int_rules[0]->int_rule->isSide());
+        TEST_ASSERT(!(*worksets)[1].int_rules[0]->getIntegrationRule()->isSide());
 
         TEST_EQUALITY((*worksets)[2].num_cells,2);
         TEST_EQUALITY((*worksets)[2].subcell_dim,1);
         TEST_EQUALITY((*worksets)[2].subcell_index,3);
-        TEST_ASSERT(!(*worksets)[2].int_rules[0]->int_rule->isSide());
+        TEST_ASSERT(!(*worksets)[2].int_rules[0]->getIntegrationRule()->isSide());
       }
       else {
         TEST_ASSERT(worksets!=Teuchos::null);
@@ -223,17 +223,17 @@ namespace panzer_stk {
         TEST_EQUALITY((*worksets)[0].num_cells,2);
         TEST_EQUALITY((*worksets)[0].subcell_dim,0);
         TEST_EQUALITY((*worksets)[0].subcell_index,0);
-        TEST_ASSERT(!(*worksets)[0].int_rules[0]->int_rule->isSide());
+        TEST_ASSERT(!(*worksets)[0].int_rules[0]->getIntegrationRule()->isSide());
 
         TEST_EQUALITY((*worksets)[1].num_cells,2);
         TEST_EQUALITY((*worksets)[1].subcell_dim,0);
         TEST_EQUALITY((*worksets)[1].subcell_index,3);
-        TEST_ASSERT(!(*worksets)[1].int_rules[0]->int_rule->isSide());
+        TEST_ASSERT(!(*worksets)[1].int_rules[0]->getIntegrationRule()->isSide());
 
         TEST_EQUALITY((*worksets)[2].num_cells,2);
         TEST_EQUALITY((*worksets)[2].subcell_dim,1);
         TEST_EQUALITY((*worksets)[2].subcell_index,3);
-        TEST_ASSERT(!(*worksets)[2].int_rules[0]->int_rule->isSide());
+        TEST_ASSERT(!(*worksets)[2].int_rules[0]->getIntegrationRule()->isSide());
       }
 
     }

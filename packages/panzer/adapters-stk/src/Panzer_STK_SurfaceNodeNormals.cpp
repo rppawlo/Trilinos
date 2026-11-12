@@ -117,7 +117,8 @@ namespace panzer_stk {
       
       // KK: use serial interface; jac_at_point (D,D) from (C,P,D,D)
       {
-        auto jac_at_point = Kokkos::subview(iv.jac.get_view(), 0, 0, Kokkos::ALL(), Kokkos::ALL());
+        auto jacobian = iv.getJacobian();
+        auto jac_at_point = Kokkos::subview(jacobian.get_view(), 0, 0, Kokkos::ALL(), Kokkos::ALL());
 	auto jac_at_point_h = Kokkos::create_mirror_view(jac_at_point);
 	Kokkos::deep_copy(jac_at_point_h, jac_at_point);
         Intrepid2::Impl::

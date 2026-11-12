@@ -102,24 +102,24 @@ namespace panzer {
     basis_values.setupArrays(basis);
 
     out << "evaluateValues" << std::endl;
-    basis_values.evaluateValues(int_values.cub_points,
-                                int_values.jac,
-                                int_values.jac_det,
-                                int_values.jac_inv,
-                                int_values.weighted_measure,
+    basis_values.evaluateValues(int_values.getUniformCubaturePointsRef(),
+                                int_values.getJacobian(),
+                                int_values.getJacobianDeterminant(),
+                                int_values.getJacobianInverse(),
+                                int_values.getWeightedMeasure(),
                                 node_coordinates);
 
     out << "check output" << std::endl;
     double relCellVol = 0.25*0.25; // this is the relative (to the reference cell) volume
-    auto cub_weights_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),int_values.cub_weights.get_static_view());
-    auto cub_weighted_measure_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),int_values.weighted_measure.get_view()); 
-    auto basis_ref_scalar_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),basis_values.basis_ref_scalar.get_static_view());
-    auto jac_det_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),int_values.jac_det.get_static_view());
-    auto weighted_basis_scalar_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),basis_values.weighted_basis_scalar.get_static_view());
-    auto basis_scalar_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),basis_values.basis_scalar.get_static_view());
+    auto cub_weights_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),int_values.getUniformCubatureWeightsRef().get_static_view());
+    auto cub_weighted_measure_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),int_values.getWeightedMeasure().get_view());
+    auto basis_ref_scalar_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),basis_values.getBasisValuesRefForPhalanxEvaluatorRegistration().get_static_view());
+    auto jac_det_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),int_values.getJacobianDeterminant().get_static_view());
+    auto weighted_basis_scalar_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),basis_values.getWeightedBasisValuesForPhalanxEvaluatorRegistration().get_static_view());
+    auto basis_scalar_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),basis_values.getBasisValuesForPhalanxEvaluatorRegistration().get_static_view());
     for(int i=0;i<num_qp;i++) {
-       // double x = int_values.cub_points(i,0);
-       // double y = int_values.cub_points(i,1);
+       // double x = int_values.getUniformCubaturePointsRef()(i,0);
+       // double y = int_values.getUniformCubaturePointsRef()(i,1);
        double weight = cub_weights_host(i);
 
        // check reference values
@@ -185,7 +185,7 @@ namespace panzer {
                               int_values.getJacobianDeterminant(false),
                               int_values.getJacobianInverse(false));
 
-    TEST_EQUALITY(basis_values.basis_scalar.extent(0), 0);
+    TEST_EQUALITY(basis_values.getBasisValuesForPhalanxEvaluatorRegistration().extent(0), 0);
 
     panzer::BasisValues2<double> weighted_basis_values;
     weighted_basis_values.setupUniform(basis,
@@ -197,8 +197,8 @@ namespace panzer {
 
     auto weighted_basis = weighted_basis_values.getBasisValues(true, true, true);
     TEST_EQUALITY(weighted_basis.extent(0), num_cells);
-    TEST_EQUALITY(weighted_basis_values.weighted_basis_scalar.extent(0), num_cells);
-    TEST_EQUALITY(weighted_basis_values.basis_scalar.extent(0), num_cells);
+    TEST_EQUALITY(weighted_basis_values.getWeightedBasisValuesForPhalanxEvaluatorRegistration().extent(0), num_cells);
+    TEST_EQUALITY(weighted_basis_values.getBasisValuesForPhalanxEvaluatorRegistration().extent(0), num_cells);
 
     panzer::BasisValues2<double> weighted_basis_values_without_dependencies;
     weighted_basis_values_without_dependencies.setupUniform(basis,
@@ -210,8 +210,8 @@ namespace panzer {
 
     auto weighted_basis_without_dependencies = weighted_basis_values_without_dependencies.getBasisValues(true, true, true, false);
     TEST_EQUALITY(weighted_basis_without_dependencies.extent(0), num_cells);
-    TEST_EQUALITY(weighted_basis_values_without_dependencies.weighted_basis_scalar.extent(0), num_cells);
-    TEST_EQUALITY(weighted_basis_values_without_dependencies.basis_scalar.extent(0), 0);
+    TEST_EQUALITY(weighted_basis_values_without_dependencies.getWeightedBasisValuesForPhalanxEvaluatorRegistration().extent(0), num_cells);
+    TEST_EQUALITY(weighted_basis_values_without_dependencies.getBasisValuesForPhalanxEvaluatorRegistration().extent(0), 0);
 
     panzer::BasisValues2<double> weighted_basis_values_cached_dependencies_only;
     weighted_basis_values_cached_dependencies_only.setupUniform(basis,
@@ -223,8 +223,8 @@ namespace panzer {
 
     auto uncached_weighted_basis_with_cached_dependencies = weighted_basis_values_cached_dependencies_only.getBasisValues(true, false, true, true);
     TEST_EQUALITY(uncached_weighted_basis_with_cached_dependencies.extent(0), num_cells);
-    TEST_EQUALITY(weighted_basis_values_cached_dependencies_only.weighted_basis_scalar.extent(0), 0);
-    TEST_EQUALITY(weighted_basis_values_cached_dependencies_only.basis_scalar.extent(0), num_cells);
+    TEST_EQUALITY(weighted_basis_values_cached_dependencies_only.getWeightedBasisValuesForPhalanxEvaluatorRegistration().extent(0), 0);
+    TEST_EQUALITY(weighted_basis_values_cached_dependencies_only.getBasisValuesForPhalanxEvaluatorRegistration().extent(0), num_cells);
 
     panzer::BasisValues2<double> weighted_basis_values_with_dependencies;
     weighted_basis_values_with_dependencies.setupUniform(basis,
@@ -236,38 +236,38 @@ namespace panzer {
 
     auto weighted_basis_with_dependencies = weighted_basis_values_with_dependencies.getBasisValues(true, true, true, true);
     TEST_EQUALITY(weighted_basis_with_dependencies.extent(0), num_cells);
-    TEST_EQUALITY(weighted_basis_values_with_dependencies.weighted_basis_scalar.extent(0), num_cells);
-    TEST_EQUALITY(weighted_basis_values_with_dependencies.basis_scalar.extent(0), num_cells);
+    TEST_EQUALITY(weighted_basis_values_with_dependencies.getWeightedBasisValuesForPhalanxEvaluatorRegistration().extent(0), num_cells);
+    TEST_EQUALITY(weighted_basis_values_with_dependencies.getBasisValuesForPhalanxEvaluatorRegistration().extent(0), num_cells);
 
     auto uncached_basis = basis_values.getBasisValues(false, false);
     TEST_EQUALITY(uncached_basis.extent(0), num_cells);
-    TEST_EQUALITY(basis_values.basis_scalar.extent(0), 0);
+    TEST_EQUALITY(basis_values.getBasisValuesForPhalanxEvaluatorRegistration().extent(0), 0);
 
     auto cached_basis = basis_values.getBasisValues(false, true);
     TEST_EQUALITY(cached_basis.extent(0), num_cells);
-    TEST_EQUALITY(basis_values.basis_scalar.extent(0), num_cells);
-    TEST_EQUALITY(cached_basis.get_view().data(), basis_values.basis_scalar.get_view().data());
+    TEST_EQUALITY(basis_values.getBasisValuesForPhalanxEvaluatorRegistration().extent(0), num_cells);
+    TEST_EQUALITY(cached_basis.get_view().data(), basis_values.getBasisValuesForPhalanxEvaluatorRegistration().get_view().data());
 
     auto cached_basis_again = basis_values.getBasisValues(false, true);
-    TEST_EQUALITY(cached_basis_again.get_view().data(), basis_values.basis_scalar.get_view().data());
+    TEST_EQUALITY(cached_basis_again.get_view().data(), basis_values.getBasisValuesForPhalanxEvaluatorRegistration().get_view().data());
 
     basis_values.releaseCachedData();
-    TEST_EQUALITY(basis_values.basis_scalar.size(), 0);
-    TEST_EQUALITY(basis_values.weighted_basis_scalar.size(), 0);
+    TEST_EQUALITY(basis_values.getBasisValuesForPhalanxEvaluatorRegistration().size(), 0);
+    TEST_EQUALITY(basis_values.getWeightedBasisValuesForPhalanxEvaluatorRegistration().size(), 0);
 
     auto rebuilt_cached_basis = basis_values.getBasisValues(false, true);
     TEST_EQUALITY(rebuilt_cached_basis.extent(0), num_cells);
-    TEST_EQUALITY(basis_values.basis_scalar.extent(0), num_cells);
-    TEST_EQUALITY(rebuilt_cached_basis.get_view().data(), basis_values.basis_scalar.get_view().data());
+    TEST_EQUALITY(basis_values.getBasisValuesForPhalanxEvaluatorRegistration().extent(0), num_cells);
+    TEST_EQUALITY(rebuilt_cached_basis.get_view().data(), basis_values.getBasisValuesForPhalanxEvaluatorRegistration().get_view().data());
 
     weighted_basis_values_with_dependencies.releaseCachedData();
-    TEST_EQUALITY(weighted_basis_values_with_dependencies.weighted_basis_scalar.size(), 0);
-    TEST_EQUALITY(weighted_basis_values_with_dependencies.basis_scalar.size(), 0);
+    TEST_EQUALITY(weighted_basis_values_with_dependencies.getWeightedBasisValuesForPhalanxEvaluatorRegistration().size(), 0);
+    TEST_EQUALITY(weighted_basis_values_with_dependencies.getBasisValuesForPhalanxEvaluatorRegistration().size(), 0);
 
     auto rebuilt_weighted_basis = weighted_basis_values_with_dependencies.getBasisValues(true, true, true, true);
     TEST_EQUALITY(rebuilt_weighted_basis.extent(0), num_cells);
-    TEST_EQUALITY(weighted_basis_values_with_dependencies.weighted_basis_scalar.extent(0), num_cells);
-    TEST_EQUALITY(weighted_basis_values_with_dependencies.basis_scalar.extent(0), num_cells);
+    TEST_EQUALITY(weighted_basis_values_with_dependencies.getWeightedBasisValuesForPhalanxEvaluatorRegistration().extent(0), num_cells);
+    TEST_EQUALITY(weighted_basis_values_with_dependencies.getBasisValuesForPhalanxEvaluatorRegistration().extent(0), num_cells);
   }
 
   TEUCHOS_UNIT_TEST(basis_values, grad_quad)
@@ -342,23 +342,23 @@ namespace panzer {
 
     panzer::BasisValues2<double> basis_values("",true,true);
     basis_values.setupArrays(basis);
-    basis_values.evaluateValues(int_values.cub_points,
-                                int_values.jac,
-                                int_values.jac_det,
-                                int_values.jac_inv,
-				int_values.weighted_measure,
+    basis_values.evaluateValues(int_values.getUniformCubaturePointsRef(),
+                                int_values.getJacobian(),
+                                int_values.getJacobianDeterminant(),
+                                int_values.getJacobianInverse(),
+				int_values.getWeightedMeasure(),
                                 node_coordinates);
 
     double relCellVol = 0.25*0.25; // this is the relative (to the reference cell) volume
-    auto cub_points_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),int_values.cub_points.get_view());
-    auto cub_weights_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),int_values.cub_weights.get_view());
-    auto basis_ref_scalar_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),basis_values.basis_ref_scalar.get_view());
-    auto basis_scalar_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),basis_values.basis_scalar.get_view());
-    auto grad_basis_ref_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),basis_values.grad_basis_ref.get_view());
-    auto weighted_basis_scalar_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),basis_values.weighted_basis_scalar.get_view());
-    auto grad_basis_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),basis_values.grad_basis.get_view());
-    auto weighted_grad_basis_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),basis_values.weighted_grad_basis.get_view());
-    auto jac_det_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),int_values.jac_det.get_view());
+    auto cub_points_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),int_values.getUniformCubaturePointsRef().get_view());
+    auto cub_weights_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),int_values.getUniformCubatureWeightsRef().get_view());
+    auto basis_ref_scalar_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),basis_values.getBasisValuesRefForPhalanxEvaluatorRegistration().get_view());
+    auto basis_scalar_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),basis_values.getBasisValuesForPhalanxEvaluatorRegistration().get_view());
+    auto grad_basis_ref_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),basis_values.getGradBasisValuesRefForPhalanxEvaluatorRegistration().get_view());
+    auto weighted_basis_scalar_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),basis_values.getWeightedBasisValuesForPhalanxEvaluatorRegistration().get_view());
+    auto grad_basis_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),basis_values.getGradBasisValuesForPhalanxEvaluatorRegistration().get_view());
+    auto weighted_grad_basis_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),basis_values.getWeightedGradBasisValuesForPhalanxEvaluatorRegistration().get_view());
+    auto jac_det_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),int_values.getJacobianDeterminant().get_view());
     for(int i=0;i<num_qp;i++) {
        double x = cub_points_host(i,0);
        double y = cub_points_host(i,1);
@@ -469,34 +469,34 @@ namespace panzer {
     panzer::BasisValues2<double> basis_values("",true,true);
 
     basis_values.setupArrays(basisIRLayout);
-    basis_values.evaluateValues(int_values.cub_points,
-                                int_values.jac,
-                                int_values.jac_det,
-                                int_values.jac_inv,
-				int_values.weighted_measure,
+    basis_values.evaluateValues(int_values.getUniformCubaturePointsRef(),
+                                int_values.getJacobian(),
+                                int_values.getJacobianDeterminant(),
+                                int_values.getJacobianInverse(),
+				int_values.getWeightedMeasure(),
                                 node_coordinates);
 
-    TEST_EQUALITY(basis_values.basis_ref_vector.extent(0),4);
-    TEST_EQUALITY(basis_values.basis_ref_vector.extent(1),num_qp);
-    TEST_EQUALITY(basis_values.basis_ref_vector.extent(2),2);
+    TEST_EQUALITY(basis_values.getVectorBasisValuesRefForPhalanxEvaluatorRegistration().extent(0),4);
+    TEST_EQUALITY(basis_values.getVectorBasisValuesRefForPhalanxEvaluatorRegistration().extent(1),num_qp);
+    TEST_EQUALITY(basis_values.getVectorBasisValuesRefForPhalanxEvaluatorRegistration().extent(2),2);
 
-    TEST_EQUALITY(basis_values.grad_basis_ref.size(),0);
+    TEST_EQUALITY(basis_values.getGradBasisValuesRefForPhalanxEvaluatorRegistration().size(),0);
 
-    TEST_EQUALITY(basis_values.curl_basis_ref_scalar.extent(0),4);
-    TEST_EQUALITY(basis_values.curl_basis_ref_scalar.extent(1),num_qp);
+    TEST_EQUALITY(basis_values.getCurlBasisValuesRefForPhalanxEvaluatorRegistration().extent(0),4);
+    TEST_EQUALITY(basis_values.getCurlBasisValuesRefForPhalanxEvaluatorRegistration().extent(1),num_qp);
 
     double relCellVol = 0.25*0.25; // this is the relative (to the reference cell) volume
-    auto cub_points_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),int_values.cub_points.get_view());
-    auto cub_weights_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),int_values.cub_weights.get_view());
-    auto jac_det_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),int_values.jac_det.get_view());
-    auto basis_ref_vector_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),basis_values.basis_ref_vector.get_view());
-    auto basis_vector_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),basis_values.basis_vector.get_view());
-    auto curl_basis_ref_scalar_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),basis_values.curl_basis_ref_scalar.get_view());
-    auto curl_basis_scalar_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),basis_values.curl_basis_scalar.get_view());
-    auto weighted_basis_vector_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),basis_values.weighted_basis_vector.get_view());
-    auto weighted_curl_basis_scalar_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),basis_values.weighted_curl_basis_scalar.get_view());
+    auto cub_points_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),int_values.getUniformCubaturePointsRef().get_view());
+    auto cub_weights_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),int_values.getUniformCubatureWeightsRef().get_view());
+    auto jac_det_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),int_values.getJacobianDeterminant().get_view());
+    auto basis_ref_vector_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),basis_values.getVectorBasisValuesRefForPhalanxEvaluatorRegistration().get_view());
+    auto basis_vector_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),basis_values.getVectorBasisValuesForPhalanxEvaluatorRegistration().get_view());
+    auto curl_basis_ref_scalar_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),basis_values.getCurlBasisValuesRefForPhalanxEvaluatorRegistration().get_view());
+    auto curl_basis_scalar_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),basis_values.getCurlBasisValuesForPhalanxEvaluatorRegistration().get_view());
+    auto weighted_basis_vector_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),basis_values.getWeightedVectorBasisValuesForPhalanxEvaluatorRegistration().get_view());
+    auto weighted_curl_basis_scalar_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),basis_values.getWeightedCurlBasisValuesForPhalanxEvaluatorRegistration().get_view());
     for(unsigned int i=0;i<num_qp;i++) {
-       // double x = int_values.cub_points(i,0);
+       // double x = int_values.getUniformCubaturePointsRef()(i,0);
        double y = cub_points_host(i,1);
        double weight = cub_weights_host(i);
 
@@ -603,32 +603,32 @@ namespace panzer {
     panzer::BasisValues2<double> basis_values("",true,true);
 
     basis_values.setupArrays(basisIRLayout);
-    basis_values.evaluateValues(int_values.cub_points,
-                                int_values.jac,
-                                int_values.jac_det,
-                                int_values.jac_inv,
-				int_values.weighted_measure,
+    basis_values.evaluateValues(int_values.getUniformCubaturePointsRef(),
+                                int_values.getJacobian(),
+                                int_values.getJacobianDeterminant(),
+                                int_values.getJacobianInverse(),
+				int_values.getWeightedMeasure(),
                                 node_coordinates);
 
-    TEST_EQUALITY(basis_values.basis_ref_vector.extent(0),4);
-    TEST_EQUALITY(basis_values.basis_ref_vector.extent(1),num_qp);
-    TEST_EQUALITY(basis_values.basis_ref_vector.extent_int(2),base_cell_dimension);
+    TEST_EQUALITY(basis_values.getVectorBasisValuesRefForPhalanxEvaluatorRegistration().extent(0),4);
+    TEST_EQUALITY(basis_values.getVectorBasisValuesRefForPhalanxEvaluatorRegistration().extent(1),num_qp);
+    TEST_EQUALITY(basis_values.getVectorBasisValuesRefForPhalanxEvaluatorRegistration().extent_int(2),base_cell_dimension);
 
-    TEST_EQUALITY(basis_values.grad_basis_ref.size(),0);
+    TEST_EQUALITY(basis_values.getGradBasisValuesRefForPhalanxEvaluatorRegistration().size(),0);
 
-    TEST_EQUALITY(basis_values.div_basis_ref.extent(0),4);
-    TEST_EQUALITY(basis_values.div_basis_ref.extent(1),num_qp);
+    TEST_EQUALITY(basis_values.getDivBasisValuesRefForPhalanxEvaluatorRegistration().extent(0),4);
+    TEST_EQUALITY(basis_values.getDivBasisValuesRefForPhalanxEvaluatorRegistration().extent(1),num_qp);
 
     double relCellVol = (1.0/72) / (1.0/6.0);
-    auto cub_points_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),int_values.cub_points.get_view());
-    auto cub_weights_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),int_values.cub_weights.get_view());
-    auto jac_det_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),int_values.jac_det.get_view());
-    auto basis_ref_vector_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),basis_values.basis_ref_vector.get_view());
-    auto basis_vector_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),basis_values.basis_vector.get_view());
-    auto div_basis_ref_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),basis_values.div_basis_ref.get_view());
-    auto div_basis_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),basis_values.div_basis.get_view());
-    auto weighted_basis_vector_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),basis_values.weighted_basis_vector.get_view());
-    auto weighted_div_basis_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),basis_values.weighted_div_basis.get_view());
+    auto cub_points_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),int_values.getUniformCubaturePointsRef().get_view());
+    auto cub_weights_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),int_values.getUniformCubatureWeightsRef().get_view());
+    auto jac_det_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),int_values.getJacobianDeterminant().get_view());
+    auto basis_ref_vector_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),basis_values.getVectorBasisValuesRefForPhalanxEvaluatorRegistration().get_view());
+    auto basis_vector_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),basis_values.getVectorBasisValuesForPhalanxEvaluatorRegistration().get_view());
+    auto div_basis_ref_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),basis_values.getDivBasisValuesRefForPhalanxEvaluatorRegistration().get_view());
+    auto div_basis_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),basis_values.getDivBasisValuesForPhalanxEvaluatorRegistration().get_view());
+    auto weighted_basis_vector_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),basis_values.getWeightedVectorBasisValuesForPhalanxEvaluatorRegistration().get_view());
+    auto weighted_div_basis_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),basis_values.getWeightedDivBasisValuesForPhalanxEvaluatorRegistration().get_view());
     for(unsigned int i=0;i<num_qp;i++) {
        double x = cub_points_host(i,0);
        double y = cub_points_host(i,1);
@@ -691,10 +691,10 @@ namespace panzer {
 
     basis_values.applyOrientations(orientations);
 
-    Kokkos::deep_copy(basis_vector_host,basis_values.basis_vector.get_view());
-    Kokkos::deep_copy(div_basis_host,basis_values.div_basis.get_view());
-    Kokkos::deep_copy(weighted_basis_vector_host,basis_values.weighted_basis_vector.get_view());
-    Kokkos::deep_copy(weighted_div_basis_host,basis_values.weighted_div_basis.get_view());
+    Kokkos::deep_copy(basis_vector_host,basis_values.getVectorBasisValuesForPhalanxEvaluatorRegistration().get_view());
+    Kokkos::deep_copy(div_basis_host,basis_values.getDivBasisValuesForPhalanxEvaluatorRegistration().get_view());
+    Kokkos::deep_copy(weighted_basis_vector_host,basis_values.getWeightedVectorBasisValuesForPhalanxEvaluatorRegistration().get_view());
+    Kokkos::deep_copy(weighted_div_basis_host,basis_values.getWeightedDivBasisValuesForPhalanxEvaluatorRegistration().get_view());
 
     // check with orientations
     const double ortVal[6] = {  1.0,  1.0,  1.0,
@@ -830,36 +830,36 @@ namespace panzer {
     panzer::BasisValues2<double> basis_values("prefix_",true,true);
 
     basis_values.setupArrays(basisIRLayout);
-    basis_values.evaluateValues(int_values.cub_points,
-                                int_values.jac,
-                                int_values.jac_det,
-                                int_values.jac_inv);
+    basis_values.evaluateValues(int_values.getUniformCubaturePointsRef(),
+                                int_values.getJacobian(),
+                                int_values.getJacobianDeterminant(),
+                                int_values.getJacobianInverse());
 
-    TEST_EQUALITY(basis_values.basis_ref_vector.extent(0),12);
-    TEST_EQUALITY(basis_values.basis_ref_vector.extent(1),num_qp);
-    TEST_EQUALITY(basis_values.basis_ref_vector.extent(2),3);
-    TEST_EQUALITY(basis_values.weighted_basis_vector.extent_int(0),num_cells);
-    TEST_EQUALITY(basis_values.weighted_basis_vector.extent(1),12);
-    TEST_EQUALITY(basis_values.weighted_basis_vector.extent(2),num_qp);
-    TEST_EQUALITY(basis_values.weighted_basis_vector.extent(3),3);
+    TEST_EQUALITY(basis_values.getVectorBasisValuesRefForPhalanxEvaluatorRegistration().extent(0),12);
+    TEST_EQUALITY(basis_values.getVectorBasisValuesRefForPhalanxEvaluatorRegistration().extent(1),num_qp);
+    TEST_EQUALITY(basis_values.getVectorBasisValuesRefForPhalanxEvaluatorRegistration().extent(2),3);
+    TEST_EQUALITY(basis_values.getWeightedVectorBasisValuesForPhalanxEvaluatorRegistration().extent_int(0),num_cells);
+    TEST_EQUALITY(basis_values.getWeightedVectorBasisValuesForPhalanxEvaluatorRegistration().extent(1),12);
+    TEST_EQUALITY(basis_values.getWeightedVectorBasisValuesForPhalanxEvaluatorRegistration().extent(2),num_qp);
+    TEST_EQUALITY(basis_values.getWeightedVectorBasisValuesForPhalanxEvaluatorRegistration().extent(3),3);
 
-    TEST_EQUALITY(basis_values.grad_basis_ref.size(),0);
-    TEST_EQUALITY(basis_values.weighted_grad_basis.size(),0);
-    TEST_EQUALITY(basis_values.curl_basis_ref_scalar.size(),0);
-    TEST_EQUALITY(basis_values.curl_basis_scalar.size(),0);
-    TEST_EQUALITY(basis_values.weighted_curl_basis_scalar.size(),0);
+    TEST_EQUALITY(basis_values.getGradBasisValuesRefForPhalanxEvaluatorRegistration().size(),0);
+    TEST_EQUALITY(basis_values.getWeightedGradBasisValuesForPhalanxEvaluatorRegistration().size(),0);
+    TEST_EQUALITY(basis_values.getCurlBasisValuesRefForPhalanxEvaluatorRegistration().size(),0);
+    TEST_EQUALITY(basis_values.getCurlBasisValuesForPhalanxEvaluatorRegistration().size(),0);
+    TEST_EQUALITY(basis_values.getWeightedCurlBasisValuesForPhalanxEvaluatorRegistration().size(),0);
 
-    TEST_EQUALITY(basis_values.curl_basis_ref_vector.extent(0),12);
-    TEST_EQUALITY(basis_values.curl_basis_ref_vector.extent(1),num_qp);
-    TEST_EQUALITY(basis_values.curl_basis_ref_vector.extent(2),3);
-    TEST_EQUALITY(basis_values.curl_basis_vector.extent_int(0),num_cells);
-    TEST_EQUALITY(basis_values.curl_basis_vector.extent(1),12);
-    TEST_EQUALITY(basis_values.curl_basis_vector.extent(2),num_qp);
-    TEST_EQUALITY(basis_values.curl_basis_vector.extent(3),3);
-    TEST_EQUALITY(basis_values.weighted_curl_basis_vector.extent_int(0),num_cells);
-    TEST_EQUALITY(basis_values.weighted_curl_basis_vector.extent(1),12);
-    TEST_EQUALITY(basis_values.weighted_curl_basis_vector.extent(2),num_qp);
-    TEST_EQUALITY(basis_values.weighted_curl_basis_vector.extent(3),3);
+    TEST_EQUALITY(basis_values.getCurlVectorBasisValuesRefForPhalanxEvaluatorRegistration().extent(0),12);
+    TEST_EQUALITY(basis_values.getCurlVectorBasisValuesRefForPhalanxEvaluatorRegistration().extent(1),num_qp);
+    TEST_EQUALITY(basis_values.getCurlVectorBasisValuesRefForPhalanxEvaluatorRegistration().extent(2),3);
+    TEST_EQUALITY(basis_values.getCurlVectorBasisValuesForPhalanxEvaluatorRegistration().extent_int(0),num_cells);
+    TEST_EQUALITY(basis_values.getCurlVectorBasisValuesForPhalanxEvaluatorRegistration().extent(1),12);
+    TEST_EQUALITY(basis_values.getCurlVectorBasisValuesForPhalanxEvaluatorRegistration().extent(2),num_qp);
+    TEST_EQUALITY(basis_values.getCurlVectorBasisValuesForPhalanxEvaluatorRegistration().extent(3),3);
+    TEST_EQUALITY(basis_values.getWeightedCurlVectorBasisValuesForPhalanxEvaluatorRegistration().extent_int(0),num_cells);
+    TEST_EQUALITY(basis_values.getWeightedCurlVectorBasisValuesForPhalanxEvaluatorRegistration().extent(1),12);
+    TEST_EQUALITY(basis_values.getWeightedCurlVectorBasisValuesForPhalanxEvaluatorRegistration().extent(2),num_qp);
+    TEST_EQUALITY(basis_values.getWeightedCurlVectorBasisValuesForPhalanxEvaluatorRegistration().extent(3),3);
 
   }
 
@@ -890,55 +890,55 @@ namespace panzer {
     // build these values.
 
     // check basis
-    TEST_EQUALITY(basis_values.basis_ref_scalar.fieldTag().dataLayout().rank(),2);
-    TEST_EQUALITY(basis_values.basis_ref_scalar.fieldTag().dataLayout().extent(0),9);
-    TEST_EQUALITY(basis_values.basis_ref_scalar.fieldTag().dataLayout().extent(1),num_qp);
-    TEST_EQUALITY(basis_values.basis_ref_scalar.fieldTag().name(),"prefix_basis_ref");
+    TEST_EQUALITY(basis_values.getBasisValuesRefForPhalanxEvaluatorRegistration().fieldTag().dataLayout().rank(),2);
+    TEST_EQUALITY(basis_values.getBasisValuesRefForPhalanxEvaluatorRegistration().fieldTag().dataLayout().extent(0),9);
+    TEST_EQUALITY(basis_values.getBasisValuesRefForPhalanxEvaluatorRegistration().fieldTag().dataLayout().extent(1),num_qp);
+    TEST_EQUALITY(basis_values.getBasisValuesRefForPhalanxEvaluatorRegistration().fieldTag().name(),"prefix_basis_ref");
 
-    TEST_EQUALITY(basis_values.basis_scalar.fieldTag().dataLayout().rank(),3);
-    TEST_EQUALITY(basis_values.basis_scalar.fieldTag().dataLayout().extent_int(0),num_cells);
-    TEST_EQUALITY(basis_values.basis_scalar.fieldTag().dataLayout().extent(1),9);
-    TEST_EQUALITY(basis_values.basis_scalar.fieldTag().dataLayout().extent(2),num_qp);
-    TEST_EQUALITY(basis_values.basis_scalar.fieldTag().name(),"prefix_basis");
+    TEST_EQUALITY(basis_values.getBasisValuesForPhalanxEvaluatorRegistration().fieldTag().dataLayout().rank(),3);
+    TEST_EQUALITY(basis_values.getBasisValuesForPhalanxEvaluatorRegistration().fieldTag().dataLayout().extent_int(0),num_cells);
+    TEST_EQUALITY(basis_values.getBasisValuesForPhalanxEvaluatorRegistration().fieldTag().dataLayout().extent(1),9);
+    TEST_EQUALITY(basis_values.getBasisValuesForPhalanxEvaluatorRegistration().fieldTag().dataLayout().extent(2),num_qp);
+    TEST_EQUALITY(basis_values.getBasisValuesForPhalanxEvaluatorRegistration().fieldTag().name(),"prefix_basis");
 
-    TEST_EQUALITY(basis_values.weighted_basis_scalar.fieldTag().dataLayout().rank(),3);
-    TEST_EQUALITY(basis_values.weighted_basis_scalar.fieldTag().dataLayout().extent_int(0),num_cells);
-    TEST_EQUALITY(basis_values.weighted_basis_scalar.fieldTag().dataLayout().extent(1),9);
-    TEST_EQUALITY(basis_values.weighted_basis_scalar.fieldTag().dataLayout().extent(2),num_qp);
-    TEST_EQUALITY(basis_values.weighted_basis_scalar.fieldTag().name(),"prefix_weighted_basis");
+    TEST_EQUALITY(basis_values.getWeightedBasisValuesForPhalanxEvaluatorRegistration().fieldTag().dataLayout().rank(),3);
+    TEST_EQUALITY(basis_values.getWeightedBasisValuesForPhalanxEvaluatorRegistration().fieldTag().dataLayout().extent_int(0),num_cells);
+    TEST_EQUALITY(basis_values.getWeightedBasisValuesForPhalanxEvaluatorRegistration().fieldTag().dataLayout().extent(1),9);
+    TEST_EQUALITY(basis_values.getWeightedBasisValuesForPhalanxEvaluatorRegistration().fieldTag().dataLayout().extent(2),num_qp);
+    TEST_EQUALITY(basis_values.getWeightedBasisValuesForPhalanxEvaluatorRegistration().fieldTag().name(),"prefix_weighted_basis");
 
     // check gradients
-    TEST_EQUALITY(basis_values.grad_basis_ref.fieldTag().dataLayout().rank(),3);
-    TEST_EQUALITY(basis_values.grad_basis_ref.fieldTag().dataLayout().extent(0),9);
-    TEST_EQUALITY(basis_values.grad_basis_ref.fieldTag().dataLayout().extent(1),num_qp);
-    TEST_EQUALITY(basis_values.grad_basis_ref.fieldTag().dataLayout().extent(2),2);
-    TEST_EQUALITY(basis_values.grad_basis_ref.fieldTag().name(),"prefix_grad_basis_ref");
+    TEST_EQUALITY(basis_values.getGradBasisValuesRefForPhalanxEvaluatorRegistration().fieldTag().dataLayout().rank(),3);
+    TEST_EQUALITY(basis_values.getGradBasisValuesRefForPhalanxEvaluatorRegistration().fieldTag().dataLayout().extent(0),9);
+    TEST_EQUALITY(basis_values.getGradBasisValuesRefForPhalanxEvaluatorRegistration().fieldTag().dataLayout().extent(1),num_qp);
+    TEST_EQUALITY(basis_values.getGradBasisValuesRefForPhalanxEvaluatorRegistration().fieldTag().dataLayout().extent(2),2);
+    TEST_EQUALITY(basis_values.getGradBasisValuesRefForPhalanxEvaluatorRegistration().fieldTag().name(),"prefix_grad_basis_ref");
 
-    TEST_EQUALITY(basis_values.grad_basis.fieldTag().dataLayout().rank(),4);
-    TEST_EQUALITY(basis_values.grad_basis.fieldTag().dataLayout().extent_int(0),num_cells);
-    TEST_EQUALITY(basis_values.grad_basis.fieldTag().dataLayout().extent(1),9);
-    TEST_EQUALITY(basis_values.grad_basis.fieldTag().dataLayout().extent(2),num_qp);
-    TEST_EQUALITY(basis_values.grad_basis.fieldTag().dataLayout().extent(3),2);
-    TEST_EQUALITY(basis_values.grad_basis.fieldTag().name(),"prefix_grad_basis");
+    TEST_EQUALITY(basis_values.getGradBasisValuesForPhalanxEvaluatorRegistration().fieldTag().dataLayout().rank(),4);
+    TEST_EQUALITY(basis_values.getGradBasisValuesForPhalanxEvaluatorRegistration().fieldTag().dataLayout().extent_int(0),num_cells);
+    TEST_EQUALITY(basis_values.getGradBasisValuesForPhalanxEvaluatorRegistration().fieldTag().dataLayout().extent(1),9);
+    TEST_EQUALITY(basis_values.getGradBasisValuesForPhalanxEvaluatorRegistration().fieldTag().dataLayout().extent(2),num_qp);
+    TEST_EQUALITY(basis_values.getGradBasisValuesForPhalanxEvaluatorRegistration().fieldTag().dataLayout().extent(3),2);
+    TEST_EQUALITY(basis_values.getGradBasisValuesForPhalanxEvaluatorRegistration().fieldTag().name(),"prefix_grad_basis");
 
-    TEST_EQUALITY(basis_values.weighted_grad_basis.fieldTag().dataLayout().rank(),4);
-    TEST_EQUALITY(basis_values.weighted_grad_basis.fieldTag().dataLayout().extent_int(0),num_cells);
-    TEST_EQUALITY(basis_values.weighted_grad_basis.fieldTag().dataLayout().extent(1),9);
-    TEST_EQUALITY(basis_values.weighted_grad_basis.fieldTag().dataLayout().extent(2),num_qp);
-    TEST_EQUALITY(basis_values.weighted_grad_basis.fieldTag().dataLayout().extent(3),2);
-    TEST_EQUALITY(basis_values.weighted_grad_basis.fieldTag().name(),"prefix_weighted_grad_basis");
+    TEST_EQUALITY(basis_values.getWeightedGradBasisValuesForPhalanxEvaluatorRegistration().fieldTag().dataLayout().rank(),4);
+    TEST_EQUALITY(basis_values.getWeightedGradBasisValuesForPhalanxEvaluatorRegistration().fieldTag().dataLayout().extent_int(0),num_cells);
+    TEST_EQUALITY(basis_values.getWeightedGradBasisValuesForPhalanxEvaluatorRegistration().fieldTag().dataLayout().extent(1),9);
+    TEST_EQUALITY(basis_values.getWeightedGradBasisValuesForPhalanxEvaluatorRegistration().fieldTag().dataLayout().extent(2),num_qp);
+    TEST_EQUALITY(basis_values.getWeightedGradBasisValuesForPhalanxEvaluatorRegistration().fieldTag().dataLayout().extent(3),2);
+    TEST_EQUALITY(basis_values.getWeightedGradBasisValuesForPhalanxEvaluatorRegistration().fieldTag().name(),"prefix_weighted_grad_basis");
 
     // check coordinates
-    TEST_EQUALITY(basis_values.basis_coordinates_ref.fieldTag().dataLayout().rank(),2);
-    TEST_EQUALITY(basis_values.basis_coordinates_ref.fieldTag().dataLayout().extent(0),9);
-    TEST_EQUALITY(basis_values.basis_coordinates_ref.fieldTag().dataLayout().extent(1),2);
-    TEST_EQUALITY(basis_values.basis_coordinates_ref.fieldTag().name(),"prefix_basis_coordinates_ref");
+    TEST_EQUALITY(basis_values.getBasisCoordinatesRefForPhalanxEvaluatorRegistration().fieldTag().dataLayout().rank(),2);
+    TEST_EQUALITY(basis_values.getBasisCoordinatesRefForPhalanxEvaluatorRegistration().fieldTag().dataLayout().extent(0),9);
+    TEST_EQUALITY(basis_values.getBasisCoordinatesRefForPhalanxEvaluatorRegistration().fieldTag().dataLayout().extent(1),2);
+    TEST_EQUALITY(basis_values.getBasisCoordinatesRefForPhalanxEvaluatorRegistration().fieldTag().name(),"prefix_basis_coordinates_ref");
 
-    TEST_EQUALITY(basis_values.basis_coordinates.fieldTag().dataLayout().rank(),3);
-    TEST_EQUALITY(basis_values.basis_coordinates.fieldTag().dataLayout().extent_int(0),num_cells);
-    TEST_EQUALITY(basis_values.basis_coordinates.fieldTag().dataLayout().extent(1),9);
-    TEST_EQUALITY(basis_values.basis_coordinates.fieldTag().dataLayout().extent(2),2);
-    TEST_EQUALITY(basis_values.basis_coordinates.fieldTag().name(),"prefix_basis_coordinates");
+    TEST_EQUALITY(basis_values.getBasisCoordinatesForPhalanxEvaluatorRegistration().fieldTag().dataLayout().rank(),3);
+    TEST_EQUALITY(basis_values.getBasisCoordinatesForPhalanxEvaluatorRegistration().fieldTag().dataLayout().extent_int(0),num_cells);
+    TEST_EQUALITY(basis_values.getBasisCoordinatesForPhalanxEvaluatorRegistration().fieldTag().dataLayout().extent(1),9);
+    TEST_EQUALITY(basis_values.getBasisCoordinatesForPhalanxEvaluatorRegistration().fieldTag().dataLayout().extent(2),2);
+    TEST_EQUALITY(basis_values.getBasisCoordinatesForPhalanxEvaluatorRegistration().fieldTag().name(),"prefix_basis_coordinates");
   }
 
   TEUCHOS_UNIT_TEST(basis_values, md_field_setup_fad_disabled)
@@ -971,55 +971,55 @@ namespace panzer {
     // build these values.
 
     // check basis
-    TEST_EQUALITY(basis_values.basis_ref_scalar.fieldTag().dataLayout().rank(),2);
-    TEST_EQUALITY(basis_values.basis_ref_scalar.fieldTag().dataLayout().extent(0),9);
-    TEST_EQUALITY(basis_values.basis_ref_scalar.fieldTag().dataLayout().extent(1),num_qp);
-    TEST_EQUALITY(basis_values.basis_ref_scalar.fieldTag().name(),"prefix_basis_ref");
+    TEST_EQUALITY(basis_values.getBasisValuesRefForPhalanxEvaluatorRegistration().fieldTag().dataLayout().rank(),2);
+    TEST_EQUALITY(basis_values.getBasisValuesRefForPhalanxEvaluatorRegistration().fieldTag().dataLayout().extent(0),9);
+    TEST_EQUALITY(basis_values.getBasisValuesRefForPhalanxEvaluatorRegistration().fieldTag().dataLayout().extent(1),num_qp);
+    TEST_EQUALITY(basis_values.getBasisValuesRefForPhalanxEvaluatorRegistration().fieldTag().name(),"prefix_basis_ref");
 
-    TEST_EQUALITY(basis_values.basis_scalar.fieldTag().dataLayout().rank(),3);
-    TEST_EQUALITY(basis_values.basis_scalar.fieldTag().dataLayout().extent_int(0),num_cells);
-    TEST_EQUALITY(basis_values.basis_scalar.fieldTag().dataLayout().extent(1),9);
-    TEST_EQUALITY(basis_values.basis_scalar.fieldTag().dataLayout().extent(2),num_qp);
-    TEST_EQUALITY(basis_values.basis_scalar.fieldTag().name(),"prefix_basis");
+    TEST_EQUALITY(basis_values.getBasisValuesForPhalanxEvaluatorRegistration().fieldTag().dataLayout().rank(),3);
+    TEST_EQUALITY(basis_values.getBasisValuesForPhalanxEvaluatorRegistration().fieldTag().dataLayout().extent_int(0),num_cells);
+    TEST_EQUALITY(basis_values.getBasisValuesForPhalanxEvaluatorRegistration().fieldTag().dataLayout().extent(1),9);
+    TEST_EQUALITY(basis_values.getBasisValuesForPhalanxEvaluatorRegistration().fieldTag().dataLayout().extent(2),num_qp);
+    TEST_EQUALITY(basis_values.getBasisValuesForPhalanxEvaluatorRegistration().fieldTag().name(),"prefix_basis");
 
-    TEST_EQUALITY(basis_values.weighted_basis_scalar.fieldTag().dataLayout().rank(),3);
-    TEST_EQUALITY(basis_values.weighted_basis_scalar.fieldTag().dataLayout().extent_int(0),num_cells);
-    TEST_EQUALITY(basis_values.weighted_basis_scalar.fieldTag().dataLayout().extent(1),9);
-    TEST_EQUALITY(basis_values.weighted_basis_scalar.fieldTag().dataLayout().extent(2),num_qp);
-    TEST_EQUALITY(basis_values.weighted_basis_scalar.fieldTag().name(),"prefix_weighted_basis");
+    TEST_EQUALITY(basis_values.getWeightedBasisValuesForPhalanxEvaluatorRegistration().fieldTag().dataLayout().rank(),3);
+    TEST_EQUALITY(basis_values.getWeightedBasisValuesForPhalanxEvaluatorRegistration().fieldTag().dataLayout().extent_int(0),num_cells);
+    TEST_EQUALITY(basis_values.getWeightedBasisValuesForPhalanxEvaluatorRegistration().fieldTag().dataLayout().extent(1),9);
+    TEST_EQUALITY(basis_values.getWeightedBasisValuesForPhalanxEvaluatorRegistration().fieldTag().dataLayout().extent(2),num_qp);
+    TEST_EQUALITY(basis_values.getWeightedBasisValuesForPhalanxEvaluatorRegistration().fieldTag().name(),"prefix_weighted_basis");
 
     // check gradients
-    TEST_EQUALITY(basis_values.grad_basis_ref.fieldTag().dataLayout().rank(),3);
-    TEST_EQUALITY(basis_values.grad_basis_ref.fieldTag().dataLayout().extent(0),9);
-    TEST_EQUALITY(basis_values.grad_basis_ref.fieldTag().dataLayout().extent(1),num_qp);
-    TEST_EQUALITY(basis_values.grad_basis_ref.fieldTag().dataLayout().extent(2),2);
-    TEST_EQUALITY(basis_values.grad_basis_ref.fieldTag().name(),"prefix_grad_basis_ref");
+    TEST_EQUALITY(basis_values.getGradBasisValuesRefForPhalanxEvaluatorRegistration().fieldTag().dataLayout().rank(),3);
+    TEST_EQUALITY(basis_values.getGradBasisValuesRefForPhalanxEvaluatorRegistration().fieldTag().dataLayout().extent(0),9);
+    TEST_EQUALITY(basis_values.getGradBasisValuesRefForPhalanxEvaluatorRegistration().fieldTag().dataLayout().extent(1),num_qp);
+    TEST_EQUALITY(basis_values.getGradBasisValuesRefForPhalanxEvaluatorRegistration().fieldTag().dataLayout().extent(2),2);
+    TEST_EQUALITY(basis_values.getGradBasisValuesRefForPhalanxEvaluatorRegistration().fieldTag().name(),"prefix_grad_basis_ref");
 
-    TEST_EQUALITY(basis_values.grad_basis.fieldTag().dataLayout().rank(),4);
-    TEST_EQUALITY(basis_values.grad_basis.fieldTag().dataLayout().extent_int(0),num_cells);
-    TEST_EQUALITY(basis_values.grad_basis.fieldTag().dataLayout().extent(1),9);
-    TEST_EQUALITY(basis_values.grad_basis.fieldTag().dataLayout().extent(2),num_qp);
-    TEST_EQUALITY(basis_values.grad_basis.fieldTag().dataLayout().extent(3),2);
-    TEST_EQUALITY(basis_values.grad_basis.fieldTag().name(),"prefix_grad_basis");
+    TEST_EQUALITY(basis_values.getGradBasisValuesForPhalanxEvaluatorRegistration().fieldTag().dataLayout().rank(),4);
+    TEST_EQUALITY(basis_values.getGradBasisValuesForPhalanxEvaluatorRegistration().fieldTag().dataLayout().extent_int(0),num_cells);
+    TEST_EQUALITY(basis_values.getGradBasisValuesForPhalanxEvaluatorRegistration().fieldTag().dataLayout().extent(1),9);
+    TEST_EQUALITY(basis_values.getGradBasisValuesForPhalanxEvaluatorRegistration().fieldTag().dataLayout().extent(2),num_qp);
+    TEST_EQUALITY(basis_values.getGradBasisValuesForPhalanxEvaluatorRegistration().fieldTag().dataLayout().extent(3),2);
+    TEST_EQUALITY(basis_values.getGradBasisValuesForPhalanxEvaluatorRegistration().fieldTag().name(),"prefix_grad_basis");
 
-    TEST_EQUALITY(basis_values.weighted_grad_basis.fieldTag().dataLayout().rank(),4);
-    TEST_EQUALITY(basis_values.weighted_grad_basis.fieldTag().dataLayout().extent_int(0),num_cells);
-    TEST_EQUALITY(basis_values.weighted_grad_basis.fieldTag().dataLayout().extent(1),9);
-    TEST_EQUALITY(basis_values.weighted_grad_basis.fieldTag().dataLayout().extent(2),num_qp);
-    TEST_EQUALITY(basis_values.weighted_grad_basis.fieldTag().dataLayout().extent(3),2);
-    TEST_EQUALITY(basis_values.weighted_grad_basis.fieldTag().name(),"prefix_weighted_grad_basis");
+    TEST_EQUALITY(basis_values.getWeightedGradBasisValuesForPhalanxEvaluatorRegistration().fieldTag().dataLayout().rank(),4);
+    TEST_EQUALITY(basis_values.getWeightedGradBasisValuesForPhalanxEvaluatorRegistration().fieldTag().dataLayout().extent_int(0),num_cells);
+    TEST_EQUALITY(basis_values.getWeightedGradBasisValuesForPhalanxEvaluatorRegistration().fieldTag().dataLayout().extent(1),9);
+    TEST_EQUALITY(basis_values.getWeightedGradBasisValuesForPhalanxEvaluatorRegistration().fieldTag().dataLayout().extent(2),num_qp);
+    TEST_EQUALITY(basis_values.getWeightedGradBasisValuesForPhalanxEvaluatorRegistration().fieldTag().dataLayout().extent(3),2);
+    TEST_EQUALITY(basis_values.getWeightedGradBasisValuesForPhalanxEvaluatorRegistration().fieldTag().name(),"prefix_weighted_grad_basis");
 
     // check coordinates
-    TEST_EQUALITY(basis_values.basis_coordinates_ref.fieldTag().dataLayout().rank(),2);
-    TEST_EQUALITY(basis_values.basis_coordinates_ref.fieldTag().dataLayout().extent(0),9);
-    TEST_EQUALITY(basis_values.basis_coordinates_ref.fieldTag().dataLayout().extent(1),2);
-    TEST_EQUALITY(basis_values.basis_coordinates_ref.fieldTag().name(),"prefix_basis_coordinates_ref");
+    TEST_EQUALITY(basis_values.getBasisCoordinatesRefForPhalanxEvaluatorRegistration().fieldTag().dataLayout().rank(),2);
+    TEST_EQUALITY(basis_values.getBasisCoordinatesRefForPhalanxEvaluatorRegistration().fieldTag().dataLayout().extent(0),9);
+    TEST_EQUALITY(basis_values.getBasisCoordinatesRefForPhalanxEvaluatorRegistration().fieldTag().dataLayout().extent(1),2);
+    TEST_EQUALITY(basis_values.getBasisCoordinatesRefForPhalanxEvaluatorRegistration().fieldTag().name(),"prefix_basis_coordinates_ref");
 
-    TEST_EQUALITY(basis_values.basis_coordinates.fieldTag().dataLayout().rank(),3);
-    TEST_EQUALITY(basis_values.basis_coordinates.fieldTag().dataLayout().extent_int(0),num_cells);
-    TEST_EQUALITY(basis_values.basis_coordinates.fieldTag().dataLayout().extent(1),9);
-    TEST_EQUALITY(basis_values.basis_coordinates.fieldTag().dataLayout().extent(2),2);
-    TEST_EQUALITY(basis_values.basis_coordinates.fieldTag().name(),"prefix_basis_coordinates");
+    TEST_EQUALITY(basis_values.getBasisCoordinatesForPhalanxEvaluatorRegistration().fieldTag().dataLayout().rank(),3);
+    TEST_EQUALITY(basis_values.getBasisCoordinatesForPhalanxEvaluatorRegistration().fieldTag().dataLayout().extent_int(0),num_cells);
+    TEST_EQUALITY(basis_values.getBasisCoordinatesForPhalanxEvaluatorRegistration().fieldTag().dataLayout().extent(1),9);
+    TEST_EQUALITY(basis_values.getBasisCoordinatesForPhalanxEvaluatorRegistration().fieldTag().dataLayout().extent(2),2);
+    TEST_EQUALITY(basis_values.getBasisCoordinatesForPhalanxEvaluatorRegistration().fieldTag().name(),"prefix_basis_coordinates");
   }
 
   TEUCHOS_UNIT_TEST(basis_values, control_vol_hgrad)
@@ -1093,18 +1093,18 @@ namespace panzer {
     panzer::BasisValues2<double> basis_values("",true,true);
 
     basis_values.setupArrays(basisIRLayout);
-    basis_values.evaluateValuesCV(int_values_vol.ref_ip_coordinates,
-                                  int_values_vol.jac,
-                                  int_values_vol.jac_det,
-                                  int_values_vol.jac_inv);
+    basis_values.evaluateValuesCV(int_values_vol.getCubaturePointsRef(),
+                                  int_values_vol.getJacobian(),
+                                  int_values_vol.getJacobianDeterminant(),
+                                  int_values_vol.getJacobianInverse());
 
-    TEST_EQUALITY(basis_values.basis_scalar.extent_int(0),num_cells);
-    TEST_EQUALITY(basis_values.basis_scalar.extent(1),4);
-    TEST_EQUALITY(basis_values.basis_scalar.extent(2),num_qp);
+    TEST_EQUALITY(basis_values.getBasisValuesForPhalanxEvaluatorRegistration().extent_int(0),num_cells);
+    TEST_EQUALITY(basis_values.getBasisValuesForPhalanxEvaluatorRegistration().extent(1),4);
+    TEST_EQUALITY(basis_values.getBasisValuesForPhalanxEvaluatorRegistration().extent(2),num_qp);
 
     // check basis values, control volume integration points are defined on physical cells
-    auto ref_ip_coordinates_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),int_values_vol.ref_ip_coordinates.get_view());
-    auto basis_scalar_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),basis_values.basis_scalar.get_view());
+    auto ref_ip_coordinates_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),int_values_vol.getCubaturePointsRef().get_view());
+    auto basis_scalar_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),basis_values.getBasisValuesForPhalanxEvaluatorRegistration().get_view());
     for(int cell=0;cell<num_cells;cell++) {
 
        for(unsigned int i=0;i<num_qp;i++) {

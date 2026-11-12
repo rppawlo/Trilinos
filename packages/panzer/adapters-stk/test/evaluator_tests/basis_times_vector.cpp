@@ -58,7 +58,7 @@ namespace panzer {
   class BilinearPointEvaluator : public PointEvaluation<panzer::Traits::Residual::ScalarT> {
   public:
     virtual ~BilinearPointEvaluator() {}
-    virtual void evaluateContainer(const PHX::MDField<panzer::Traits::Residual::ScalarT,panzer::Cell,panzer::IP,panzer::Dim> & points,
+    virtual void evaluateContainer(const PHX::MDField<const panzer::Traits::Residual::ScalarT,panzer::Cell,panzer::IP,panzer::Dim> & points,
                                    PHX::MDField<panzer::Traits::Residual::ScalarT> & field) const
     {
        int num_cells = field.extent(0);

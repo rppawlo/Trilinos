@@ -280,14 +280,14 @@ namespace panzer {
   {
     TEST_EQUALITY(d0.int_rules.size(), d1.int_rules.size());
     for (std::size_t iri = 0; iri < d0.int_rules.size(); ++iri) {
-      const std::size_t num_ip = d0.int_rules[iri]->cub_points.extent(0),
-        num_dim = d0.int_rules[iri]->cub_points.extent(1);
+      const std::size_t num_ip = d0.int_rules[iri]->getUniformCubaturePointsRef().extent(0),
+        num_dim = d0.int_rules[iri]->getUniformCubaturePointsRef().extent(1);
 
-      auto d0_rules_view = d0.int_rules[iri]->ip_coordinates.get_static_view();
+      auto d0_rules_view = d0.int_rules[iri]->getCubaturePoints().get_static_view();
       auto d0_rules_h = Kokkos::create_mirror_view(d0_rules_view);
       Kokkos::deep_copy(d0_rules_h, d0_rules_view);
 
-      auto d1_rules_view = d1.int_rules[iri]->ip_coordinates.get_static_view();
+      auto d1_rules_view = d1.int_rules[iri]->getCubaturePoints().get_static_view();
       auto d1_rules_h = Kokkos::create_mirror_view(d1_rules_view);
       Kokkos::deep_copy(d1_rules_h, d1_rules_view);
 

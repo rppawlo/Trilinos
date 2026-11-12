@@ -117,9 +117,9 @@ namespace panzer {
     TEST_ASSERT(worksets->size()==1);
 
     auto & workset = (*worksets)[0];
-    auto rot_matrices = workset.getIntegrationValues(sid).surface_rotation_matrices;
-    auto normals = workset.getIntegrationValues(sid).surface_normals;
-    auto ip_coordinates = workset.getIntegrationValues(sid).ip_coordinates;
+    auto rot_matrices = workset.getIntegrationValues(sid).getSurfaceRotationMatrices();
+    auto normals = workset.getIntegrationValues(sid).getSurfaceNormals();
+    auto ip_coordinates = workset.getIntegrationValues(sid).getCubaturePoints();
 
     const panzer::SubcellConnectivity & face_connectivity = workset.getFaceConnectivity();
 

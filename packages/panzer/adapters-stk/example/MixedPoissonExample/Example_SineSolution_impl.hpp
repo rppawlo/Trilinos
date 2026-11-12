@@ -50,7 +50,7 @@ template <typename EvalT,typename Traits>
 void SineSolution<EvalT,Traits>::evaluateFields(typename Traits::EvalData workset)
 { 
   using panzer::index_t;
-  auto ip_coordinates = this->wda(workset).int_rules[ir_index]->ip_coordinates.get_static_view();
+  auto ip_coordinates = this->wda(workset).int_rules[ir_index]->getCubaturePoints().get_static_view();
   auto solution_v = solution.get_static_view();
 
   Kokkos::parallel_for (workset.num_cells, KOKKOS_LAMBDA (const index_t cell) {

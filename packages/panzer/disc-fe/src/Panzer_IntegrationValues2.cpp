@@ -704,7 +704,7 @@ template <typename Scalar>
 void
 IntegrationValues2<Scalar>::
 evaluateValues(const PHX::MDField<Scalar,Cell,NODE,Dim>& in_node_coordinates,
-               const PHX::MDField<Scalar,Cell,IP,Dim>& other_ip_coordinates,
+               const PHX::MDField<const Scalar,Cell,IP,Dim>& other_ip_coordinates,
                const int in_num_cells)
 {
   PANZER_FUNC_TIME_MONITOR_DIFF("panzer::integrationValues2::evaluateValues(no virtual cells)",eval_vals_no_virts);
@@ -743,7 +743,7 @@ setupPermutations(const Teuchos::RCP<const SubcellConnectivity> & face_connectiv
 template <typename Scalar>
 void
 IntegrationValues2<Scalar>::
-setupPermutations(const PHX::MDField<Scalar,Cell,IP,Dim> & other_ip_coordinates)
+setupPermutations(const PHX::MDField<const Scalar,Cell,IP,Dim> & other_ip_coordinates)
 {
   PANZER_FUNC_TIME_MONITOR_DIFF("panzer::integrationValues2::setupPermutations(other_coords)",setup_perms_coords);
   resetArrays();

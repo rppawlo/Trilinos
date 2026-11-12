@@ -204,10 +204,10 @@ getIntegrationValues(const panzer::IntegrationDescriptor & description,
 {
   if(not setup_){
     for(const auto & integration_values : int_rules){
-      if(integration_values == Teuchos::null or integration_values->int_rule == Teuchos::null)
+      if(integration_values == Teuchos::null or integration_values->getIntegrationRule() == Teuchos::null)
         continue;
 
-      if(integration_values->int_rule->getKey() == description.getKey())
+      if(integration_values->getIntegrationRule()->getKey() == description.getKey())
         return *integration_values;
     }
 
@@ -265,7 +265,7 @@ getIntegrationValues(const panzer::IntegrationDescriptor & description,
   }
 
   integration_values_map_[key] = iv;
-  ir_degrees->push_back(iv->int_rule->cubature_degree);
+  ir_degrees->push_back(iv->getIntegrationRule()->cubature_degree);
   int_rules.push_back(iv);
 
   return *iv;
@@ -279,10 +279,10 @@ getBasisValues(const panzer::BasisDescriptor & description,
 {
   if(not setup_){
     for(const auto & basis_values : bases){
-      if(basis_values == Teuchos::null or basis_values->basis_layout == Teuchos::null)
+      if(basis_values == Teuchos::null or basis_values->getBasisIRLayout() == Teuchos::null)
         continue;
 
-      const auto pure_basis = basis_values->basis_layout->getBasis();
+      const auto pure_basis = basis_values->getBasisIRLayout()->getBasis();
       if(pure_basis->type() == description.getType() and
          pure_basis->order() == description.getOrder())
         return *basis_values;
@@ -327,23 +327,23 @@ getBasisValues(const panzer::BasisDescriptor & basis_description,
   if(not setup_){
     for(std::size_t basis_index=0; basis_index<bases.size(); ++basis_index){
       auto & basis_values = *bases[basis_index];
-      if(basis_values.basis_layout == Teuchos::null)
+      if(basis_values.getBasisIRLayout() == Teuchos::null)
         continue;
 
-      const auto pure_basis = basis_values.basis_layout->getBasis();
+      const auto pure_basis = basis_values.getBasisIRLayout()->getBasis();
       if(pure_basis->type() != basis_description.getType())
         continue;
       if(pure_basis->order() != basis_description.getOrder())
         continue;
 
       for(const auto & integration_values : int_rules){
-        if(integration_values == Teuchos::null or integration_values->int_rule == Teuchos::null)
+        if(integration_values == Teuchos::null or integration_values->getIntegrationRule() == Teuchos::null)
           continue;
-        if(integration_values->int_rule->getKey() != integration_description.getKey())
+        if(integration_values->getIntegrationRule()->getKey() != integration_description.getKey())
           continue;
 
-        BasisIRLayout candidate_layout(basis_description.getType(), basis_description.getOrder(), *integration_values->int_rule);
-        if(candidate_layout.name() != basis_values.basis_layout->name())
+        BasisIRLayout candidate_layout(basis_description.getType(), basis_description.getOrder(), *integration_values->getIntegrationRule());
+        if(candidate_layout.name() != basis_values.getBasisIRLayout()->name())
           continue;
 
         return basis_values;
@@ -379,7 +379,7 @@ getBasisValues(const panzer::BasisDescriptor & basis_description,
 
   // Get the integration values for this description
   const auto & iv = getIntegrationValues(integration_description,lazy_version);
-  auto bir = Teuchos::rcp(new BasisIRLayout(basis_description.getType(), basis_description.getOrder(), *iv.int_rule));
+  auto bir = Teuchos::rcp(new BasisIRLayout(basis_description.getType(), basis_description.getOrder(), *iv.getIntegrationRule()));
 
   Teuchos::RCP<BasisValues2<double>> biv;
 
@@ -417,10 +417,10 @@ getBasisValues(const panzer::BasisDescriptor & basis_description,
        (integration_description.getType() == IntegrationDescriptor::CV_SIDE) or
        (integration_description.getType() == IntegrationDescriptor::CV_VOLUME)){
 
-      biv->evaluateValuesCV(iv.ref_ip_coordinates,
-                            iv.jac,
-                            iv.jac_det,
-                            iv.jac_inv,
+      biv->evaluateValuesCV(iv.getCubaturePointsRef(),
+                            iv.getJacobian(),
+                            iv.getJacobianDeterminant(),
+                            iv.getJacobianInverse(),
                             getCellNodes(),
                             true,
                             numCells());
@@ -430,22 +430,22 @@ getBasisValues(const panzer::BasisDescriptor & basis_description,
 
         // TODO: Eventually we will use the other call, however, that will be part of the BasisValues2 refactor
         // The reason we don't do it now is that there are small differences (machine precision) that break EMPIRE testing
-        biv->evaluateValues(iv.cub_points,
-                            iv.jac,
-                            iv.jac_det,
-                            iv.jac_inv,
-                            iv.weighted_measure,
+        biv->evaluateValues(iv.getUniformCubaturePointsRef(),
+                            iv.getJacobian(),
+                            iv.getJacobianDeterminant(),
+                            iv.getJacobianInverse(),
+                            iv.getWeightedMeasure(),
                             getCellNodes(),
                             true,
                             numCells());
 
       } else {
 
-        biv->evaluateValues(iv.ref_ip_coordinates,
-                            iv.jac,
-                            iv.jac_det,
-                            iv.jac_inv,
-                            iv.weighted_measure,
+        biv->evaluateValues(iv.getCubaturePointsRef(),
+                            iv.getJacobian(),
+                            iv.getJacobianDeterminant(),
+                            iv.getJacobianInverse(),
+                            iv.getWeightedMeasure(),
                             getCellNodes(),
                             true,
                             numCells());
@@ -458,7 +458,7 @@ getBasisValues(const panzer::BasisDescriptor & basis_description,
 
   basis_integration_values_map_[basis_key][integration_key] = biv;
   bases.push_back(biv);
-  basis_names->push_back(biv->basis_layout->name());
+  basis_names->push_back(biv->getBasisIRLayout()->name());
 
   return *biv;
 
@@ -657,43 +657,37 @@ operator<<(std::ostream& os,
 
     os << "  IR Values (Degree=" << *ir << "):" << endl;
 
-    os << "    cub_points:" << endl;
-    os << (*irv)->cub_points << endl;
-
-    os << "    side_cub_points:" << endl;
-    os << (*irv)->side_cub_points << endl;
-
-    os << "    cub_weights:" << endl;
-    os << (*irv)->cub_weights << endl;
-
-    os << "    node_coordinates:" << endl;
-    os << (*irv)->node_coordinates << endl;
-
-    os << "    jac:" << endl;
-    os << (*irv)->jac << endl;
-
-    os << "    jac_inv:" << endl;
-    os << (*irv)->jac_inv << endl;
-
-    os << "    jac_det:" << endl;
-    os << (*irv)->jac_det << endl;
-
-    os << "    weighted_measure:" << endl;
-    os << (*irv)->weighted_measure << endl;
-
-    os << "    covarient:" << endl;
-    os << (*irv)->covarient << endl;
-
-    os << "    contravarient:" << endl;
-    os << (*irv)->contravarient << endl;
-
-    os << "    norm_contravarient:" << endl;
-    os << (*irv)->norm_contravarient << endl;
+    os << "    ref_ip_coordinates:" << endl;
+    os << (*irv)->getCubaturePointsRef() << endl;
 
     os << "    ip_coordinates:" << endl;
-    os << (*irv)->ip_coordinates << endl;
+    os << (*irv)->getCubaturePoints() << endl;
 
-    os << "    int_rule->getName():" << (*irv)->int_rule->getName() << endl;
+    os << "    node_coordinates:" << endl;
+    os << (*irv)->getNodeCoordinates() << endl;
+
+    os << "    jac:" << endl;
+    os << (*irv)->getJacobian() << endl;
+
+    os << "    jac_inv:" << endl;
+    os << (*irv)->getJacobianInverse() << endl;
+
+    os << "    jac_det:" << endl;
+    os << (*irv)->getJacobianDeterminant() << endl;
+
+    os << "    weighted_measure:" << endl;
+    os << (*irv)->getWeightedMeasure() << endl;
+
+    os << "    covarient:" << endl;
+    os << (*irv)->getCovarientMatrix() << endl;
+
+    os << "    contravarient:" << endl;
+    os << (*irv)->getContravarientMatrix() << endl;
+
+    os << "    norm_contravarient:" << endl;
+    os << (*irv)->getNormContravarientMatrix() << endl;
+
+    os << "    int_rule->getName():" << (*irv)->getIntegrationRule()->getName() << endl;
   }
 
 
@@ -713,28 +707,28 @@ operator<<(std::ostream& os,
     os << (*bv)->basis_ref << endl;
 
     os << "    basis:" << endl;
-    os << (*bv)->basis_scalar << endl;
+    os << (*bv)->getBasisValuesForPhalanxEvaluatorRegistration() << endl;
 
     os << "    grad_basis_ref:" << endl;
-    os << (*bv)->grad_basis_ref << endl;
+    os << (*bv)->getGradBasisValuesRefForPhalanxEvaluatorRegistration() << endl;
 
     os << "    grad_basis:" << endl;
-    os << (*bv)->grad_basis << endl;
+    os << (*bv)->getGradBasisValuesForPhalanxEvaluatorRegistration() << endl;
 
     os << "    curl_basis_ref:" << endl;
-    os << (*bv)->curl_basis_ref_vector << endl;
+    os << (*bv)->getCurlVectorBasisValuesRefForPhalanxEvaluatorRegistration() << endl;
 
     os << "    curl_basis:" << endl;
-    os << (*bv)->curl_basis_vector << endl;
+    os << (*bv)->getCurlVectorBasisValuesForPhalanxEvaluatorRegistration() << endl;
 
     os << "    basis_coordinates_ref:" << endl;
-    os << (*bv)->basis_coordinates_ref << endl;
+    os << (*bv)->getBasisCoordinatesRefForPhalanxEvaluatorRegistration() << endl;
 
     os << "    basis_coordinates:" << endl;
-    os << (*bv)->basis_coordinates << endl;
+    os << (*bv)->getBasisCoordinatesForPhalanxEvaluatorRegistration() << endl;
 */
 
-    os << "    basis_layout->name():" << (*bv)->basis_layout->name() << endl;
+    os << "    basis_layout->name():" << (*bv)->getBasisIRLayout()->name() << endl;
   }
 
 

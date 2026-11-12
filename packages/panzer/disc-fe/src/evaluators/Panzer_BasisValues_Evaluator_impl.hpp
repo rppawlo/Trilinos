@@ -24,7 +24,7 @@ BasisValues_Evaluator(
   const Teuchos::ParameterList& p)
   : derivativesRequired_(true)
 {
-  Teuchos::RCP<const panzer::PointRule> pointRule 
+  Teuchos::RCP<const panzer::PointRule> pointRule
      = p.get< Teuchos::RCP<const panzer::PointRule> >("Point Rule");
   Teuchos::RCP<const panzer::PureBasis> inBasis
      = p.get<Teuchos::RCP<const panzer::PureBasis> >("Basis");
@@ -88,36 +88,36 @@ void BasisValues_Evaluator<EvalT,TRAITST>::initialize(const Teuchos::RCP<const p
   // the field manager will allocate all of these field
 
   if(basis->getElementSpace()==panzer::PureBasis::HGRAD) {
-    this->addEvaluatedField(basisValues->basis_ref_scalar);      
-    this->addEvaluatedField(basisValues->basis_scalar);           
+    this->addEvaluatedField(basisValues->getBasisValuesRefForPhalanxEvaluatorRegistration());
+    this->addEvaluatedField(basisValues->getBasisValuesForPhalanxEvaluatorRegistration());
 
     if(derivativesRequired) {
-      this->addEvaluatedField(basisValues->grad_basis_ref);   
-      this->addEvaluatedField(basisValues->grad_basis);        
+      this->addEvaluatedField(basisValues->getGradBasisValuesRefForPhalanxEvaluatorRegistration());
+      this->addEvaluatedField(basisValues->getGradBasisValuesForPhalanxEvaluatorRegistration());
     }
   }
 
   if(basis->getElementSpace()==panzer::PureBasis::HCURL) {
-    this->addEvaluatedField(basisValues->basis_ref_vector);      
-    this->addEvaluatedField(basisValues->basis_vector);           
+    this->addEvaluatedField(basisValues->getVectorBasisValuesRefForPhalanxEvaluatorRegistration());
+    this->addEvaluatedField(basisValues->getVectorBasisValuesForPhalanxEvaluatorRegistration());
 
     if(derivativesRequired && space_dim==2) {
-      this->addEvaluatedField(basisValues->curl_basis_ref_scalar);     
-      this->addEvaluatedField(basisValues->curl_basis_scalar);          
+      this->addEvaluatedField(basisValues->getCurlBasisValuesRefForPhalanxEvaluatorRegistration());
+      this->addEvaluatedField(basisValues->getCurlBasisValuesForPhalanxEvaluatorRegistration());
     }
     else if(derivativesRequired && space_dim==3) {
-      this->addEvaluatedField(basisValues->curl_basis_ref_vector);     
-      this->addEvaluatedField(basisValues->curl_basis_vector);          
+      this->addEvaluatedField(basisValues->getCurlVectorBasisValuesRefForPhalanxEvaluatorRegistration());
+      this->addEvaluatedField(basisValues->getCurlVectorBasisValuesForPhalanxEvaluatorRegistration());
     }
   }
 
   if(basis->getElementSpace()==panzer::PureBasis::HDIV) {
-    this->addEvaluatedField(basisValues->basis_ref_vector);      
-    this->addEvaluatedField(basisValues->basis_vector);           
+    this->addEvaluatedField(basisValues->getVectorBasisValuesRefForPhalanxEvaluatorRegistration());
+    this->addEvaluatedField(basisValues->getVectorBasisValuesForPhalanxEvaluatorRegistration());
 
     if(derivativesRequired) {
-      this->addEvaluatedField(basisValues->div_basis_ref);     
-      this->addEvaluatedField(basisValues->div_basis);          
+      this->addEvaluatedField(basisValues->getDivBasisValuesRefForPhalanxEvaluatorRegistration());
+      this->addEvaluatedField(basisValues->getDivBasisValuesForPhalanxEvaluatorRegistration());
     }
   }
 
@@ -148,36 +148,36 @@ postRegistrationSetup(
   // setup the pointers for the basis values data structure
 
   if(basis->getElementSpace()==panzer::PureBasis::HGRAD) {
-    this->utils.setFieldData(basisValues->basis_ref_scalar,fm);      
-    this->utils.setFieldData(basisValues->basis_scalar,fm);           
+    this->utils.setFieldData(basisValues->getBasisValuesRefForPhalanxEvaluatorRegistration(),fm);
+    this->utils.setFieldData(basisValues->getBasisValuesForPhalanxEvaluatorRegistration(),fm);
 
     if(derivativesRequired_) {
-      this->utils.setFieldData(basisValues->grad_basis_ref,fm);   
-      this->utils.setFieldData(basisValues->grad_basis,fm);        
+      this->utils.setFieldData(basisValues->getGradBasisValuesRefForPhalanxEvaluatorRegistration(),fm);
+      this->utils.setFieldData(basisValues->getGradBasisValuesForPhalanxEvaluatorRegistration(),fm);
     }
   }
 
   if(basis->getElementSpace()==panzer::PureBasis::HCURL) {
-    this->utils.setFieldData(basisValues->basis_ref_vector,fm);      
-    this->utils.setFieldData(basisValues->basis_vector,fm);           
+    this->utils.setFieldData(basisValues->getVectorBasisValuesRefForPhalanxEvaluatorRegistration(),fm);
+    this->utils.setFieldData(basisValues->getVectorBasisValuesForPhalanxEvaluatorRegistration(),fm);
 
     if(derivativesRequired_ && space_dim==2) {
-      this->utils.setFieldData(basisValues->curl_basis_ref_scalar,fm);     
-      this->utils.setFieldData(basisValues->curl_basis_scalar,fm);          
+      this->utils.setFieldData(basisValues->getCurlBasisValuesRefForPhalanxEvaluatorRegistration(),fm);
+      this->utils.setFieldData(basisValues->getCurlBasisValuesForPhalanxEvaluatorRegistration(),fm);
     }
     else if(derivativesRequired_ && space_dim==3) {
-      this->utils.setFieldData(basisValues->curl_basis_ref_vector,fm);     
-      this->utils.setFieldData(basisValues->curl_basis_vector,fm);          
+      this->utils.setFieldData(basisValues->getCurlVectorBasisValuesRefForPhalanxEvaluatorRegistration(),fm);
+      this->utils.setFieldData(basisValues->getCurlVectorBasisValuesForPhalanxEvaluatorRegistration(),fm);
     }
   }
 
   if(basis->getElementSpace()==panzer::PureBasis::HDIV) {
-    this->utils.setFieldData(basisValues->basis_ref_vector,fm);      
-    this->utils.setFieldData(basisValues->basis_vector,fm);           
+    this->utils.setFieldData(basisValues->getVectorBasisValuesRefForPhalanxEvaluatorRegistration(),fm);
+    this->utils.setFieldData(basisValues->getVectorBasisValuesForPhalanxEvaluatorRegistration(),fm);
 
     if(derivativesRequired_) {
-      this->utils.setFieldData(basisValues->div_basis_ref,fm);     
-      this->utils.setFieldData(basisValues->div_basis,fm);          
+      this->utils.setFieldData(basisValues->getDivBasisValuesRefForPhalanxEvaluatorRegistration(),fm);
+      this->utils.setFieldData(basisValues->getDivBasisValuesForPhalanxEvaluatorRegistration(),fm);
     }
   }
 
@@ -189,7 +189,7 @@ void
 BasisValues_Evaluator<EvalT, Traits>::
 evaluateFields(
   typename Traits::EvalData  workset)
-{ 
+{
   // evaluate the point values (construct jacobians etc...)
   basisValues->evaluateValues(pointValues.coords_ref,
                               pointValues.jac,
@@ -200,11 +200,11 @@ evaluateFields(
   // this can be over-ridden in basisValues e.g., DG element setting
   if(basis->requiresOrientations()) {
     const WorksetDetails & details = workset;
-    
+
     std::vector<Intrepid2::Orientation> ortPerWorkset;
     for (index_t c=0;c<workset.num_cells;++c)
       ortPerWorkset.push_back((*orientations)[details.cell_local_ids[c]]);
-    
+
     basisValues->applyOrientations(ortPerWorkset, (int) workset.num_cells);
   }
 }

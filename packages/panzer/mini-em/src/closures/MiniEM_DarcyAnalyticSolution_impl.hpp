@@ -63,7 +63,7 @@ void DarcyAnalyticSolution<EvalT,Traits>::evaluateFields(typename Traits::EvalDa
   double time = workset.time;
   const auto pi = Kokkos::numbers::pi_v<double>;
 
-  const auto coords = workset.int_rules[ir_index]->ip_coordinates.get_static_view();
+  const auto coords = workset.int_rules[ir_index]->getCubaturePoints().get_static_view();
   auto tmp_source = source.get_static_view();
 
   if (ir_dim == 3) {

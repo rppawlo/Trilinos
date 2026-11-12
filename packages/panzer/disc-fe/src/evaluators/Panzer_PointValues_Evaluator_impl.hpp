@@ -51,6 +51,14 @@ PointValues_Evaluator<EvalT,TRAITST>::PointValues_Evaluator(const Teuchos::RCP<c
 //**********************************************************************
 template <typename EvalT, typename TRAITST>
 PointValues_Evaluator<EvalT,TRAITST>::PointValues_Evaluator(const Teuchos::RCP<const panzer::PointRule> & pointRule,
+                                                            const PHX::MDField<const double, panzer::IP, panzer::Dim> & userArray)
+{
+  initialize(pointRule,Teuchos::ptrFromRef(userArray),Teuchos::null);
+}
+
+//**********************************************************************
+template <typename EvalT, typename TRAITST>
+PointValues_Evaluator<EvalT,TRAITST>::PointValues_Evaluator(const Teuchos::RCP<const panzer::PointRule> & pointRule,
                                                             const Teuchos::RCP<const panzer::PureBasis> & pureBasis)
 {
   Teuchos::Ptr<const PHX::MDField<double, panzer::IP, panzer::Dim> > userArray;

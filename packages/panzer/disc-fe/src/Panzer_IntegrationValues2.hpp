@@ -96,39 +96,8 @@ namespace panzer {
         to the workset size.
     */
     void evaluateValues(const PHX::MDField<Scalar,Cell,NODE,Dim> & cell_node_coordinates,
-                        const PHX::MDField<Scalar,Cell,IP,Dim> & other_ip_coordinates,
+                        const PHX::MDField<const Scalar,Cell,IP,Dim> & other_ip_coordinates,
                         const int num_cells = -1);
-
-    // Reference space quantities
-    mutable Array_IPDim cub_points;              // <IP,Dim>
-    mutable Array_IPDim side_cub_points;         // <IP,Dim> points on face topology (dim-1)
-    mutable Array_IP cub_weights;                // <IP>
-
-    // Physical space quantities
-    mutable Array_CellBASISDim node_coordinates; // <Cell,BASIS,Dim>
-    mutable Array_CellIPDimDim jac;              // <Cell,IP,Dim,Dim>
-    mutable Array_CellIPDimDim jac_inv;          // <Cell,IP,Dim,Dim>
-    mutable Array_CellIP jac_det;                // <Cell,IP>
-    mutable Array_CellIP weighted_measure;       // <Cell,IP>
-    mutable Array_CellIPDim weighted_normals;    // <Cell,IP,Dim>
-    mutable Array_CellIPDim surface_normals;    // <Cell,IP,Dim>
-    mutable Array_CellIPDimDim surface_rotation_matrices;    // <Cell,IP,Dim,Dim>
-      // this (appears) is a matrix where the first row is the "normal" direction
-      // and the remaining two rows lie in the hyperplane
-
-    // for Shakib stabilization <Cell,IP,Dim,Dim>
-    mutable Array_CellIPDimDim covarient;
-    mutable Array_CellIPDimDim contravarient;
-    mutable Array_CellIP norm_contravarient;
-
-    // integration points
-    mutable Array_CellIPDim ip_coordinates;      // <Cell,IP,Dim>
-    mutable Array_CellIPDim ref_ip_coordinates;  // <Cell,IP,Dim> for Control Volumes or Surface integrals
-
-
-    Teuchos::RCP<const panzer::IntegrationRule> int_rule;
-
-    Teuchos::RCP<Intrepid2::Cubature<PHX::Device,double,double>> intrepid_cubature;
 
     // =====================================================================================================
     // Lazy evaluation interface
@@ -183,7 +152,7 @@ namespace panzer {
      * \param[in] other_ip_coordinates Cubature points to align with
      */
     void
-    setupPermutations(const PHX::MDField<Scalar,Cell,IP,Dim> & other_ip_coordinates);
+    setupPermutations(const PHX::MDField<const Scalar,Cell,IP,Dim> & other_ip_coordinates);
 
     /**
      * \brief Get the uniform cubature points
@@ -853,6 +822,35 @@ namespace panzer {
     evaluateEverything();
 
   private:
+
+    // Reference space quantities
+    mutable Array_IPDim cub_points;              // <IP,Dim>
+    mutable Array_IPDim side_cub_points;         // <IP,Dim> points on face topology (dim-1)
+    mutable Array_IP cub_weights;                // <IP>
+
+    // Physical space quantities
+    mutable Array_CellBASISDim node_coordinates; // <Cell,BASIS,Dim>
+    mutable Array_CellIPDimDim jac;              // <Cell,IP,Dim,Dim>
+    mutable Array_CellIPDimDim jac_inv;          // <Cell,IP,Dim,Dim>
+    mutable Array_CellIP jac_det;                // <Cell,IP>
+    mutable Array_CellIP weighted_measure;       // <Cell,IP>
+    mutable Array_CellIPDim weighted_normals;    // <Cell,IP,Dim>
+    mutable Array_CellIPDim surface_normals;     // <Cell,IP,Dim>
+    mutable Array_CellIPDimDim surface_rotation_matrices;    // <Cell,IP,Dim,Dim>
+      // this (appears) is a matrix where the first row is the "normal" direction
+      // and the remaining two rows lie in the hyperplane
+
+    // for Shakib stabilization <Cell,IP,Dim,Dim>
+    mutable Array_CellIPDimDim covarient;
+    mutable Array_CellIPDimDim contravarient;
+    mutable Array_CellIP norm_contravarient;
+
+    // integration points
+    mutable Array_CellIPDim ip_coordinates;      // <Cell,IP,Dim>
+    mutable Array_CellIPDim ref_ip_coordinates;  // <Cell,IP,Dim> for Control Volumes or Surface integrals
+
+    Teuchos::RCP<const panzer::IntegrationRule> int_rule;
+    Teuchos::RCP<Intrepid2::Cubature<PHX::Device,double,double>> intrepid_cubature;
 
     bool alloc_arrays_;
     std::string prefix_;

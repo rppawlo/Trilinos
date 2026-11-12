@@ -44,7 +44,7 @@ template <typename EvalT,typename Traits>
 void Solution<EvalT,Traits>::evaluateFields(typename Traits::EvalData workset)
 {
   using panzer::index_t;
-  auto ip_coordinates = workset.int_rules[ir_index]->ip_coordinates.get_static_view();
+  auto ip_coordinates = workset.int_rules[ir_index]->getCubaturePoints().get_static_view();
   auto solution_v = solution.get_static_view();
   auto l_linear_Robin = linear_Robin;
   auto workset_block_0 = (workset.block_id[7] == '0');

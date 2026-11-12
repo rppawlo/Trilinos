@@ -7,22 +7,22 @@ safest patch-sketch candidates and leaves manual-review recipes advisory-only.
 
 Common Panzer-application dry-run commands:
 
-  python3 -I panzer_migration_scan.py <application-root> --format text
+  python3 -I panzer_lazy_workset_evaluation_migration.py <application-root> --format text
       Full advisory scan: line findings, migration recipes, and cache hazards.
 
-  python3 -I panzer_migration_scan.py <application-root> --recipes-only
+  python3 -I panzer_lazy_workset_evaluation_migration.py <application-root> --recipes-only
       Human-readable descriptor migration recipes.
 
-  python3 -I panzer_migration_scan.py <application-root> --patch-sketches-only
+  python3 -I panzer_lazy_workset_evaluation_migration.py <application-root> --patch-sketches-only
       Non-applied patch sketches for the safest recipe candidates only.
 
-  python3 -I panzer_migration_scan.py <application-root> --apply-patch-sketches
+  python3 -I panzer_lazy_workset_evaluation_migration.py <application-root> --apply-patch-sketches
       Apply the safest descriptor-migration patch sketches in place.
 
-  python3 -I panzer_migration_scan.py <application-root> --cache-hazards-only
+  python3 -I panzer_lazy_workset_evaluation_migration.py <application-root> --cache-hazards-only
       Focused releaseCachedData() lifecycle hazard report.
 
-  python3 -I panzer_migration_scan.py --self-test
+  python3 -I panzer_lazy_workset_evaluation_migration.py --self-test
       Built-in scanner self-test for lifecycle hazard detection.
 
 Use --format json or --format tsv with the report modes for downstream tooling.
@@ -36,6 +36,7 @@ import json
 import pathlib
 import re
 import sys
+import tempfile
 from collections import Counter, defaultdict
 from typing import Iterable
 
@@ -75,6 +76,7 @@ class Recipe:
     summary: str
     hint: str
     field_counts: tuple[tuple[str, int], ...] = ()
+    phalanx_registration_field_counts: tuple[tuple[str, int], ...] = ()
     legacy_index: str | None = None
     legacy_alias: str | None = None
     setup_function: str | None = None
@@ -123,44 +125,84 @@ class CacheHazard:
 
 
 BASIS_FIELD_GETTERS = {
-    "basis_scalar": "basis_scalar",
-    "basis_vector": "basis_vector",
-    "grad_basis": "grad_basis",
-    "curl_basis_scalar": "curl_basis_scalar",
-    "curl_basis_vector": "curl_basis_vector",
-    "div_basis": "div_basis",
-    "weighted_basis_scalar": "weighted_basis_scalar",
-    "weighted_basis_vector": "weighted_basis_vector",
-    "weighted_grad_basis": "weighted_grad_basis",
-    "weighted_curl_basis_scalar": "weighted_curl_basis_scalar",
-    "weighted_curl_basis_vector": "weighted_curl_basis_vector",
-    "weighted_div_basis": "weighted_div_basis",
-    "basis_coordinates_ref": "basis_coordinates_ref",
-    "basis_coordinates": "basis_coordinates",
+    "basis_scalar": "getBasisValues(panzer::WeightBasis::No)",
+    "basis_vector": "getVectorBasisValues(panzer::WeightBasis::No)",
+    "grad_basis": "getGradBasisValues(panzer::WeightBasis::No)",
+    "curl_basis_scalar": "getCurlBasisValues(panzer::WeightBasis::No)",
+    "curl_basis_vector": "getCurlVectorBasisValues(panzer::WeightBasis::No)",
+    "div_basis": "getDivBasisValues(panzer::WeightBasis::No)",
+    "weighted_basis_scalar": "getBasisValues(panzer::WeightBasis::Yes)",
+    "weighted_basis_vector": "getVectorBasisValues(panzer::WeightBasis::Yes)",
+    "weighted_grad_basis": "getGradBasisValues(panzer::WeightBasis::Yes)",
+    "weighted_curl_basis_scalar": "getCurlBasisValues(panzer::WeightBasis::Yes)",
+    "weighted_curl_basis_vector": "getCurlBasisValues(panzer::WeightBasis::Yes)",
+    "weighted_div_basis": "getDivBasisValues(panzer::WeightBasis::Yes)",
+    "basis_coordinates_ref": "getBasisCoordinatesRef()",
+    "basis_coordinates": "getBasisCoordinates()",
 }
 
+BASIS_PHALANX_REGISTRATION_GETTERS = {
+    "basis_scalar": "getBasisValuesForPhalanxEvaluatorRegistration()",
+    "basis_vector": "getVectorBasisValuesForPhalanxEvaluatorRegistration()",
+    "grad_basis": "getGradBasisValuesForPhalanxEvaluatorRegistration()",
+    "curl_basis_scalar": "getCurlBasisValuesForPhalanxEvaluatorRegistration()",
+    "curl_basis_vector": "getCurlVectorBasisValuesForPhalanxEvaluatorRegistration()",
+    "div_basis": "getDivBasisValuesForPhalanxEvaluatorRegistration()",
+    "weighted_basis_scalar": "getWeightedBasisValuesForPhalanxEvaluatorRegistration()",
+    "weighted_basis_vector": "getWeightedVectorBasisValuesForPhalanxEvaluatorRegistration()",
+    "weighted_grad_basis": "getWeightedGradBasisValuesForPhalanxEvaluatorRegistration()",
+    "weighted_curl_basis_scalar": "getWeightedCurlBasisValuesForPhalanxEvaluatorRegistration()",
+    "weighted_curl_basis_vector": "getWeightedCurlVectorBasisValuesForPhalanxEvaluatorRegistration()",
+    "weighted_div_basis": "getWeightedDivBasisValuesForPhalanxEvaluatorRegistration()",
+    "basis_coordinates_ref": "getBasisCoordinatesRefForPhalanxEvaluatorRegistration()",
+    "basis_coordinates": "getBasisCoordinatesForPhalanxEvaluatorRegistration()",
+}
+
+PHALANX_REGISTRATION_CALL_PATTERN = re.compile(
+    r"\b(?:addEvaluatedField|addDependentField|addNonConstDependentField|setFieldData)\s*\("
+)
+
 INTEGRATION_FIELD_GETTERS = {
-    "weighted_measure": "weighted_measure",
-    "jac": "jac",
-    "jac_det": "jac_det",
-    "jac_inv": "jac_inv",
-    "weighted_normals": "weighted_normals",
-    "cub_points": "cub_points",
-    "side_cub_points": "getCubaturePoints(CacheValues::Yes, ForceRecompute::No) or manual side-rule review",
-    "cub_weights": "manual review: setup-time cubature weights; no direct migration assumed",
-    "ip_coordinates": "manual review: no exact accessor mapping recorded by this scanner",
-    "ref_ip_coordinates": "manual review: no exact accessor mapping recorded by this scanner",
-    "covarient": "manual review: no exact accessor mapping recorded by this scanner",
-    "contravarient": "manual review: no exact accessor mapping recorded by this scanner",
-    "norm_contravarient": "manual review: no exact accessor mapping recorded by this scanner",
-    "surface_normals": "manual review: no exact accessor mapping recorded by this scanner",
-    "surface_rotation_matrices": "manual review: no exact accessor mapping recorded by this scanner",
-    "node_coordinates": "manual review: setup/workset-owned coordinates; do not replace blindly",
+    "weighted_measure": "getWeightedMeasure()",
+    "jac": "getJacobian()",
+    "jac_det": "getJacobianDeterminant()",
+    "jac_inv": "getJacobianInverse()",
+    "weighted_normals": "getWeightedNormals()",
+    "cub_points": "getUniformCubaturePointsRef()",
+    "side_cub_points": "manual review: getUniformSideCubaturePointsRef() is shape-preserving but deprecated; getCubaturePointsRef() changes rank/semantics",
+    "cub_weights": "getUniformCubatureWeightsRef()",
+    "ip_coordinates": "getCubaturePoints()",
+    "ref_ip_coordinates": "getCubaturePointsRef()",
+    "covarient": "getCovarientMatrix(true)",
+    "contravarient": "getContravarientMatrix(true)",
+    "norm_contravarient": "getNormContravarientMatrix(true)",
+    "surface_normals": "getSurfaceNormals()",
+    "surface_rotation_matrices": "getSurfaceRotationMatrices()",
+    "node_coordinates": "getNodeCoordinates()",
+}
+
+INTEGRATION_FIELD_NOTES = {
+    "cub_points": (
+        "rank <IP,Dim> uniform reference points. This is the backing field for "
+        "getUniformCubaturePointsRef(); for side rules it is mapped into the parent reference cell. "
+        "It is not the CV/surface cell-dependent reference-point field."
+    ),
+    "side_cub_points": (
+        "rank <IP,Dim> side-topology reference points. The shape-preserving accessor is the deprecated "
+        "getUniformSideCubaturePointsRef(); the preferred getCubaturePointsRef() returns cell-dependent "
+        "rank <Cell,IP,Dim> parent-reference points, so automatic replacement needs manual review."
+    ),
+    "cub_weights": (
+        "rank <IP> uniform reference weights. This maps to getUniformCubatureWeightsRef() and is not "
+        "the cell-dependent weighted measure."
+    ),
+    "ip_coordinates": "rank <Cell,IP,Dim> physical integration-point coordinates from getCubaturePoints().",
+    "ref_ip_coordinates": "rank <Cell,IP,Dim> cell-dependent reference integration-point coordinates from getCubaturePointsRef().",
 }
 
 ALL_LEGACY_FIELDS = tuple(sorted(set(BASIS_FIELD_GETTERS) | set(INTEGRATION_FIELD_GETTERS)))
 LEGACY_FIELD_PATTERN = re.compile(
-    r"\.\s*(" + "|".join(re.escape(field) for field in ALL_LEGACY_FIELDS) + r")\b"
+    r"(?:\.|->)\s*(" + "|".join(re.escape(field) for field in ALL_LEGACY_FIELDS) + r")\b"
 )
 VIEW_HANDLE_ASSIGN_PATTERN = re.compile(
     r"\b(?P<name>[A-Za-z_][A-Za-z0-9_]*)\s*=\s*[^;]*(?:get_static_view|get_view)\s*\("
@@ -199,18 +241,43 @@ FIELD_HANDLE_NAMES = {
 
 RULES: tuple[Rule, ...] = (
     Rule(
+        name="workset-int-rules-private-field",
+        category="private-field-breakage",
+        risk="high",
+        pattern=re.compile(
+            r"\(?\s*\b(?:this->wda\([^)]*\)|wda\([^)]*\)|workset)\.int_rules\s*\[[^\]]+\]\s*\)?\s*->\s*"
+            r"(?:ip_coordinates|ref_ip_coordinates|weighted_measure|jac|jac_det|jac_inv|"
+            r"covarient|contravarient|norm_contravarient|weighted_normals|surface_normals|"
+            r"surface_rotation_matrices|cub_points|side_cub_points|cub_weights|node_coordinates)\b"
+        ),
+        hint="Required fix: direct access to private IntegrationValues2 cached/setup fields must be replaced with IntegrationValues2 getter APIs.",
+    ),
+    Rule(
+        name="workset-bases-private-field",
+        category="private-field-breakage",
+        risk="high",
+        pattern=re.compile(
+            r"\(?\s*\b(?:this->wda\([^)]*\)|wda\([^)]*\)|workset)\.bases\s*\[[^\]]+\]\s*\)?\s*->\s*"
+            r"(?:basis_scalar|basis_vector|grad_basis|curl_basis_scalar|curl_basis_vector|"
+            r"div_basis|weighted_basis_scalar|weighted_basis_vector|weighted_grad_basis|"
+            r"weighted_curl_basis_scalar|weighted_curl_basis_vector|weighted_div_basis|"
+            r"basis_coordinates_ref|basis_coordinates)\b"
+        ),
+        hint="Required fix: direct access to private BasisValues2 cached/setup fields must be replaced with value getters or Phalanx evaluator registration getters as appropriate.",
+    ),
+    Rule(
         name="workset-int-rules-index",
         category="descriptor-access",
-        risk="high",
+        risk="medium",
         pattern=re.compile(r"\b(?:this->wda\([^)]*\)|wda\([^)]*\)|workset)\.int_rules\s*\["),
-        hint="Prefer WorksetDetails::getIntegrationValues(IntegrationDescriptor, true) and value getters.",
+        hint="Recommended descriptor migration: direct workset int_rules indexing may still compile when using getters, but prefer WorksetDetails::getIntegrationValues(IntegrationDescriptor, true).",
     ),
     Rule(
         name="workset-bases-index",
         category="descriptor-access",
-        risk="high",
+        risk="medium",
         pattern=re.compile(r"\b(?:this->wda\([^)]*\)|wda\([^)]*\)|workset)\.bases\s*\["),
-        hint="Prefer WorksetDetails::getBasisValues(BasisDescriptor, IntegrationDescriptor, true) and value getters.",
+        hint="Recommended descriptor migration: direct workset bases indexing may still compile when using getters, but prefer WorksetDetails::getBasisValues(BasisDescriptor, IntegrationDescriptor, true).",
     ),
     Rule(
         name="integration-rule-index-helper",
@@ -231,7 +298,9 @@ RULES: tuple[Rule, ...] = (
         category="direct-field-access",
         risk="medium",
         pattern=re.compile(
-            r"\.\s*(?:ip_coordinates|ref_ip_coordinates|weighted_measure|jac|jac_det|jac_inv|"
+            r"(?:\(?\s*\b(?:this->wda\([^)]*\)|wda\([^)]*\)|workset)\.int_rules\s*\[[^\]]+\]\s*\)?"
+            r"|\b(?:[A-Za-z_]\w*(?:integration|Integration|values|Values|int_rule|ir|IR)[A-Za-z0-9_]*|iv)\b)"
+            r"\s*(?:\.|->)\s*(?:ip_coordinates|ref_ip_coordinates|weighted_measure|jac|jac_det|jac_inv|"
             r"covarient|contravarient|norm_contravarient|weighted_normals|surface_normals|"
             r"surface_rotation_matrices|cub_points|side_cub_points|cub_weights|node_coordinates)\b"
         ),
@@ -242,12 +311,27 @@ RULES: tuple[Rule, ...] = (
         category="direct-field-access",
         risk="medium",
         pattern=re.compile(
-            r"\.\s*(?:basis_scalar|basis_vector|grad_basis|curl_basis_scalar|curl_basis_vector|"
+            r"(?:\(?\s*\b(?:this->wda\([^)]*\)|wda\([^)]*\)|workset)\.bases\s*\[[^\]]+\]\s*\)?"
+            r"|\b(?:[A-Za-z_]\w*(?:basis|Basis|values|Values)[A-Za-z0-9_]*|bv)\b)"
+            r"\s*(?:\.|->)\s*(?:basis_scalar|basis_vector|grad_basis|curl_basis_scalar|curl_basis_vector|"
             r"div_basis|weighted_basis_scalar|weighted_basis_vector|weighted_grad_basis|"
             r"weighted_curl_basis_scalar|weighted_curl_basis_vector|weighted_div_basis|"
             r"basis_coordinates_ref|basis_coordinates)\b"
         ),
         hint="Prefer BasisValues2 getter APIs near point-of-use; review retained handles carefully.",
+    ),
+    Rule(
+        name="integration-getter-nonconst-mdfield-ref",
+        category="const-getter-fallout",
+        risk="medium",
+        pattern=re.compile(
+            r"\bPHX::MDField\s*<\s*(?!const\b)[^,>]+,\s*[^>]*\b(?:panzer::)?IP\b[^>]*>\s*(?:const\s*)?&"
+        ),
+        hint=(
+            "IntegrationValues2 getters return const-valued MDFields. If this field is populated from an "
+            "IntegrationValues2 getter, change the parameter/helper type to PHX::MDField<const Scalar,...>; "
+            "leave mutable output fields unchanged."
+        ),
     ),
     Rule(
         name="basis-getter-bool-first-arg",
@@ -286,6 +370,22 @@ RULES: tuple[Rule, ...] = (
         hint="resetArrays() is logical invalidation, not guaranteed memory release.",
     ),
     Rule(
+        name="temporary-getter-view-hazard",
+        category="lifecycle",
+        risk="medium",
+        pattern=re.compile(
+            r"\b(?:Kokkos::subview|Kokkos::create_mirror_view(?:_and_copy)?|Kokkos::deep_copy)\s*\([^;]*"
+            r"\.\s*get(?:Jacobian|JacobianInverse|JacobianDeterminant|WeightedMeasure|WeightedNormals|"
+            r"CubaturePoints|CubaturePointsRef|UniformCubaturePointsRef|UniformCubatureWeightsRef|"
+            r"BasisValues|VectorBasisValues|GradBasisValues|CurlBasisValues|CurlVectorBasisValues|"
+            r"DivBasisValues|BasisCoordinatesRef|BasisCoordinates)\s*\([^;]*\)\s*\.\s*(?:get_static_view|get_view)\s*\("
+        ),
+        hint=(
+            "Do not take a view/subview directly from a temporary lazy getter result. Store the getter result "
+            "in a named local first, then take get_view()/get_static_view() from that local."
+        ),
+    ),
+    Rule(
         name="stored-view-handle",
         category="lifecycle",
         risk="high",
@@ -314,10 +414,26 @@ def scan_file(path: pathlib.Path) -> list[Finding]:
         print(f"warning: could not read {path}: {exc}", file=sys.stderr)
         return findings
 
+    in_block_comment = False
     for line_no, line in enumerate(text.splitlines(), start=1):
+        stripped = line.strip()
+        if in_block_comment:
+            if "*/" in stripped:
+                in_block_comment = False
+                stripped = stripped.split("*/", 1)[1].strip()
+            else:
+                continue
+        if stripped.startswith("/*"):
+            if "*/" in stripped:
+                stripped = stripped.split("*/", 1)[1].strip()
+            else:
+                in_block_comment = True
+                continue
+        if stripped.startswith("//"):
+            continue
         for rule in RULES:
-            if rule.pattern.search(line):
-                findings.append(Finding(path=path, line=line_no, rule=rule, text=line.strip()))
+            if rule.pattern.search(stripped):
+                findings.append(Finding(path=path, line=line_no, rule=rule, text=stripped))
     return findings
 
 
@@ -511,7 +627,7 @@ def scan_cache_hazards(path: pathlib.Path) -> list[CacheHazard]:
 
 def count_direct_fields(text: str, field_getters: dict[str, str]) -> tuple[tuple[str, int], ...]:
     counts: Counter[str] = Counter()
-    pattern = re.compile(r"\.\s*(" + "|".join(re.escape(field) for field in field_getters) + r")\b")
+    pattern = re.compile(r"(?:\.|->)\s*(" + "|".join(re.escape(field) for field in field_getters) + r")\b")
     for match in pattern.finditer(text):
         counts[match.group(1)] += 1
     return tuple(sorted(counts.items()))
@@ -520,7 +636,7 @@ def count_direct_fields(text: str, field_getters: dict[str, str]) -> tuple[tuple
 def count_alias_fields(text: str, alias: str, field_getters: dict[str, str]) -> tuple[tuple[str, int], ...]:
     counts: Counter[str] = Counter()
     pattern = re.compile(
-        r"\b" + re.escape(alias) + r"\s*\.\s*(" +
+        r"\b" + re.escape(alias) + r"\s*(?:\.|->)\s*(" +
         "|".join(re.escape(field) for field in field_getters) + r")\b"
     )
     for match in pattern.finditer(text):
@@ -536,6 +652,38 @@ def count_indexed_fields(text: str, container: str, index: str, field_getters: d
     )
     for match in pattern.finditer(text):
         counts[match.group(1)] += 1
+    return tuple(sorted(counts.items()))
+
+
+def count_phalanx_registration_fields(text: str, field_getters: dict[str, str], container: str,
+                                      index: str | None, alias: str | None) -> tuple[tuple[str, int], ...]:
+    counts: Counter[str] = Counter()
+    fields = "|".join(re.escape(field) for field in field_getters)
+    direct_pattern = re.compile(r"(?:\.|->)\s*(" + fields + r")\b")
+    alias_pattern = re.compile(
+        r"\b" + re.escape(alias) + r"\s*(?:\.|->)\s*(" + fields + r")\b"
+    ) if alias else None
+    indexed_pattern = re.compile(
+        r"\bworkset\." + re.escape(container) + r"\s*\[\s*" + index_pattern(index) +
+        r"\s*\]\s*->\s*(" + fields + r")\b"
+    ) if index else None
+
+    for line in text.splitlines():
+        if not PHALANX_REGISTRATION_CALL_PATTERN.search(line):
+            continue
+        scoped_counted = False
+        if alias_pattern:
+            for match in alias_pattern.finditer(line):
+                counts[match.group(1)] += 1
+                scoped_counted = True
+        if indexed_pattern:
+            for match in indexed_pattern.finditer(line):
+                counts[match.group(1)] += 1
+                scoped_counted = True
+        if scoped_counted:
+            continue
+        for match in direct_pattern.finditer(line):
+            counts[match.group(1)] += 1
     return tuple(sorted(counts.items()))
 
 
@@ -712,16 +860,34 @@ def find_constructor_context(lines: list[str], regions: list[FunctionRegion], cl
     return context
 
 
-def field_getter(field: str) -> str:
+def field_getter(field: str, *, phalanx_registration: bool = False) -> str:
+    if phalanx_registration and field in BASIS_PHALANX_REGISTRATION_GETTERS:
+        return BASIS_PHALANX_REGISTRATION_GETTERS[field]
     if field in BASIS_FIELD_GETTERS:
         return BASIS_FIELD_GETTERS[field]
     return INTEGRATION_FIELD_GETTERS[field]
 
 
-def format_field_mappings(field_counts: tuple[tuple[str, int], ...]) -> list[str]:
+def count_dict(field_counts: tuple[tuple[str, int], ...]) -> dict[str, int]:
+    return dict(field_counts)
+
+
+def format_field_mappings(field_counts: tuple[tuple[str, int], ...],
+                          phalanx_registration_field_counts: tuple[tuple[str, int], ...] = ()) -> list[str]:
     lines: list[str] = []
+    registration_counts = count_dict(phalanx_registration_field_counts)
     for field, count in field_counts:
-        lines.append(f"      {field}: {count} use(s) -> {field_getter(field)}")
+        registration_count = registration_counts.get(field, 0)
+        note = INTEGRATION_FIELD_NOTES.get(field)
+        note_text = f" ({note})" if note else ""
+        if registration_count == count and field in BASIS_PHALANX_REGISTRATION_GETTERS:
+            lines.append(f"      {field}: {count} Phalanx registration use(s) -> {field_getter(field, phalanx_registration=True)}")
+        elif registration_count:
+            lines.append(
+                f"      {field}: {count} use(s), including {registration_count} Phalanx registration use(s) -> manual review"
+            )
+        else:
+            lines.append(f"      {field}: {count} use(s) -> {field_getter(field)}{note_text}")
     return lines
 
 
@@ -735,17 +901,29 @@ def suggested_owner_handle(recipe: Recipe) -> str | None:
 
 def suggested_field_handles(recipe: Recipe) -> list[dict[str, object]]:
     owner = "basis_values" if recipe.name.startswith("basis-index") else "integration_values"
+    registration_counts = count_dict(recipe.phalanx_registration_field_counts)
     suggestions: list[dict[str, object]] = []
     for field, count in recipe.field_counts:
-        getter = field_getter(field)
-        manual_review = getter.startswith("manual review")
+        registration_count = registration_counts.get(field, 0)
+        phalanx_registration = (
+            recipe.name.startswith("basis-index")
+            and field in BASIS_PHALANX_REGISTRATION_GETTERS
+            and registration_count == count
+        )
+        mixed_registration_context = 0 < registration_count < count
+        getter = field_getter(field, phalanx_registration=phalanx_registration)
+        manual_review = getter.startswith("manual review") or mixed_registration_context
         handle_name = FIELD_HANDLE_NAMES.get(field, field)
         declaration = None
         if not manual_review and " or manual " not in getter:
-            declaration = f"const auto {handle_name} = {owner}.{getter};"
+            qualifier = "auto" if phalanx_registration else "const auto"
+            declaration = f"{qualifier} {handle_name} = {owner}.{getter};"
         suggestions.append({
             "field": field,
             "count": count,
+            "phalanx_registration_count": registration_count,
+            "phalanx_registration": phalanx_registration,
+            "mixed_registration_context": mixed_registration_context,
             "handle": handle_name,
             "getter": getter,
             "declaration": declaration,
@@ -756,10 +934,10 @@ def suggested_field_handles(recipe: Recipe) -> list[dict[str, object]]:
 
 def legacy_field_expression(recipe: Recipe, field: str) -> str:
     if recipe.legacy_alias:
-        return f"{recipe.legacy_alias}.{field}(...)"
+        return f"{recipe.legacy_alias}.{field}"
     if recipe.name.startswith("basis-index"):
-        return f"workset.bases[{recipe.legacy_index}]->{field}(...)"
-    return f"workset.int_rules[{recipe.legacy_index}]->{field}(...)"
+        return f"workset.bases[{recipe.legacy_index}]->{field}"
+    return f"workset.int_rules[{recipe.legacy_index}]->{field}"
 
 
 def suggested_replacements(recipe: Recipe) -> list[dict[str, object]]:
@@ -768,7 +946,7 @@ def suggested_replacements(recipe: Recipe) -> list[dict[str, object]]:
         field = str(suggestion["field"])
         handle = str(suggestion["handle"])
         manual_review = bool(suggestion["manual_review"])
-        replacement = None if manual_review else f"{handle}(...)"
+        replacement = None if manual_review else handle
         replacements.append({
             "field": field,
             "legacy": legacy_field_expression(recipe, field),
@@ -794,7 +972,29 @@ def source_variable_name(source_text: str | None) -> str | None:
     match = re.search(r"([A-Za-z_][A-Za-z0-9_]*)\s*=", source_text)
     if match:
         return match.group(1)
+    # Constructor arguments such as `const panzer::IntegrationRule & ir` are
+    # common in Panzer applications and are enough to build descriptors.
+    match = re.search(
+        r"\bpanzer::(?:IntegrationRule|PureBasis|BasisIRLayout)\s*(?:const\s*)?(?:[&*]\s*)?([A-Za-z_][A-Za-z0-9_]*)\s*(?:[,;)])",
+        source_text,
+    )
+    if match:
+        return match.group(1)
+    match = re.search(
+        r"\bTeuchos::RCP\s*<\s*(?:const\s+)?panzer::(?:IntegrationRule|PureBasis|BasisIRLayout)\s*>\s*(?:const\s*)?(?:[&*]\s*)?([A-Za-z_][A-Za-z0-9_]*)\s*(?:[,;)])",
+        source_text,
+    )
+    if match:
+        return match.group(1)
     return None
+
+
+def source_uses_pointer(source_text: str | None) -> bool:
+    if source_text is None:
+        return True
+    if "Teuchos::RCP" in source_text or "->" in source_text:
+        return True
+    return "*" in source_text and "&" not in source_text
 
 
 def basis_source_kind(source_text: str | None) -> str | None:
@@ -828,14 +1028,16 @@ def suggested_descriptor_initializers(recipe: Recipe) -> list[dict[str, object]]
         basis_expression: str
         basis_manual = False
         if basis_kind == "BasisIRLayout" and basis_variable:
+            accessor = "->" if source_uses_pointer(recipe.basis_source_text) else "."
             basis_expression = (
-                f"basis_descriptor = panzer::BasisDescriptor({basis_variable}->getBasis()->order(), "
-                f"{basis_variable}->getBasis()->type());"
+                f"basis_descriptor = panzer::BasisDescriptor({basis_variable}{accessor}getBasis()->order(), "
+                f"{basis_variable}{accessor}getBasis()->type());"
             )
         elif basis_kind == "PureBasis" and basis_variable:
+            accessor = "->" if source_uses_pointer(recipe.basis_source_text) else "."
             basis_expression = (
-                f"basis_descriptor = panzer::BasisDescriptor({basis_variable}->order(), "
-                f"{basis_variable}->type());"
+                f"basis_descriptor = panzer::BasisDescriptor({basis_variable}{accessor}order(), "
+                f"{basis_variable}{accessor}type());"
             )
         else:
             basis_expression = "basis_descriptor = panzer::BasisDescriptor(<basis_order>, <basis_type>);"
@@ -854,9 +1056,10 @@ def suggested_descriptor_initializers(recipe: Recipe) -> list[dict[str, object]]
         ir_expression: str
         ir_manual = False
         if ir_kind == "IntegrationRule" and ir_variable:
+            accessor = "->" if source_uses_pointer(recipe.ir_source_text) else "."
             ir_expression = (
-                f"integration_descriptor = panzer::IntegrationDescriptor({ir_variable}->getOrder(), "
-                f"{ir_variable}->getType(), {ir_variable}->getSide());"
+                f"integration_descriptor = panzer::IntegrationDescriptor({ir_variable}{accessor}getOrder(), "
+                f"{ir_variable}{accessor}getType(), {ir_variable}{accessor}getSide());"
             )
         else:
             ir_expression = "integration_descriptor = panzer::IntegrationDescriptor(<cubature_order>, <integration_type>, <side>);"
@@ -1193,8 +1396,17 @@ def recipe_to_json(recipe: Recipe) -> dict[str, object]:
                 "count": count,
                 "getter": field_getter(field),
                 "manual_review": field_getter(field).startswith("manual review") or "manual" in field_getter(field),
+                "note": INTEGRATION_FIELD_NOTES.get(field),
             }
             for field, count in recipe.field_counts
+        ],
+        "phalanx_registration_fields": [
+            {
+                "name": field,
+                "count": count,
+                "getter": field_getter(field, phalanx_registration=True),
+            }
+            for field, count in recipe.phalanx_registration_field_counts
         ],
         "suggested_handles": suggested_field_handles(recipe),
         "suggested_replacements": suggested_replacements(recipe),
@@ -1279,6 +1491,9 @@ def scan_recipes(path: pathlib.Path) -> list[Recipe]:
         basis_field_counts = field_counts_for_pattern(
             basis_search_text, BASIS_FIELD_GETTERS, "bases", assignment.index, basis_alias
         )
+        basis_phalanx_registration_field_counts = count_phalanx_registration_fields(
+            basis_search_text, BASIS_FIELD_GETTERS, "bases", assignment.index, basis_alias
+        )
         if not basis_field_counts:
             continue
 
@@ -1303,6 +1518,7 @@ def scan_recipes(path: pathlib.Path) -> list[Recipe]:
                     "WeightBasis, CacheValues::Yes, and ForceRecompute::No."
                 ),
                 field_counts=basis_field_counts,
+                phalanx_registration_field_counts=basis_phalanx_registration_field_counts,
                 legacy_index=assignment.index,
                 legacy_alias=basis_alias,
                 setup_function=basis_setup_region.name if basis_setup_region else None,
@@ -1332,6 +1548,7 @@ def scan_recipes(path: pathlib.Path) -> list[Recipe]:
                     "from a factory, surrounding parameter list, or a new evaluator constructor argument."
                 ),
                 field_counts=basis_field_counts,
+                phalanx_registration_field_counts=basis_phalanx_registration_field_counts,
                 legacy_index=assignment.index,
                 legacy_alias=basis_alias,
                 setup_function=basis_setup_region.name if basis_setup_region else None,
@@ -1490,9 +1707,185 @@ void ExampleEvaluator::evaluateFields(typename Traits::EvalData workset)
                 print(line, file=sys.stderr)
         return 1
 
+    registration_sample = """
+    this->addEvaluatedField(basisValues->basis_scalar);
+    this->addNonConstDependentField(basisValues->basis_vector);
+    this->utils.setFieldData(basisValues->grad_basis,fm);
+    auto values = basisValues->weighted_basis_scalar;
+    """
+    registration_counts = count_phalanx_registration_fields(
+        registration_sample, BASIS_FIELD_GETTERS, "bases", None, "basisValues"
+    )
+    registration_count_map = count_dict(registration_counts)
+    expected_registration_counts = {
+        "basis_scalar": 1,
+        "basis_vector": 1,
+        "grad_basis": 1,
+    }
+    if registration_count_map != expected_registration_counts:
+        print(
+            "self-test failed: Phalanx registration field context detection mismatch: "
+            + repr(registration_count_map),
+            file=sys.stderr,
+        )
+        return 1
+
+    recipe = Recipe(
+        path=pathlib.Path("<self-test-phalanx-registration.cpp>"),
+        line=1,
+        name="basis-index-to-descriptor-getter",
+        risk="high",
+        summary="self-test",
+        hint="self-test",
+        field_counts=(("basis_scalar", 1), ("weighted_basis_scalar", 1)),
+        phalanx_registration_field_counts=(("basis_scalar", 1),),
+    )
+    handles = {str(item["field"]): item for item in suggested_field_handles(recipe)}
+    if handles["basis_scalar"]["getter"] != "getBasisValuesForPhalanxEvaluatorRegistration()":
+        print("self-test failed: basis_scalar did not use the Phalanx registration getter", file=sys.stderr)
+        return 1
+    if handles["weighted_basis_scalar"]["getter"] != "getBasisValues(panzer::WeightBasis::Yes)":
+        print("self-test failed: weighted_basis_scalar did not use the lazy value getter", file=sys.stderr)
+        return 1
+
+    const_fallout_sample = [
+        "void foo(const PHX::MDField<double,panzer::Cell,panzer::IP,panzer::Dim> & points);",
+        "void bar(const PHX::MDField<const double,panzer::Cell,panzer::IP,panzer::Dim> & points);",
+    ]
+    const_fallout_findings = []
+    for line_no, line in enumerate(const_fallout_sample, start=1):
+        for rule in RULES:
+            if rule.name == "integration-getter-nonconst-mdfield-ref" and rule.pattern.search(line):
+                const_fallout_findings.append(line_no)
+    if const_fallout_findings != [1]:
+        print(
+            "self-test failed: const getter fallout detection expected only line 1, got "
+            + repr(const_fallout_findings),
+            file=sys.stderr,
+        )
+        return 1
+
+    point_mapping_expectations = {
+        "cub_points": "getUniformCubaturePointsRef()",
+        "side_cub_points": "manual review: getUniformSideCubaturePointsRef() is shape-preserving but deprecated; getCubaturePointsRef() changes rank/semantics",
+        "cub_weights": "getUniformCubatureWeightsRef()",
+        "ip_coordinates": "getCubaturePoints()",
+        "ref_ip_coordinates": "getCubaturePointsRef()",
+    }
+    for field, getter in point_mapping_expectations.items():
+        if field_getter(field) != getter:
+            print(
+                f"self-test failed: integration point mapping for {field} expected {getter}, got {field_getter(field)}",
+                file=sys.stderr,
+            )
+            return 1
+
+    private_vs_descriptor_sample = [
+        "auto jac = workset.int_rules[ir_index]->jac;",
+        "auto points = workset.int_rules[ir_index]->getCubaturePoints();",
+        "auto basis = workset.bases[basis_index]->basis_scalar;",
+        "auto basis_values = workset.bases[basis_index]->getBasisValues();",
+    ]
+    private_descriptor_hits: dict[str, list[int]] = defaultdict(list)
+    for line_no, line in enumerate(private_vs_descriptor_sample, start=1):
+        for rule in RULES:
+            if rule.name in {
+                "workset-int-rules-private-field",
+                "workset-bases-private-field",
+                "workset-int-rules-index",
+                "workset-bases-index",
+            } and rule.pattern.search(line):
+                private_descriptor_hits[rule.name].append(line_no)
+    expected_private_descriptor_hits = {
+        "workset-int-rules-private-field": [1],
+        "workset-bases-private-field": [3],
+        "workset-int-rules-index": [1, 2],
+        "workset-bases-index": [3, 4],
+    }
+    if dict(private_descriptor_hits) != expected_private_descriptor_hits:
+        print(
+            "self-test failed: private-field breakage vs descriptor-indexing split mismatch: "
+            + repr(dict(private_descriptor_hits)),
+            file=sys.stderr,
+        )
+        return 1
+
+    temporary_getter_sample = [
+        "auto bad = Kokkos::subview(iv.getJacobian().get_view(), 0, 0, Kokkos::ALL(), Kokkos::ALL());",
+        "auto jacobian = iv.getJacobian();",
+        "auto good = Kokkos::subview(jacobian.get_view(), 0, 0, Kokkos::ALL(), Kokkos::ALL());",
+    ]
+    temporary_getter_findings = []
+    for line_no, line in enumerate(temporary_getter_sample, start=1):
+        for rule in RULES:
+            if rule.name == "temporary-getter-view-hazard" and rule.pattern.search(line):
+                temporary_getter_findings.append(line_no)
+    if temporary_getter_findings != [1]:
+        print(
+            "self-test failed: temporary getter view hazard expected only line 1, got "
+            + repr(temporary_getter_findings),
+            file=sys.stderr,
+        )
+        return 1
+
+    descriptor_recipe = Recipe(
+        path=pathlib.Path("<self-test-descriptor.cpp>"),
+        line=1,
+        name="integration-index-to-descriptor-getter",
+        risk="high",
+        summary="self-test",
+        hint="self-test",
+        ir_source_text="const panzer::IntegrationRule & ir,",
+    )
+    descriptor_initializers = suggested_descriptor_initializers(descriptor_recipe)
+    if not descriptor_initializers or descriptor_initializers[0]["expression"] != "integration_descriptor = panzer::IntegrationDescriptor(ir.getOrder(), ir.getType(), ir.getSide());":
+        print(
+            "self-test failed: IntegrationRule reference descriptor initializer mismatch: "
+            + repr(descriptor_initializers),
+            file=sys.stderr,
+        )
+        return 1
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        direct_path = pathlib.Path(tmpdir) / "direct.cpp"
+        direct_path.write_text(
+            "void f(auto workset) {\n"
+            "  auto w = workset.int_rules[ir_index]->weighted_measure;\n"
+            "  auto g = workset.int_rules[ir_index]->norm_contravarient(cell,point);\n"
+            "  auto b = workset.bases[basis_index]->weighted_grad_basis.get_view();\n"
+            "}\n",
+            encoding="utf-8",
+        )
+        if not _replace_direct_indexed_field_getters(direct_path):
+            print("self-test failed: direct indexed field replacement reported no change", file=sys.stderr)
+            return 1
+        direct_text = direct_path.read_text(encoding="utf-8")
+        expected_direct_fragments = [
+            "workset.int_rules[ir_index]->getWeightedMeasure()",
+            "workset.int_rules[ir_index]->getNormContravarientMatrix(true)(cell,point)",
+            "workset.bases[basis_index]->getGradBasisValues(panzer::WeightBasis::Yes).get_view()",
+        ]
+        missing_direct = [fragment for fragment in expected_direct_fragments if fragment not in direct_text]
+        if missing_direct:
+            print(
+                "self-test failed: direct indexed field replacement missing fragments: "
+                + repr(missing_direct)
+                + " in "
+                + direct_text,
+                file=sys.stderr,
+            )
+            return 1
+
     print("Self-test passed: cache lifecycle hazard sample produced expected advisory kinds.")
     for kind, count in kinds.most_common():
         print(f"  {kind}: {count}")
+    print("Self-test passed: Phalanx registration field contexts use registration getters.")
+    print("Self-test passed: non-const IntegrationValues2 MDField references are diagnosed.")
+    print("Self-test passed: integration point field mappings are precise.")
+    print("Self-test passed: private-field breakage and descriptor-indexing advisories are separated.")
+    print("Self-test passed: temporary getter view/subview hazards are diagnosed.")
+    print("Self-test passed: IntegrationRule references initialize descriptors with object access.")
+    print("Self-test passed: direct indexed private-field patch sketches use explicit getters.")
     return 0
 
 
@@ -1644,7 +2037,10 @@ def _member_field_aliases(recipe: Recipe) -> dict[str, str]:
     aliases: dict[str, str] = {}
     search_start = region.start - 1 if region else 0
     search_end = region.end if region else len(lines)
-    for field, _ in recipe.field_counts:
+    registration_counts = count_dict(recipe.phalanx_registration_field_counts)
+    for field, count in recipe.field_counts:
+        if registration_counts.get(field, 0) == count:
+            continue
         for line in lines[search_start:search_end]:
             name = _field_alias_declaration_name(line, recipe, field)
             if name is None:
@@ -1821,7 +2217,7 @@ def _replace_legacy_accesses(lines: list[str], recipe: Recipe) -> bool:
         field = str(suggestion["field"])
         if suggestion.get("manual_review"):
             continue
-        getter = field_getter(field)
+        getter = str(suggestion["getter"])
         local_name = local_names.get(field)
         if local_name is None:
             continue
@@ -1834,7 +2230,8 @@ def _replace_legacy_accesses(lines: list[str], recipe: Recipe) -> bool:
             if "this->" in lhs:
                 lines[i] = f"{indent}{lhs} = {owner_name}.{getter};{ending}"
             else:
-                lines[i] = f"{indent}const auto {local_name} = {owner_name}.{getter};{ending}"
+                qualifier = "auto" if suggestion.get("phalanx_registration") else "const auto"
+                lines[i] = f"{indent}{qualifier} {local_name} = {owner_name}.{getter};{ending}"
             changed = True
 
     for suggestion in suggested_field_handles(recipe):
@@ -1867,8 +2264,62 @@ def _replace_legacy_accesses(lines: list[str], recipe: Recipe) -> bool:
     return changed
 
 
-def apply_patch_sketches(recipes: list[Recipe]) -> tuple[int, list[str]]:
+def _replace_direct_indexed_field_getters(path: pathlib.Path) -> bool:
+    """Apply local getter substitutions for direct workset indexed fields.
+
+    This deliberately does not introduce descriptors or touch arbitrary aliases. It
+    only rewrites the private-field portion of expressions such as
+    `workset.int_rules[i]->weighted_measure` to the corresponding getter call so
+    applications get out of the private-data breakage while still receiving the
+    descriptor-index advisory for the remaining `workset.int_rules[i]` access.
+    """
+    text = path.read_text(encoding="utf-8", errors="replace")
+    lines = text.splitlines(keepends=True)
+    changed = False
+
+    safe_integration_getters = {
+        field: getter
+        for field, getter in INTEGRATION_FIELD_GETTERS.items()
+        if not getter.startswith("manual review")
+    }
+    safe_basis_getters = {
+        field: getter
+        for field, getter in BASIS_FIELD_GETTERS.items()
+        if not getter.startswith("manual review")
+    }
+
+    integration_pattern = re.compile(
+        r"(?P<prefix>\(?\s*\b(?:this->wda\(\s*workset\s*\)|wda\(\s*workset\s*\)|workset)\.int_rules\s*\[[^\]]+\]\s*\)?\s*->\s*)"
+        r"(?P<field>" + "|".join(re.escape(field) for field in safe_integration_getters) + r")\b"
+    )
+    basis_pattern = re.compile(
+        r"(?P<prefix>\(?\s*\b(?:this->wda\(\s*workset\s*\)|wda\(\s*workset\s*\)|workset)\.bases\s*\[[^\]]+\]\s*\)?\s*->\s*)"
+        r"(?P<field>" + "|".join(re.escape(field) for field in safe_basis_getters) + r")\b"
+    )
+
+    def replace_integration(match: re.Match[str]) -> str:
+        return match.group("prefix") + safe_integration_getters[match.group("field")]
+
+    def replace_basis(match: re.Match[str]) -> str:
+        return match.group("prefix") + safe_basis_getters[match.group("field")]
+
+    for i, line in enumerate(lines):
+        if line.lstrip().startswith("//"):
+            continue
+        new_line = integration_pattern.sub(replace_integration, line)
+        new_line = basis_pattern.sub(replace_basis, new_line)
+        if new_line != line:
+            lines[i] = new_line
+            changed = True
+
+    if changed:
+        path.write_text("".join(lines), encoding="utf-8")
+    return changed
+
+
+def apply_patch_sketches(recipes: list[Recipe], findings: list[Finding] | None = None) -> tuple[int, list[str]]:
     applied: list[str] = []
+    findings = findings or []
     candidates = [r for r in recipes if recipe_classification(r)[0] == "patch-sketch-candidate"]
 
     declaration_recipes: dict[pathlib.Path, list[Recipe]] = defaultdict(list)
@@ -1899,6 +2350,15 @@ def apply_patch_sketches(recipes: list[Recipe]) -> tuple[int, list[str]]:
             changed = _replace_legacy_accesses(lines, recipe) or changed
         if changed:
             path.write_text("".join(lines), encoding="utf-8")
+            changed_paths.add(path)
+
+    direct_field_paths = {
+        finding.path
+        for finding in findings
+        if finding.rule.name in {"workset-int-rules-private-field", "workset-bases-private-field"}
+    }
+    for path in sorted(direct_field_paths):
+        if _replace_direct_indexed_field_getters(path):
             changed_paths.add(path)
 
     for path in sorted(changed_paths):
@@ -1943,7 +2403,7 @@ def main() -> int:
         args.recipes_only = True
 
     if args.apply_patch_sketches:
-        candidate_count, changed_paths = apply_patch_sketches(all_recipes)
+        candidate_count, changed_paths = apply_patch_sketches(all_recipes, all_findings)
         print(f"Applied patch-sketch candidates: {candidate_count}")
         print(f"Changed files: {len(changed_paths)}")
         for path in changed_paths:
@@ -2085,7 +2545,7 @@ def main() -> int:
                         print(line)
                 if recipe.field_counts:
                     print("    Fields used:")
-                    for line in format_field_mappings(recipe.field_counts):
+                    for line in format_field_mappings(recipe.field_counts, recipe.phalanx_registration_field_counts):
                         print(line)
                     print("    Suggested local handles:")
                     for line in format_suggested_handles(recipe):
@@ -2148,7 +2608,7 @@ def main() -> int:
                         print(line)
                 if recipe.field_counts:
                     print("      Fields used:")
-                    for line in format_field_mappings(recipe.field_counts):
+                    for line in format_field_mappings(recipe.field_counts, recipe.phalanx_registration_field_counts):
                         print(line)
                     print("      Suggested local handles:")
                     for line in format_suggested_handles(recipe):

@@ -68,6 +68,9 @@ public:
   PointValues_Evaluator(const Teuchos::RCP<const panzer::PointRule> & pointRule,
                         const PHX::MDField<double, panzer::IP, panzer::Dim> & userArray);
 
+  PointValues_Evaluator(const Teuchos::RCP<const panzer::PointRule> & pointRule,
+                        const PHX::MDField<const double, panzer::IP, panzer::Dim> & userArray);
+
   //! This builds a point rule from the basis function reference points in the workset
   PointValues_Evaluator(const Teuchos::RCP<const panzer::PointRule> & pointRule,
                         const Teuchos::RCP<const panzer::PureBasis> & pureBasis);

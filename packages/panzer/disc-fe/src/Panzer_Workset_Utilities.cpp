@@ -30,7 +30,7 @@ namespace panzer {
     while (basis != last) {
 
       std::vector<std::string>::size_type index = std::distance(wda(workset).basis_names->begin(), basis);
-      if (wda(workset).bases[index]->basis_layout->getBasis()->name() == basis_name)
+      if (wda(workset).bases[index]->getBasisIRLayout()->getBasis()->name() == basis_name)
 	break;
 
       ++basis;
@@ -96,7 +96,7 @@ namespace panzer {
         os << (*wda(workset).basis_names)[i] << " ";
      os << "]\n";
      /*
-     os << "   int rule = "; wda(workset).int_rules[0]->int_rule->print(os); os << "\n";
+     os << "   int rule = "; wda(workset).int_rules[0]->getIntegrationRule()->print(os); os << "\n";
      os << "   basis = "; wda(workset).bases[0]->panzer_basis->print(os); os << "\n";
 
      for(index_t i=0;i<workset.num_cells;i++) {
@@ -110,33 +110,33 @@ namespace panzer {
      }
 
      os << "   integration rule points =\n";
-     for(int j=0;j<wda(workset).int_rules[0]->cub_points.extent(0);j++) {
+     for(int j=0;j<wda(workset).int_rules[0]->getUniformCubaturePointsRef().extent(0);j++) {
         os << "      ";
-        for(int k=0;k<wda(workset).int_rules[0]->cub_points.extent(1);k++)
-           os << wda(workset).int_rules[0]->cub_points(j,k) << " ";
+        for(int k=0;k<wda(workset).int_rules[0]->getUniformCubaturePointsRef().extent(1);k++)
+           os << wda(workset).int_rules[0]->getUniformCubaturePointsRef()(j,k) << " ";
         os << "\n";
      }
      os << "   integration weights = [ ";
-     for(int j=0;j<wda(workset).int_rules[0]->cub_weights.extent(0);j++) {
-        os << wda(workset).int_rules[0]->cub_weights(j) << " ";
+     for(int j=0;j<wda(workset).int_rules[0]->getUniformCubatureWeightsRef().extent(0);j++) {
+        os << wda(workset).int_rules[0]->getUniformCubatureWeightsRef()(j) << " ";
      }
      os << "]\n";
 
      os << "   jac = [ ";
-     for(int i=0;i<wda(workset).int_rules[0]->jac.size();i++) {
-        os << wda(workset).int_rules[0]->jac[i] << " ";
+     for(int i=0;i<wda(workset).int_rules[0]->getJacobian().size();i++) {
+        os << wda(workset).int_rules[0]->getJacobian()[i] << " ";
      }
      os << "]\n";
 
      os << "   jac_inv = [ ";
-     for(int i=0;i<wda(workset).int_rules[0]->jac_inv.size();i++) {
-        os << wda(workset).int_rules[0]->jac_inv[i] << " ";
+     for(int i=0;i<wda(workset).int_rules[0]->getJacobianInverse().size();i++) {
+        os << wda(workset).int_rules[0]->getJacobianInverse()[i] << " ";
      }
      os << "]\n";
 
      os << "   jac_det = [ ";
-     for(int i=0;i<wda(workset).int_rules[0]->jac_det.size();i++) {
-        os << wda(workset).int_rules[0]->jac_det[i] << " ";
+     for(int i=0;i<wda(workset).int_rules[0]->getJacobianDeterminant().size();i++) {
+        os << wda(workset).int_rules[0]->getJacobianDeterminant()[i] << " ";
      }
      os << "]\n";
 
@@ -152,8 +152,8 @@ namespace panzer {
      os << "]\n";
      
      os << "   weighted_grad_basis = [ ";
-     for(int i=0;i<wda(workset).bases[0]->weighted_grad_basis.size();i++)
-        os << wda(workset).bases[0]->weighted_grad_basis[i] << " ";
+     for(int i=0;i<wda(workset).bases[0]->getWeightedGradBasisValuesForPhalanxEvaluatorRegistration().size();i++)
+        os << wda(workset).bases[0]->getWeightedGradBasisValuesForPhalanxEvaluatorRegistration()[i] << " ";
      os << "]\n";
 
      os << "   basis = [ ";
@@ -162,8 +162,8 @@ namespace panzer {
      os << "]\n";
      
      os << "   grad_basis = [ ";
-     for(int i=0;i<wda(workset).bases[0]->grad_basis.size();i++)
-        os << wda(workset).bases[0]->grad_basis[i] << " ";
+     for(int i=0;i<wda(workset).bases[0]->getGradBasisValuesForPhalanxEvaluatorRegistration().size();i++)
+        os << wda(workset).bases[0]->getGradBasisValuesForPhalanxEvaluatorRegistration()[i] << " ";
      os << "]\n";
      */
   }

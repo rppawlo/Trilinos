@@ -113,10 +113,10 @@ namespace panzer {
      * \note This deprecated eager-evaluation path always caches the computed arrays.
      * \note This deprecated eager-evaluation path always forces recomputation of those cached arrays.
      */
-    void evaluateValues(const PHX::MDField<Scalar,IP,Dim> & cub_points,
-                        const PHX::MDField<Scalar,Cell,IP,Dim,Dim> & jac,
-                        const PHX::MDField<Scalar,Cell,IP> & jac_det,
-                        const PHX::MDField<Scalar,Cell,IP,Dim,Dim> & jac_inv,
+    void evaluateValues(const PHX::MDField<const Scalar,IP,Dim> & cub_points,
+                        const PHX::MDField<const Scalar,Cell,IP,Dim,Dim> & jac,
+                        const PHX::MDField<const Scalar,Cell,IP> & jac_det,
+                        const PHX::MDField<const Scalar,Cell,IP,Dim,Dim> & jac_inv,
                         const int in_num_cells = -1);
 
     /**
@@ -125,26 +125,26 @@ namespace panzer {
      * \note This deprecated eager-evaluation path always caches the computed arrays.
      * \note This deprecated eager-evaluation path always forces recomputation of those cached arrays.
      */
-    void evaluateValues(const PHX::MDField<Scalar,IP,Dim> & cub_points,
-                        const PHX::MDField<Scalar,Cell,IP,Dim,Dim> & jac,
-                        const PHX::MDField<Scalar,Cell,IP> & jac_det,
-                        const PHX::MDField<Scalar,Cell,IP,Dim,Dim> & jac_inv,
-                        const PHX::MDField<Scalar,Cell,IP> & weighted_measure,
-                        const PHX::MDField<Scalar,Cell,NODE,Dim> & node_coordinates,
+    void evaluateValues(const PHX::MDField<const Scalar,IP,Dim> & cub_points,
+                        const PHX::MDField<const Scalar,Cell,IP,Dim,Dim> & jac,
+                        const PHX::MDField<const Scalar,Cell,IP> & jac_det,
+                        const PHX::MDField<const Scalar,Cell,IP,Dim,Dim> & jac_inv,
+                        const PHX::MDField<const Scalar,Cell,IP> & weighted_measure,
+                        const PHX::MDField<const Scalar,Cell,NODE,Dim> & node_coordinates,
                         bool use_node_coordinates=true,
                         const int in_num_cells = -1);
 
-    void evaluateValuesCV(const PHX::MDField<Scalar,Cell,IP,Dim> & cell_cub_points,
-                          const PHX::MDField<Scalar,Cell,IP,Dim,Dim> & jac,
-                          const PHX::MDField<Scalar,Cell,IP> & jac_det,
-                          const PHX::MDField<Scalar,Cell,IP,Dim,Dim> & jac_inv);
+    void evaluateValuesCV(const PHX::MDField<const Scalar,Cell,IP,Dim> & cell_cub_points,
+                          const PHX::MDField<const Scalar,Cell,IP,Dim,Dim> & jac,
+                          const PHX::MDField<const Scalar,Cell,IP> & jac_det,
+                          const PHX::MDField<const Scalar,Cell,IP,Dim,Dim> & jac_inv);
 
 
-    void evaluateValuesCV(const PHX::MDField<Scalar,Cell,IP,Dim> & cell_cub_points,
-                          const PHX::MDField<Scalar,Cell,IP,Dim,Dim> & jac,
-                          const PHX::MDField<Scalar,Cell,IP> & jac_det,
-                          const PHX::MDField<Scalar,Cell,IP,Dim,Dim> & jac_inv,
-                          const PHX::MDField<Scalar,Cell,NODE,Dim> & node_coordinates,
+    void evaluateValuesCV(const PHX::MDField<const Scalar,Cell,IP,Dim> & cell_cub_points,
+                          const PHX::MDField<const Scalar,Cell,IP,Dim,Dim> & jac,
+                          const PHX::MDField<const Scalar,Cell,IP> & jac_det,
+                          const PHX::MDField<const Scalar,Cell,IP,Dim,Dim> & jac_inv,
+                          const PHX::MDField<const Scalar,Cell,NODE,Dim> & node_coordinates,
                           bool use_node_coordinates=true,
                           const int in_num_cells = -1);
 
@@ -155,12 +155,12 @@ namespace panzer {
      * \note This deprecated eager-evaluation path always caches the computed arrays.
      * \note This deprecated eager-evaluation path always forces recomputation of those cached arrays.
      */
-    void evaluateValues(const PHX::MDField<Scalar,Cell,IP,Dim> & cub_points,
-                        const PHX::MDField<Scalar,Cell,IP,Dim,Dim> & jac,
-                        const PHX::MDField<Scalar,Cell,IP> & jac_det,
-                        const PHX::MDField<Scalar,Cell,IP,Dim,Dim> & jac_inv,
-                        const PHX::MDField<Scalar,Cell,IP> & weighted_measure,
-                        const PHX::MDField<Scalar,Cell,NODE,Dim> & node_coordinates,
+    void evaluateValues(const PHX::MDField<const Scalar,Cell,IP,Dim> & cub_points,
+                        const PHX::MDField<const Scalar,Cell,IP,Dim,Dim> & jac,
+                        const PHX::MDField<const Scalar,Cell,IP> & jac_det,
+                        const PHX::MDField<const Scalar,Cell,IP,Dim,Dim> & jac_inv,
+                        const PHX::MDField<const Scalar,Cell,IP> & weighted_measure,
+                        const PHX::MDField<const Scalar,Cell,NODE,Dim> & node_coordinates,
                         bool use_node_coordinates=true,
                         const int in_num_cells = -1);
 
@@ -177,6 +177,205 @@ namespace panzer {
     { ddims_ = ddims; }
 
     PureBasis::EElementSpace getElementSpace() const;
+
+    Teuchos::RCP<const panzer::BasisIRLayout>
+    getBasisIRLayout() const
+    {return basis_layout;}
+
+    /** \name Phalanx evaluator registration accessors
+     *
+     * These accessors expose the underlying PHX::MDField members used by Panzer
+     * evaluators to register and bind fields with Phalanx, for example through
+     * addEvaluatedField(), addDependentField(), addNonConstDependentField(), and
+     * setFieldData().
+     *
+     * These functions do not evaluate, recompute, or lazily populate basis
+     * values. Code that needs evaluated basis values should use the lazy value
+     * getter APIs, such as getBasisValues(), getGradBasisValues(), or
+     * getBasisCoordinates().
+     *
+     * \warning These are Phalanx setup/registration APIs. Application code
+     * should generally prefer the lazy value getter APIs unless it is explicitly
+     * registering or binding fields with Phalanx.
+     *
+     * \note The const overloads exist for Phalanx setup paths that hold a const
+     * BasisValues2 object while registering or binding its PHX::MDField members.
+     * The returned field is mutable because Phalanx field binding modifies field
+     * metadata/state rather than the mathematical value represented by this
+     * BasisValues2 object.
+     */
+    //@{
+
+    //! Return the Phalanx evaluator registration field for scalar basis values on the reference cell.
+    Array_BasisIP & getBasisValuesRefForPhalanxEvaluatorRegistration()
+    {return basis_ref_scalar;}
+
+    //! Return the Phalanx evaluator registration field for scalar basis values on the reference cell.
+    Array_BasisIP & getBasisValuesRefForPhalanxEvaluatorRegistration() const
+    {return basis_ref_scalar;}
+
+    //! Return the Phalanx evaluator registration field for scalar basis values.
+    Array_CellBasisIP & getBasisValuesForPhalanxEvaluatorRegistration()
+    {return basis_scalar;}
+
+    //! Return the Phalanx evaluator registration field for scalar basis values.
+    Array_CellBasisIP & getBasisValuesForPhalanxEvaluatorRegistration() const
+    {return basis_scalar;}
+
+    //! Return the Phalanx evaluator registration field for vector basis values on the reference cell.
+    Array_BasisIPDim & getVectorBasisValuesRefForPhalanxEvaluatorRegistration()
+    {return basis_ref_vector;}
+
+    //! Return the Phalanx evaluator registration field for vector basis values on the reference cell.
+    Array_BasisIPDim & getVectorBasisValuesRefForPhalanxEvaluatorRegistration() const
+    {return basis_ref_vector;}
+
+    //! Return the Phalanx evaluator registration field for vector basis values.
+    Array_CellBasisIPDim & getVectorBasisValuesForPhalanxEvaluatorRegistration()
+    {return basis_vector;}
+
+    //! Return the Phalanx evaluator registration field for vector basis values.
+    Array_CellBasisIPDim & getVectorBasisValuesForPhalanxEvaluatorRegistration() const
+    {return basis_vector;}
+
+    //! Return the Phalanx evaluator registration field for gradient basis values on the reference cell.
+    Array_BasisIPDim & getGradBasisValuesRefForPhalanxEvaluatorRegistration()
+    {return grad_basis_ref;}
+
+    //! Return the Phalanx evaluator registration field for gradient basis values on the reference cell.
+    Array_BasisIPDim & getGradBasisValuesRefForPhalanxEvaluatorRegistration() const
+    {return grad_basis_ref;}
+
+    //! Return the Phalanx evaluator registration field for gradient basis values.
+    Array_CellBasisIPDim & getGradBasisValuesForPhalanxEvaluatorRegistration()
+    {return grad_basis;}
+
+    //! Return the Phalanx evaluator registration field for gradient basis values.
+    Array_CellBasisIPDim & getGradBasisValuesForPhalanxEvaluatorRegistration() const
+    {return grad_basis;}
+
+    //! Return the Phalanx evaluator registration field for scalar curl basis values on the reference cell.
+    Array_BasisIP & getCurlBasisValuesRefForPhalanxEvaluatorRegistration()
+    {return curl_basis_ref_scalar;}
+
+    //! Return the Phalanx evaluator registration field for scalar curl basis values on the reference cell.
+    Array_BasisIP & getCurlBasisValuesRefForPhalanxEvaluatorRegistration() const
+    {return curl_basis_ref_scalar;}
+
+    //! Return the Phalanx evaluator registration field for scalar curl basis values.
+    Array_CellBasisIP & getCurlBasisValuesForPhalanxEvaluatorRegistration()
+    {return curl_basis_scalar;}
+
+    //! Return the Phalanx evaluator registration field for scalar curl basis values.
+    Array_CellBasisIP & getCurlBasisValuesForPhalanxEvaluatorRegistration() const
+    {return curl_basis_scalar;}
+
+    //! Return the Phalanx evaluator registration field for vector curl basis values on the reference cell.
+    Array_BasisIPDim & getCurlVectorBasisValuesRefForPhalanxEvaluatorRegistration()
+    {return curl_basis_ref_vector;}
+
+    //! Return the Phalanx evaluator registration field for vector curl basis values on the reference cell.
+    Array_BasisIPDim & getCurlVectorBasisValuesRefForPhalanxEvaluatorRegistration() const
+    {return curl_basis_ref_vector;}
+
+    //! Return the Phalanx evaluator registration field for vector curl basis values.
+    Array_CellBasisIPDim & getCurlVectorBasisValuesForPhalanxEvaluatorRegistration()
+    {return curl_basis_vector;}
+
+    //! Return the Phalanx evaluator registration field for vector curl basis values.
+    Array_CellBasisIPDim & getCurlVectorBasisValuesForPhalanxEvaluatorRegistration() const
+    {return curl_basis_vector;}
+
+    //! Return the Phalanx evaluator registration field for divergence basis values on the reference cell.
+    Array_BasisIP & getDivBasisValuesRefForPhalanxEvaluatorRegistration()
+    {return div_basis_ref;}
+
+    //! Return the Phalanx evaluator registration field for divergence basis values on the reference cell.
+    Array_BasisIP & getDivBasisValuesRefForPhalanxEvaluatorRegistration() const
+    {return div_basis_ref;}
+
+    //! Return the Phalanx evaluator registration field for divergence basis values.
+    Array_CellBasisIP & getDivBasisValuesForPhalanxEvaluatorRegistration()
+    {return div_basis;}
+
+    //! Return the Phalanx evaluator registration field for divergence basis values.
+    Array_CellBasisIP & getDivBasisValuesForPhalanxEvaluatorRegistration() const
+    {return div_basis;}
+
+    //! Return the Phalanx evaluator registration field for weighted scalar basis values.
+    Array_CellBasisIP & getWeightedBasisValuesForPhalanxEvaluatorRegistration()
+    {return weighted_basis_scalar;}
+
+    //! Return the Phalanx evaluator registration field for weighted scalar basis values.
+    Array_CellBasisIP & getWeightedBasisValuesForPhalanxEvaluatorRegistration() const
+    {return weighted_basis_scalar;}
+
+    //! Return the Phalanx evaluator registration field for weighted vector basis values.
+    Array_CellBasisIPDim & getWeightedVectorBasisValuesForPhalanxEvaluatorRegistration()
+    {return weighted_basis_vector;}
+
+    //! Return the Phalanx evaluator registration field for weighted vector basis values.
+    Array_CellBasisIPDim & getWeightedVectorBasisValuesForPhalanxEvaluatorRegistration() const
+    {return weighted_basis_vector;}
+
+    //! Return the Phalanx evaluator registration field for weighted gradient basis values.
+    Array_CellBasisIPDim & getWeightedGradBasisValuesForPhalanxEvaluatorRegistration()
+    {return weighted_grad_basis;}
+
+    //! Return the Phalanx evaluator registration field for weighted gradient basis values.
+    Array_CellBasisIPDim & getWeightedGradBasisValuesForPhalanxEvaluatorRegistration() const
+    {return weighted_grad_basis;}
+
+    //! Return the Phalanx evaluator registration field for weighted scalar curl basis values.
+    Array_CellBasisIP & getWeightedCurlBasisValuesForPhalanxEvaluatorRegistration()
+    {return weighted_curl_basis_scalar;}
+
+    //! Return the Phalanx evaluator registration field for weighted scalar curl basis values.
+    Array_CellBasisIP & getWeightedCurlBasisValuesForPhalanxEvaluatorRegistration() const
+    {return weighted_curl_basis_scalar;}
+
+    //! Return the Phalanx evaluator registration field for weighted vector curl basis values.
+    Array_CellBasisIPDim & getWeightedCurlVectorBasisValuesForPhalanxEvaluatorRegistration()
+    {return weighted_curl_basis_vector;}
+
+    //! Return the Phalanx evaluator registration field for weighted vector curl basis values.
+    Array_CellBasisIPDim & getWeightedCurlVectorBasisValuesForPhalanxEvaluatorRegistration() const
+    {return weighted_curl_basis_vector;}
+
+    //! Return the Phalanx evaluator registration field for weighted divergence basis values.
+    Array_CellBasisIP & getWeightedDivBasisValuesForPhalanxEvaluatorRegistration()
+    {return weighted_div_basis;}
+
+    //! Return the Phalanx evaluator registration field for weighted divergence basis values.
+    Array_CellBasisIP & getWeightedDivBasisValuesForPhalanxEvaluatorRegistration() const
+    {return weighted_div_basis;}
+
+    //! Return the Phalanx evaluator registration field for basis coordinates on the reference cell.
+    Array_BasisDim & getBasisCoordinatesRefForPhalanxEvaluatorRegistration()
+    {return basis_coordinates_ref;}
+
+    //! Return the Phalanx evaluator registration field for basis coordinates on the reference cell.
+    Array_BasisDim & getBasisCoordinatesRefForPhalanxEvaluatorRegistration() const
+    {return basis_coordinates_ref;}
+
+    //! Return the Phalanx evaluator registration field for basis coordinates.
+    Array_CellBasisDim & getBasisCoordinatesForPhalanxEvaluatorRegistration()
+    {return basis_coordinates;}
+
+    //! Return the Phalanx evaluator registration field for basis coordinates.
+    Array_CellBasisDim & getBasisCoordinatesForPhalanxEvaluatorRegistration() const
+    {return basis_coordinates;}
+
+    //@}
+
+
+    bool orientationsApplied() const
+    {return orientations_applied_;}
+
+    void evaluateBasisCoordinates(const PHX::MDField<Scalar,Cell,NODE,Dim> & node_coordinates,
+                                  const int in_num_cells = -1);
+
+  private:
 
     mutable Array_BasisIP     basis_ref_scalar;           // <BASIS,IP>
     mutable Array_CellBasisIP basis_scalar;               // <Cell,BASIS,IP>
@@ -218,7 +417,6 @@ namespace panzer {
     mutable Array_CellBasisDim basis_coordinates;     // <Cell,BASIS,Dim>
 
     Teuchos::RCP<const panzer::BasisIRLayout> basis_layout;
-
     Teuchos::RCP<IntrepidBasis> intrepid_basis;
 
     bool compute_derivatives;
@@ -227,23 +425,10 @@ namespace panzer {
     std::string prefix;
     std::vector<PHX::index_size_type> ddims_;
 
-    bool orientationsApplied() const
-    {return orientations_applied_;}
-
-    void evaluateBasisCoordinates(const PHX::MDField<Scalar,Cell,NODE,Dim> & node_coordinates,
-                                  const int in_num_cells = -1);
-
-  private:
-
     bool references_evaluated;
 
     // Have orientations been applied
     bool orientations_applied_;
-
-    //=======================================================================================================
-    // New Interface
-
-  protected:
 
     // Reset internal data structures for lazy evaluation
     void resetArrays();
@@ -302,6 +487,9 @@ namespace panzer {
     mutable bool weighted_div_basis_evaluated_;
     mutable bool basis_coordinates_ref_evaluated_;
     mutable bool basis_coordinates_evaluated_;
+
+    //=======================================================================================================
+    // New Interface
 
   public:
 

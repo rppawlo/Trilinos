@@ -71,7 +71,7 @@ namespace user_app {
     {
       using team_policy = Kokkos::TeamPolicy<PHX::ExecutionSpace>::member_type;
       auto policy = panzer::HP::inst().teamPolicy<ScalarT,PHX::ExecutionSpace>(workset.num_cells);
-      PHX::MDField<double,panzer::Cell,panzer::BASIS,panzer::IP,panzer::Dim> grad_basis = this->wda(workset).bases[basis_index_]->grad_basis;
+      PHX::MDField<double,panzer::Cell,panzer::BASIS,panzer::IP,panzer::Dim> grad_basis = this->wda(workset).bases[basis_index_]->getGradBasisValuesForPhalanxEvaluatorRegistration();
       const int num_ip = grad_basis.extent(2);
       const int num_basis = grad_basis.extent(1);
       const int num_dim = grad_basis.extent(3);

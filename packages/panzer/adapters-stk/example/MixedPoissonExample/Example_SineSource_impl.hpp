@@ -95,7 +95,7 @@ template <typename EvalT,typename Traits>
 void SineSource<EvalT,Traits>::evaluateFields(typename Traits::EvalData workset)
 {
   Example::SineSourceFunctor<ScalarT> ssf(source.get_static_view(),
-                                          this->wda(workset).int_rules[ir_index]->ip_coordinates.get_static_view(),
+                                          this->wda(workset).int_rules[ir_index]->getCubaturePoints().get_static_view(),
                                           weighted, K);
 
   auto policy = panzer::HP::inst().teamPolicy<ScalarT>(workset.num_cells);
