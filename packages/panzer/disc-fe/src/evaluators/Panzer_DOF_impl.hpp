@@ -118,7 +118,7 @@ void DOF<EvalT, TRAITS>::
 evaluateFields(typename TRAITS::EvalData workset)
 {
   const panzer::BasisValues2<double> & basisValues =
-    this->wda(workset).getBasisValues(bd_, id_, true);
+    this->wda(workset).getBasisValues(bd_, id_, panzer::useLazyWorksetEvaluation());
 
   const auto policy = panzer::HP::inst().teamPolicy<ScalarT,PHX::ExecutionSpace>(workset.num_cells);
   const bool use_shared_memory = panzer::HP::inst().useSharedMemory<ScalarT>();
@@ -275,7 +275,7 @@ void DOF<typename TRAITS::Jacobian, TRAITS>::
 evaluateFields(typename TRAITS::EvalData workset)
 {
   const panzer::BasisValues2<double> & basisValues =
-    this->wda(workset).getBasisValues(bd_, id_, true);
+    this->wda(workset).getBasisValues(bd_, id_, panzer::useLazyWorksetEvaluation());
 
   if(is_vector_basis) {
     if(accelerate_jacobian) {

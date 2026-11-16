@@ -314,7 +314,7 @@ namespace panzer
 
     // Grab the basis information.
     const panzer::BasisValues2<double>& bv =
-      this->wda(workset).getBasisValues(bd_, id_, true);
+      this->wda(workset).getBasisValues(bd_, id_, panzer::useLazyWorksetEvaluation());
     basis_ = bv.getVectorBasisValues(WeightBasis::Yes, CacheValues::Yes, ForceRecompute::No);
 
     // The following if-block is for the sake of optimization depending on the

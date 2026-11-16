@@ -99,7 +99,7 @@ evaluateFields(
 
   if(workset.num_cells>0) {
     const auto weighted_basis = this->wda(workset)
-                                  .getBasisValues(basis_descriptor_, integration_descriptor_, true)
+                                  .getBasisValues(basis_descriptor_, integration_descriptor_, panzer::useLazyWorksetEvaluation())
                                   .getBasisValues(WeightBasis::Yes, CacheValues::Yes, ForceRecompute::No);
     Intrepid2::FunctionSpaceTools<PHX::Device>::
       integrate(residual.get_view(),

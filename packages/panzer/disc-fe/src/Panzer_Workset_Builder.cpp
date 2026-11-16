@@ -16,11 +16,19 @@
 #include "Panzer_Workset_Builder_impl.hpp"
 
 template
-Teuchos::RCP<std::vector<panzer::Workset> > 
+Teuchos::RCP<std::vector<panzer::Workset> >
 panzer::buildWorksets(const WorksetNeeds & needs,
                       const std::string & elementBlock,
                       const std::vector<std::size_t>& local_cell_ids,
                       const Kokkos::DynRankView<double,PHX::Device>& node_coordinates);
+
+template
+Teuchos::RCP<std::vector<panzer::Workset> >
+panzer::buildWorksets(const WorksetNeeds & needs,
+                      const std::string & elementBlock,
+                      const std::vector<std::size_t>& local_cell_ids,
+                      const Kokkos::DynRankView<double,PHX::Device>& node_coordinates,
+                      const bool lazy_workset_evaluation);
 
 template
 Teuchos::RCP<std::map<unsigned,panzer::Workset> >
@@ -29,7 +37,8 @@ panzer::buildBCWorkset(const WorksetNeeds& needs,
                        const std::vector<std::size_t>& local_cell_ids,
                        const std::vector<std::size_t>& local_side_ids,
                        const Kokkos::DynRankView<double,PHX::Device>& node_coordinates,
-                       const bool populate_value_arrays);
+                       const bool populate_value_arrays,
+                       const bool lazy_workset_evaluation);
 
 template
 Teuchos::RCP<std::map<unsigned,panzer::Workset> >

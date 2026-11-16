@@ -61,7 +61,7 @@ void panzer::GatherBasisCoordinates<EvalT, TRAITS>::
 evaluateFields(typename TRAITS::EvalData workset)
 {
   const auto basis_coordinates = this->wda(workset)
-                                   .getBasisValues(basisDescriptor_, true)
+                                   .getBasisValues(basisDescriptor_, panzer::useLazyWorksetEvaluation())
                                    .getBasisCoordinates(CacheValues::Yes, ForceRecompute::Yes);
 
   // just copy the array

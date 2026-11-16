@@ -69,7 +69,8 @@ IntegrationRule(const panzer::IntegrationDescriptor& description,
   cv_type = "none";
 
   panzer::CellData cell_data;
-  if(isSide()){
+  if(description.getType() == panzer::IntegrationDescriptor::SIDE or
+     description.getType() == panzer::IntegrationDescriptor::CV_BOUNDARY){
     cell_data = panzer::CellData(num_cells, getSide(), cell_topology);
   } else {
     cell_data = panzer::CellData(num_cells, cell_topology);

@@ -144,7 +144,7 @@ setup(const panzer::LocalMeshPartition & partition,
     TEUCHOS_ASSERT(num_nodes_per_cell > 0);
     TEUCHOS_ASSERT(num_dims_per_node > 0);
 
-    // Allocate the worksets copy of the cell nodes 
+    // Allocate the worksets copy of the cell nodes
     MDFieldArrayFactory af("",true);
     cell_node_coordinates = af.buildStaticArray<double, Cell, NODE, Dim>("cell nodes", num_partition_cells, num_nodes_per_cell, num_dims_per_node);
 
@@ -168,6 +168,45 @@ setup(const panzer::LocalMeshPartition & partition,
   // We have enough information to construct Basis/Point/Integration Values on the fly
   setup_ = true;
 
+}
+
+void
+WorksetDetails::
+setup(const std::string & element_block,
+      const Teuchos::RCP<const shards::CellTopology> & cell_topology,
+      const CellCoordArray & cell_node_coordinates_in,
+      const std::vector<size_t> & local_cell_ids_in,
+      const int subcell_dimension,
+      const int subcell_index_in,
+      const WorksetOptions & options)
+{
+  TEUCHOS_ASSERT(cell_topology != Teuchos::null);
+
+  cell_topology_ = cell_topology;
+  options_ = options;
+
+  block_id = element_block;
+  sideset_ = "";
+  subcell_dim = subcell_dimension;
+  subcell_index = subcell_index_in;
+  num_dimensions_ = cell_topology_->getDimension();
+
+  num_cells = local_cell_ids_in.size();
+  num_owned_cells_ = num_cells;
+  num_ghost_cells_ = 0;
+  num_virtual_cells_ = 0;
+
+  cell_node_coordinates = cell_node_coordinates_in;
+  cell_local_ids = local_cell_ids_in;
+
+  Kokkos::View<LocalOrdinal*, PHX::Device> cell_ids("cell_ids", cell_local_ids.size());
+  auto cell_ids_h = Kokkos::create_mirror_view(cell_ids);
+  for(std::size_t cell=0; cell<cell_local_ids.size(); ++cell)
+    cell_ids_h(cell) = cell_local_ids[cell];
+  Kokkos::deep_copy(cell_ids, cell_ids_h);
+  cell_local_ids_k = cell_ids;
+
+  setup_ = true;
 }
 
 bool

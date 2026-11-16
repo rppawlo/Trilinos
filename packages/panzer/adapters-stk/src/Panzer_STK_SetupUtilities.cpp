@@ -17,10 +17,19 @@
 
 namespace panzer_stk {
 
-Teuchos::RCP<std::vector<panzer::Workset> >  
+Teuchos::RCP<std::vector<panzer::Workset> >
 buildWorksets(const panzer_stk::STK_Interface & mesh,
               const std::string & eBlock,
               const panzer::WorksetNeeds & needs)
+{
+  return buildWorksets(mesh, eBlock, needs, false);
+}
+
+Teuchos::RCP<std::vector<panzer::Workset> >
+buildWorksets(const panzer_stk::STK_Interface & mesh,
+              const std::string & eBlock,
+              const panzer::WorksetNeeds & needs,
+              const bool lazy_workset_evaluation)
 {
   using namespace workset_utils;
 
@@ -35,7 +44,7 @@ buildWorksets(const panzer_stk::STK_Interface & mesh,
   // this may be processor dependent, so an element block
   // may not have elements and thus no contribution
   // on this processor
-  return panzer::buildWorksets(needs, eBlock, local_cell_ids, cell_node_coordinates);
+  return panzer::buildWorksets(needs, eBlock, local_cell_ids, cell_node_coordinates, lazy_workset_evaluation);
 }
 
 Teuchos::RCP<std::vector<panzer::Workset> >  
@@ -252,6 +261,16 @@ buildBCWorksets(const panzer_stk::STK_Interface & mesh,
                 const std::string & eblockID,
                 const std::string & sidesetID)
 {
+  return buildBCWorksets(mesh, needs, eblockID, sidesetID, false);
+}
+
+Teuchos::RCP<std::map<unsigned,panzer::Workset> >
+buildBCWorksets(const panzer_stk::STK_Interface & mesh,
+                const panzer::WorksetNeeds & needs,
+                const std::string & eblockID,
+                const std::string & sidesetID,
+                const bool lazy_workset_evaluation)
+{
   using namespace workset_utils;
   using Teuchos::RCP;
 
@@ -316,7 +335,8 @@ buildBCWorksets(const panzer_stk::STK_Interface & mesh,
       Kokkos::DynRankView<double,PHX::Device> nodes;
       mesh.getElementNodes(local_cell_ids,eblockID,nodes);
 
-      return panzer::buildBCWorkset(needs, eblockID, local_cell_ids, local_side_ids, nodes);
+      return panzer::buildBCWorkset(needs, eblockID, local_cell_ids, local_side_ids, nodes,
+                                    true, lazy_workset_evaluation);
   }
   
   return Teuchos::null;

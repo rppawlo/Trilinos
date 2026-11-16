@@ -93,7 +93,7 @@ evaluateFields(
     return;
 
   const auto weighted_basis = this->wda(workset)
-                                .getBasisValues(basis_descriptor_, integration_descriptor_, true)
+                                .getBasisValues(basis_descriptor_, integration_descriptor_, panzer::useLazyWorksetEvaluation())
                                 .getBasisValues(WeightBasis::Yes, CacheValues::Yes, ForceRecompute::No);
   for (index_t cell = 0; cell < workset.num_cells; ++cell) {
     for (std::size_t basis = 0; basis < residual.extent(1); ++basis) {

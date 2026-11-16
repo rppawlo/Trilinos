@@ -29,6 +29,7 @@ TRIBITS_COPY_FILES_TO_BINARY_DIR(main_driver_files
   SOURCE_FILES
     energy-ss.xml
     energy-ss-tp.xml
+    energy-ss-tp-classic-workset-evaluation.xml
     energy-ss-tp-fe-assembly.xml
     energy-ss-point-calc.xml
     energy-ss-tp-delay-prec.xml
@@ -78,6 +79,13 @@ TRIBITS_ADD_ADVANCED_TEST(
   TEST_0 EXEC main_driver
     ARGS  --i=energy-ss-tp.xml --exodus-io-num-procs=1
     PASS_REGULAR_EXPRESSION "panzer::MainDriver run completed."
+  )
+
+TRIBITS_ADD_ADVANCED_TEST(
+  main_driver_energy-ss-tp-classic-workset-evaluation
+  TEST_0 EXEC main_driver
+    ARGS  --i=energy-ss-tp-classic-workset-evaluation.xml --exodus-io-num-procs=1 --classic-workset-evaluation
+    PASS_REGULAR_EXPRESSION "Workset evaluation mode: classic"
   )
 
 # Assembling the Jacobian into a Tpetra::FECrsMatrix.  Tested against

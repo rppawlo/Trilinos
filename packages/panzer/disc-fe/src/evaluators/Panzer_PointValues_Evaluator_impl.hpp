@@ -142,7 +142,7 @@ evaluateFields(
   typename Traits::EvalData workset)
 { 
   if(useBasisValuesRefArray) {
-    const auto& basis_values = this->wda(workset).getBasisValues(basis_descriptor, true);
+    const auto& basis_values = this->wda(workset).getBasisValues(basis_descriptor, panzer::useLazyWorksetEvaluation());
     const auto basis_coordinates_ref = basis_values.getBasisCoordinatesRef(CacheValues::Yes, ForceRecompute::No);
 
     // evaluate the point values (construct jacobians etc...)

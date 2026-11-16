@@ -662,7 +662,7 @@ namespace panzer
 
     // Reacquire through the workset so descriptor-based lookup refreshes lazy basis state.
     const BasisValues2<double>& bv =
-      this->wda(workset).getBasisValues(bd_, id_, true);
+      this->wda(workset).getBasisValues(bd_, id_, panzer::useLazyWorksetEvaluation());
 
     // If we're dealing with a two- or three-dimensional problem...
     if (spaceDim_ == 2)

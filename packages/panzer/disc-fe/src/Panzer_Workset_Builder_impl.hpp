@@ -20,6 +20,8 @@
 #include "Panzer_BC.hpp"
 #include "Panzer_Shards_Utilities.hpp"
 #include "Panzer_CommonArrayFactories.hpp"
+#include "Panzer_IntegrationRule.hpp"
+#include "Panzer_PureBasis.hpp"
 
 #include "Phalanx_DataLayout_MDALayout.hpp"
 
@@ -34,8 +36,19 @@ template<typename ArrayT>
 Teuchos::RCP< std::vector<panzer::Workset> >
 panzer::buildWorksets(const WorksetNeeds & needs,
                       const std::string & elementBlock,
-		                  const std::vector<std::size_t>& local_cell_ids,
-		                  const ArrayT& node_coordinates)
+                      const std::vector<std::size_t>& local_cell_ids,
+                      const ArrayT& node_coordinates)
+{
+  return buildWorksets(needs, elementBlock, local_cell_ids, node_coordinates, false);
+}
+
+template<typename ArrayT>
+Teuchos::RCP< std::vector<panzer::Workset> >
+panzer::buildWorksets(const WorksetNeeds & needs,
+                      const std::string & elementBlock,
+                      const std::vector<std::size_t>& local_cell_ids,
+                      const ArrayT& node_coordinates,
+                      const bool lazy_workset_evaluation)
 {
   using std::vector;
   using std::string;
@@ -47,6 +60,8 @@ panzer::buildWorksets(const WorksetNeeds & needs,
   std::size_t total_num_cells = local_cell_ids.size();
 
   std::size_t workset_size = needs.cellData.numCells();
+  if(workset_size == 0)
+    workset_size = total_num_cells;
 
   Teuchos::RCP< std::vector<panzer::Workset> > worksets_ptr =
     Teuchos::rcp(new std::vector<panzer::Workset>);
@@ -163,9 +178,38 @@ panzer::buildWorksets(const WorksetNeeds & needs,
     wkst->basis_names = basis_names;
   }
 
-  // setup the integration rules and bases
-  for(std::vector<panzer::Workset>::iterator wkst = worksets.begin(); wkst != worksets.end(); ++wkst)
-    populateValueArrays(wkst->num_cells,false,needs,*wkst);
+  if(lazy_workset_evaluation) {
+    const auto cell_topology = needs.cellData.getCellTopology();
+    panzer::WorksetOptions options;
+    for(auto & wkst : worksets) {
+      wkst.setup(elementBlock,
+                 cell_topology,
+                 wkst.cell_node_coordinates,
+                 wkst.cell_local_ids,
+                 needs.cellData.baseCellDimension(),
+                 -1,
+                 options);
+
+      for(const auto & ir : needs.int_rules) {
+        const panzer::IntegrationDescriptor id(*ir);
+        const auto & integration_values = wkst.getIntegrationValues(id, true);
+        TEUCHOS_ASSERT(integration_values.getIntegrationRule() != Teuchos::null);
+      }
+
+      for(const auto & basis : needs.bases) {
+        const panzer::BasisDescriptor bd(basis->order(), basis->type());
+        for(const auto & ir : needs.int_rules) {
+          const panzer::IntegrationDescriptor id(*ir);
+          const auto & basis_values = wkst.getBasisValues(bd, id, true);
+          TEUCHOS_ASSERT(basis_values.getBasisIRLayout() != Teuchos::null);
+        }
+      }
+    }
+  } else {
+    // setup the integration rules and bases
+    for(std::vector<panzer::Workset>::iterator wkst = worksets.begin(); wkst != worksets.end(); ++wkst)
+      populateValueArrays(wkst->num_cells,false,needs,*wkst);
+  }
 
   return worksets_ptr;
 }
@@ -180,7 +224,8 @@ panzer::buildBCWorkset(const WorksetNeeds & needs,
                        const std::vector<std::size_t>& local_cell_ids,
                        const std::vector<std::size_t>& local_side_ids,
                        const ArrayT& node_coordinates,
-                       const bool populate_value_arrays)
+                       const bool populate_value_arrays,
+                       const bool lazy_workset_evaluation)
 {
   using Teuchos::RCP;
   using Teuchos::rcp;
@@ -255,11 +300,45 @@ panzer::buildBCWorkset(const WorksetNeeds & needs,
   }
 
   if (populate_value_arrays) {
-    // setup the integration rules and bases
-    for (std::map<unsigned,panzer::Workset>::iterator wkst = worksets.begin();
-         wkst != worksets.end(); ++wkst) {
+    if (lazy_workset_evaluation) {
+      const auto cell_topology = needs.cellData.getCellTopology();
+      panzer::WorksetOptions options;
+      options.side_assembly_ = true;
+      for (auto & wkst : worksets) {
+        wkst.second.setup(elementBlock,
+                          cell_topology,
+                          wkst.second.cell_node_coordinates,
+                          wkst.second.cell_local_ids,
+                          needs.cellData.baseCellDimension() - 1,
+                          wkst.first,
+                          options);
 
-      populateValueArrays(wkst->second.num_cells,true,needs,wkst->second); // populate "side" values
+        for(const auto & ir : needs.int_rules) {
+          const panzer::IntegrationDescriptor id(ir->cubature_degree,
+                                                 panzer::IntegrationDescriptor::SIDE,
+                                                 wkst.first);
+          const auto & integration_values = wkst.second.getIntegrationValues(id, true);
+          TEUCHOS_ASSERT(integration_values.getIntegrationRule() != Teuchos::null);
+        }
+
+        for(const auto & basis : needs.bases) {
+          const panzer::BasisDescriptor bd(basis->order(), basis->type());
+          for(const auto & ir : needs.int_rules) {
+            const panzer::IntegrationDescriptor id(ir->cubature_degree,
+                                                   panzer::IntegrationDescriptor::SIDE,
+                                                   wkst.first);
+            const auto & basis_values = wkst.second.getBasisValues(bd, id, true);
+            TEUCHOS_ASSERT(basis_values.getBasisIRLayout() != Teuchos::null);
+          }
+        }
+      }
+    } else {
+      // setup the integration rules and bases
+      for (std::map<unsigned,panzer::Workset>::iterator wkst = worksets.begin();
+           wkst != worksets.end(); ++wkst) {
+
+        populateValueArrays(wkst->second.num_cells,true,needs,wkst->second); // populate "side" values
+      }
     }
   }
 

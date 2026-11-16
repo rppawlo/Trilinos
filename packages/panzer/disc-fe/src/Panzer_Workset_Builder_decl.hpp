@@ -25,11 +25,19 @@ namespace panzer {
   class WorksetDetails;
 
   template<typename ArrayT>
-  Teuchos::RCP<std::vector<Workset> > 
+  Teuchos::RCP<std::vector<Workset> >
   buildWorksets(const WorksetNeeds & needs,
                 const std::string & elementBlock,
                 const std::vector<std::size_t>& local_cell_ids,
                 const ArrayT& node_coordinates);
+
+  template<typename ArrayT>
+  Teuchos::RCP<std::vector<Workset> >
+  buildWorksets(const WorksetNeeds & needs,
+                const std::string & elementBlock,
+                const std::vector<std::size_t>& local_cell_ids,
+                const ArrayT& node_coordinates,
+                const bool lazy_workset_evaluation);
 
   template<typename ArrayT>
   Teuchos::RCP<std::map<unsigned,Workset> >
@@ -38,7 +46,8 @@ namespace panzer {
                  const std::vector<std::size_t>& local_cell_ids,
                  const std::vector<std::size_t>& local_side_ids,
                  const ArrayT& node_coordinates,
-                 const bool populate_value_arrays = true);
+                 const bool populate_value_arrays = true,
+                 const bool lazy_workset_evaluation = false);
 
   template<typename ArrayT>
   Teuchos::RCP<std::map<unsigned,panzer::Workset> >

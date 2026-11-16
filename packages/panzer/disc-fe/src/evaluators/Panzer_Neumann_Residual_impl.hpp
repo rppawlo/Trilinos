@@ -98,7 +98,7 @@ evaluateFields(
     return;
 
   auto weighted_basis_scalar = this->wda(workset)
-                                 .getBasisValues(basis_descriptor_, integration_descriptor_, true)
+                                 .getBasisValues(basis_descriptor_, integration_descriptor_, panzer::useLazyWorksetEvaluation())
                                  .getBasisValues(WeightBasis::Yes, CacheValues::Yes, ForceRecompute::No)
                                  .get_static_view();
   auto residual_v = residual.get_static_view();

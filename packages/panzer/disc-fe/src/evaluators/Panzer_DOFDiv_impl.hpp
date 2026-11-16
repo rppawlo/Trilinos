@@ -186,7 +186,7 @@ evaluateFields(typename TRAITS::EvalData workset)
     return;
 
   const panzer::BasisValues2<double> & basisValues =
-    this->wda(workset).getBasisValues(bd_, id_, true);
+    this->wda(workset).getBasisValues(bd_, id_, panzer::useLazyWorksetEvaluation());
 
   using Array=typename panzer::BasisValues2<double>::ConstArray_CellBasisIP;
   Array div_basis = basisValues.getDivVectorBasis(WeightBasis::No, CacheValues::Yes, ForceRecompute::No);
@@ -288,7 +288,7 @@ evaluateFields(typename TRAITS::EvalData workset)
     return;
 
   const panzer::BasisValues2<double> & basisValues =
-    this->wda(workset).getBasisValues(bd_, id_, true);
+    this->wda(workset).getBasisValues(bd_, id_, panzer::useLazyWorksetEvaluation());
 
   using Array=typename panzer::BasisValues2<double>::ConstArray_CellBasisIP;
   Array div_basis = basisValues.getDivVectorBasis(WeightBasis::No, CacheValues::Yes, ForceRecompute::No);

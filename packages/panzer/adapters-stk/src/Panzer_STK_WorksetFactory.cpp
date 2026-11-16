@@ -12,6 +12,7 @@
 
 #include <Panzer_SetupPartitionedWorksetUtilities.hpp>
 #include "Panzer_STK_WorksetFactory.hpp"
+#include "Panzer_Workset_Utilities.hpp"
 
 #include "Panzer_LocalMeshInfo.hpp"
 
@@ -37,7 +38,8 @@ getSideWorksets(const panzer::WorksetDescriptor & desc,
 {
   TEUCHOS_ASSERT(desc.useSideset());
 
-  return panzer_stk::buildBCWorksets(*mesh_,needs,desc.getElementBlock(0),desc.getSideset());
+  return panzer_stk::buildBCWorksets(*mesh_, needs, desc.getElementBlock(0), desc.getSideset(),
+                                     panzer::useLazyWorksetEvaluation());
 }
 
 Teuchos::RCP<std::map<unsigned,panzer::Workset> > WorksetFactory::
@@ -73,23 +75,31 @@ getWorksets(const panzer::WorksetDescriptor & worksetDesc,
     for(auto & workset : *worksets){
 
       // Initialize IntegrationValues from integration descriptors
-      for(const auto & id : needs.getIntegrators())
-        workset.getIntegrationValues(id);
+      for(const auto & id : needs.getIntegrators()) {
+        const auto & integration_values = workset.getIntegrationValues(id, panzer::useLazyWorksetEvaluation());
+        TEUCHOS_ASSERT(integration_values.getIntegrationRule() != Teuchos::null);
+      }
 
       // Initialize PointValues from point descriptors
-      for(const auto & pd : needs.getPoints())
-        workset.getPointValues(pd);
+      for(const auto & pd : needs.getPoints()) {
+        const auto & point_values = workset.getPointValues(pd);
+        TEUCHOS_ASSERT(point_values.point_rule != Teuchos::null);
+      }
 
       // Initialize BasisValues
       for(const auto & bd : needs.getBases()){
 
         // Initialize BasisValues from integrators
-        for(const auto & id : needs.getIntegrators())
-          workset.getBasisValues(bd,id);
+        for(const auto & id : needs.getIntegrators()) {
+          const auto & basis_values = workset.getBasisValues(bd,id,panzer::useLazyWorksetEvaluation());
+          TEUCHOS_ASSERT(basis_values.getBasisIRLayout() != Teuchos::null);
+        }
 
         // Initialize BasisValues from points
-        for(const auto & pd : needs.getPoints())
-          workset.getBasisValues(bd,pd);
+        for(const auto & pd : needs.getPoints()) {
+          const auto & basis_values = workset.getBasisValues(bd,pd,panzer::useLazyWorksetEvaluation());
+          TEUCHOS_ASSERT(basis_values.getBasisIRLayout() != Teuchos::null);
+        }
       }
     }
 
@@ -102,7 +112,8 @@ getWorksets(const panzer::WorksetDescriptor & worksetDesc,
     // from classic mode, we need to create a copy of needs and
     // override the workset size with values from WorksetDescription.
     if (worksetDesc.getWorksetSize() == panzer::WorksetSizeType::CLASSIC_MODE)
-      return panzer_stk::buildWorksets(*mesh_,worksetDesc.getElementBlock(), needs);
+      return panzer_stk::buildWorksets(*mesh_,worksetDesc.getElementBlock(), needs,
+                                       panzer::useLazyWorksetEvaluation());
     else {
       int worksetSize = worksetDesc.getWorksetSize();
       if (worksetSize == panzer::WorksetSizeType::ALL_ELEMENTS) {
@@ -112,7 +123,8 @@ getWorksets(const panzer::WorksetDescriptor & worksetDesc,
       }
       panzer::WorksetNeeds tmpNeeds(needs);
       tmpNeeds.cellData = panzer::CellData(worksetSize,needs.cellData.getCellTopology());
-      return panzer_stk::buildWorksets(*mesh_,worksetDesc.getElementBlock(), tmpNeeds);
+      return panzer_stk::buildWorksets(*mesh_,worksetDesc.getElementBlock(), tmpNeeds,
+                                       panzer::useLazyWorksetEvaluation());
     }
   }
   else if(worksetDesc.useSideset() && worksetDesc.sideAssembly()) {

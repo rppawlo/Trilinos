@@ -183,7 +183,7 @@ evaluateFields(typename Traits::EvalData workset)
     return;
 
   const panzer::BasisValues2<double> & basisValues =
-    this->wda(workset).getBasisValues(bd_, id_, true);
+    this->wda(workset).getBasisValues(bd_, id_, panzer::useLazyWorksetEvaluation());
 
   using Array=typename panzer::BasisValues2<double>::ConstArray_CellBasisIPDim;
   Array grad_basis = basisValues.getGradBasisValues(WeightBasis::No, CacheValues::Yes, ForceRecompute::No);

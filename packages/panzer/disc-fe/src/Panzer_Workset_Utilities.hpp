@@ -18,6 +18,17 @@
 
 namespace panzer {
 
+  /** \brief Set whether Panzer evaluators use lazy workset evaluation by default.
+   *
+   * This process-local switch lets examples and tests compare the lazy
+   * BasisValues2/IntegrationValues2 path with the classic eager path without
+   * changing every evaluator call site.
+   */
+  void setUseLazyWorksetEvaluation(bool use_lazy_workset_evaluation);
+
+  /** \brief Return whether Panzer evaluators use lazy workset evaluation by default. */
+  bool useLazyWorksetEvaluation();
+
   /** \brief Returns the index in the workset bases for a particular PureBasis name.
       \param[in] basis_name Name of the basis that corresponds to a particular PureBasis
       \param[in] workset Worksets to perform the search over

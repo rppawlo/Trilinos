@@ -69,7 +69,7 @@ evaluateFields(
   // ECC Fix: Get Physical Side Normals
 
   if(workset.num_cells>0) {
-    const auto& integration_values = this->wda(workset).getIntegrationValues(integration_descriptor, true);
+    const auto& integration_values = this->wda(workset).getIntegrationValues(integration_descriptor, panzer::useLazyWorksetEvaluation());
     const auto jac = integration_values.getJacobian(CacheValues::Yes, ForceRecompute::No);
     Intrepid2::CellTools<PHX::Device>::getPhysicalSideNormals(normals.get_view(),
                                                                   jac.get_view(),

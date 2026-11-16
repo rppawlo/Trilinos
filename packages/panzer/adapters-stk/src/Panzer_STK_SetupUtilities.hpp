@@ -33,10 +33,16 @@ namespace panzer_stk {
   *
   * \returns vector of worksets for the corresponding element block.
   */
-Teuchos::RCP<std::vector<panzer::Workset> >  
+Teuchos::RCP<std::vector<panzer::Workset> >
 buildWorksets(const panzer_stk::STK_Interface & mesh,
               const std::string & eBlock,
               const panzer::WorksetNeeds & needs);
+
+Teuchos::RCP<std::vector<panzer::Workset> >
+buildWorksets(const panzer_stk::STK_Interface & mesh,
+              const std::string & eBlock,
+              const panzer::WorksetNeeds & needs,
+              const bool lazy_workset_evaluation);
 
 /** Build volumetric worksets for a STK mesh with elements that touch a particular sideset.
   *
@@ -104,6 +110,13 @@ buildBCWorksets(const panzer_stk::STK_Interface & mesh,
                 const panzer::WorksetNeeds & needs,
                 const std::string & eblockID,
                 const std::string & sidesetID);
+
+Teuchos::RCP<std::map<unsigned,panzer::Workset> >
+buildBCWorksets(const panzer_stk::STK_Interface & mesh,
+                const panzer::WorksetNeeds & needs,
+                const std::string & eblockID,
+                const std::string & sidesetID,
+                const bool lazy_workset_evaluation);
 
 // namespace may not be neccssary in the future, currently avoids
 // collisions with previously implemented code in tests

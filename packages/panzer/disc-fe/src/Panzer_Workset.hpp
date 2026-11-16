@@ -79,6 +79,16 @@ namespace panzer {
     setup(const LocalMeshPartition & partition,
           const WorksetOptions & options);
 
+    //! Constructs the workset details from the legacy workset builder data.
+    void
+    setup(const std::string & element_block,
+          const Teuchos::RCP<const shards::CellTopology> & cell_topology,
+          const CellCoordArray & cell_node_coordinates,
+          const std::vector<size_t> & local_cell_ids,
+          const int subcell_dimension,
+          const int subcell_index,
+          const WorksetOptions & options);
+
     /// DEPRECATED - use: numCells()
     int num_cells;
 

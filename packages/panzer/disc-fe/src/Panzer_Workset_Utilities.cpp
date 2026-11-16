@@ -13,6 +13,8 @@
 
 #include "Panzer_Traits.hpp"
 #include "Panzer_Workset.hpp"
+#include "Panzer_BasisIRLayout.hpp"
+#include "Panzer_IntegrationRule.hpp"
 #include "Teuchos_Assert.hpp"
 #include <vector>
 #include <string>
@@ -21,7 +23,17 @@
 
 namespace panzer {
 
-  std::vector<std::string>::size_type 
+  namespace {
+    bool use_lazy_workset_evaluation = false;
+  }
+
+  void setUseLazyWorksetEvaluation(bool use_lazy_workset_evaluation_in)
+  { use_lazy_workset_evaluation = use_lazy_workset_evaluation_in; }
+
+  bool useLazyWorksetEvaluation()
+  { return use_lazy_workset_evaluation; }
+
+  std::vector<std::string>::size_type
   getPureBasisIndex(std::string basis_name, const panzer::Workset& workset, WorksetDetailsAccessor& wda)
   {
     std::vector<std::string>::iterator basis = wda(workset).basis_names->begin();
@@ -64,18 +76,25 @@ namespace panzer {
   std::vector<int>::size_type
   getIntegrationRuleIndex(int ir_degree, const panzer::Workset& workset, WorksetDetailsAccessor& wda)
   {
-    std::vector<int>::iterator ir;
+    const auto & details = wda(workset);
+    auto ir = std::find(details.ir_degrees->begin(),
+                        details.ir_degrees->end(),
+                        ir_degree);
 
-    ir = std::find(wda(workset).ir_degrees->begin(),
-		   wda(workset).ir_degrees->end(),
-		   ir_degree);
-    
-    TEUCHOS_TEST_FOR_EXCEPTION(ir == wda(workset).ir_degrees->end(),
-			       std::logic_error,
-			       "Could not find the integration rule degree \"" 
+    if(ir == details.ir_degrees->end()) {
+      const IntegrationDescriptor description(ir_degree, IntegrationDescriptor::VOLUME);
+      details.getIntegrationValues(description, useLazyWorksetEvaluation());
+      ir = std::find(details.ir_degrees->begin(),
+                     details.ir_degrees->end(),
+                     ir_degree);
+    }
+
+    TEUCHOS_TEST_FOR_EXCEPTION(ir == details.ir_degrees->end(),
+                               std::logic_error,
+                               "Could not find the integration rule degree \""
                                << ir_degree << "\" in the workset!");
 
-    return std::distance(wda(workset).ir_degrees->begin(), ir);
+    return std::distance(details.ir_degrees->begin(), ir);
   }
 
   void printWorkset(std::ostream& os, const panzer::Workset & workset, WorksetDetailsAccessor& wda)

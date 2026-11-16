@@ -269,7 +269,7 @@ namespace panzer
       return;
     // Reacquire through the workset so descriptor-based lookup refreshes lazy basis state.
     basis_ = this->wda(workset)
-               .getBasisValues(basisDescriptor_, integrationDescriptor_, true)
+               .getBasisValues(basisDescriptor_, integrationDescriptor_, panzer::useLazyWorksetEvaluation())
                .getGradBasisValues(WeightBasis::Yes, CacheValues::Yes, ForceRecompute::No);
             
     // The following if-block is for the sake of optimization depending on the

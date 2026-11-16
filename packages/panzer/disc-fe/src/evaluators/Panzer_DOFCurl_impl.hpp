@@ -376,7 +376,7 @@ void DOFCurl<EvalT, TRAITS>::
 evaluateFields(typename TRAITS::EvalData workset)
 { 
   const panzer::BasisValues2<double> & basisValues =
-    this->wda(workset).getBasisValues(bd_, id_, true);
+    this->wda(workset).getBasisValues(bd_, id_, panzer::useLazyWorksetEvaluation());
 
   if(basis_dimension==3) {
     using Array=typename BasisValues2<double>::ConstArray_CellBasisIPDim;
@@ -511,7 +511,7 @@ void DOFCurl<typename TRAITS::Jacobian,TRAITS>::
 evaluateFields(typename TRAITS::EvalData workset)
 { 
   const panzer::BasisValues2<double> & basisValues =
-    this->wda(workset).getBasisValues(bd_, id_, true);
+    this->wda(workset).getBasisValues(bd_, id_, panzer::useLazyWorksetEvaluation());
 
   if(!accelerate_jacobian) {
     if(basis_dimension==3) {

@@ -28,6 +28,7 @@
 #include "Panzer_ClosureModel_Factory_TemplateManager.hpp"
 #include "Panzer_String_Utilities.hpp"
 #include "Panzer_ThyraObjContainer.hpp"
+#include "Panzer_Workset_Utilities.hpp"
 #include "Thyra_VectorSpaceBase.hpp"
 
 #include "NOX_Utils.H"
@@ -100,6 +101,7 @@ int main(int argc, char *argv[])
     int exodus_io_num_procs = 0;
     bool printTimers = true;
     bool printInputPL = false;
+    bool lazyWorksetEvaluation = true;
     bool overrideNoxOutput = true;
     {
       Teuchos::CommandLineProcessor clp;
@@ -108,6 +110,7 @@ int main(int argc, char *argv[])
       clp.setOption("exodus-io-num-procs", &exodus_io_num_procs, "Number of processes that can access the file system at the same time to read their portion of a sliced exodus file in parallel.  Defaults to 0 - implies all processes for the run can access the file system at the same time.");
       clp.setOption("time","no-time", &printTimers, "Print the timing information.");
       clp.setOption("pl","no-pl", &printInputPL, "Print the input ParameterList at the start of the run.");
+      clp.setOption("lazy-workset-evaluation","classic-workset-evaluation", &lazyWorksetEvaluation, "Use lazy BasisValues2/IntegrationValues2 workset evaluation in Panzer evaluators. Disable to run the classic eager workset evaluation path.");
       clp.setOption("override-nox-output","default-nox-output", &overrideNoxOutput, "Override default nox printing with new print observer.");
 
       auto parse_return = clp.parse(argc,argv,&std::cerr);
@@ -115,6 +118,10 @@ int main(int argc, char *argv[])
       TEUCHOS_TEST_FOR_EXCEPTION(parse_return != Teuchos::CommandLineProcessor::PARSE_SUCCESSFUL,
                                  std::runtime_error, "Failed to parse command line!");
     }
+
+    panzer::setUseLazyWorksetEvaluation(lazyWorksetEvaluation);
+    *out << "Workset evaluation mode: "
+         << (panzer::useLazyWorksetEvaluation() ? "lazy" : "classic") << std::endl;
 
     TEUCHOS_ASSERT(exodus_io_num_procs <= comm->getSize());
     if (exodus_io_num_procs != 0)

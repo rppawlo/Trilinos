@@ -373,7 +373,7 @@ namespace panzer
 
     // Reacquire through the workset so descriptor-based lookup refreshes lazy basis state.
     basis_ = this->wda(workset)
-               .getBasisValues(basisDescriptor_, integrationDescriptor_, true)
+               .getBasisValues(basisDescriptor_, integrationDescriptor_, panzer::useLazyWorksetEvaluation())
                .getDivVectorBasis(WeightBasis::Yes, CacheValues::Yes, ForceRecompute::No);
 
     bool use_shared_memory = panzer::HP::inst().useSharedMemory<ScalarT>();

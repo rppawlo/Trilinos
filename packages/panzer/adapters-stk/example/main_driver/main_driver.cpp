@@ -30,6 +30,7 @@
 #include "Panzer_PauseToAttach.hpp"
 #include "Panzer_String_Utilities.hpp"
 #include "Panzer_ThyraObjContainer.hpp"
+#include "Panzer_Workset_Utilities.hpp"
 #include "Thyra_VectorSpaceBase.hpp"
 
 #ifdef Panzer_BUILD_PAPI_SUPPORT
@@ -87,6 +88,7 @@ int main(int argc, char *argv[])
     bool pointCalculation = false;
     bool printTimers = false;
     bool printInputPL = false;
+    bool lazyWorksetEvaluation = true;
     std::string assemblyMode = "input file";
     {
       Teuchos::CommandLineProcessor clp;
@@ -98,6 +100,7 @@ int main(int argc, char *argv[])
       clp.setOption("point-calc","disable-point-calc", &pointCalculation, "Enable the probe evaluator unit test.");
       clp.setOption("time","no-time", &printTimers, "Print the timing information.");
       clp.setOption("pl","no-pl", &printInputPL, "Print the input ParameterList at the start of the run.");
+      clp.setOption("lazy-workset-evaluation","classic-workset-evaluation", &lazyWorksetEvaluation, "Use lazy BasisValues2/IntegrationValues2 workset evaluation in Panzer evaluators. Disable to run the classic eager workset evaluation path.");
       clp.setOption("assembly", &assemblyMode, "Which assembly path to use for the Jacobian. Valid values are \"fe\", \"classic\" and \"input file\" (default). \"fe\" assembles into a Tpetra::FECrsMatrix; \"classic\" assembles into separate owned/ghosted matrices joined by an explicit export. Both override the Assembly sublist's \"Use FE Assembly\" entry in the input file. \"input file\" leaves that entry alone, so the input file decides; if the input file does not set it, classic is used. FE assembly requires a Tpetra problem, flat or blocked.");
 
       Teuchos::CommandLineProcessor::EParseCommandLineReturn parse_return =
@@ -106,6 +109,10 @@ int main(int argc, char *argv[])
       TEUCHOS_TEST_FOR_EXCEPTION(parse_return != Teuchos::CommandLineProcessor::PARSE_SUCCESSFUL,
 			 std::runtime_error, "Failed to parse command line!");
     }
+
+    panzer::setUseLazyWorksetEvaluation(lazyWorksetEvaluation);
+    *out << "Workset evaluation mode: "
+         << (panzer::useLazyWorksetEvaluation() ? "lazy" : "classic") << std::endl;
 
     if(pauseToAttachOn)
        panzer::pauseToAttach();

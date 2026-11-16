@@ -90,7 +90,17 @@ WorksetContainer::getWorksets(const WorksetDescriptor & wd)
       WorksetNeeds needs;
       if(hasNeeds())
         needs = lookupNeeds(wd.getElementBlock());
-      worksetVector = wkstFactory_->getWorksets(wd,needs);
+
+      WorksetDescriptor factory_descriptor(wd);
+      if(useLazyWorksetEvaluation()
+         and not wd.requiresPartitioning()
+         and not wd.useSideset()
+         and wd.getWorksetSize() == WorksetSizeType::CLASSIC_MODE) {
+        const int workset_size = getWorksetSize() == 0 ? needs.cellData.numCells() : getWorksetSize();
+        factory_descriptor = WorksetDescriptor(wd.getElementBlock(), workset_size, false, wd.applyOrientations());
+      }
+
+      worksetVector = wkstFactory_->getWorksets(factory_descriptor,needs);
 
       // apply orientations to the just constructed worksets
       if(worksetVector!=Teuchos::null && wd.applyOrientations()) {
