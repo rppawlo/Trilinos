@@ -477,17 +477,20 @@ namespace panzer {
     std::size_t basisIndex = panzer::getBasisIndex(layout->name(), workset, wda);
     Teuchos::RCP<panzer::BasisValues2<double> > bases = workset.bases[basisIndex];
     TEST_ASSERT(bases!=Teuchos::null);
-    TEST_EQUALITY(bases->getVectorBasisValuesForPhalanxEvaluatorRegistration().size(),basis.size());
-    TEST_EQUALITY(bases->getCurlBasisValuesForPhalanxEvaluatorRegistration().size(),curl_basis.size());
+    auto basis_vector = bases->getVectorBasisValues(false);
+    auto curl_basis_scalar = bases->getCurl2DVectorBasis(false);
+    TEST_EQUALITY(basis_vector.size(),basis.size());
+    TEST_EQUALITY(curl_basis_scalar.size(),curl_basis.size());
 
     auto basis_h = Kokkos::create_mirror_view(basis.get_view());
     Kokkos::deep_copy(basis_h, basis.get_view());
-    auto basis_vector_h = Kokkos::create_mirror_view(bases->getVectorBasisValuesForPhalanxEvaluatorRegistration().get_static_view());
-    Kokkos::deep_copy(basis_vector_h,bases->getVectorBasisValuesForPhalanxEvaluatorRegistration().get_static_view());
+    auto basis_vector_view = PHX::as_view(basis_vector);
+    auto basis_vector_h = Kokkos::create_mirror_view(basis_vector_view);
+    Kokkos::deep_copy(basis_vector_h,basis_vector_view);
     for(int i=0;i<4;i++) {
       for(int j=0;j<4;j++) {
-        for(unsigned int k=0;k<bases->getCurlBasisValuesForPhalanxEvaluatorRegistration().extent(2);k++) {
-          for(unsigned int d=0;d<bases->getVectorBasisValuesForPhalanxEvaluatorRegistration().extent(3);d++) {
+        for(unsigned int k=0;k<curl_basis_scalar.extent(2);k++) {
+          for(unsigned int d=0;d<basis_vector.extent(3);d++) {
             TEST_FLOATING_EQUALITY(basis_vector_h(i,j,k,d),basis_h(i,j,k,d),1e-10);
           }
         }
@@ -496,11 +499,12 @@ namespace panzer {
 
     auto curl_basis_h = Kokkos::create_mirror_view(curl_basis.get_view());
     Kokkos::deep_copy(curl_basis_h, curl_basis.get_view());
-    auto curl_basis_scalar_h = Kokkos::create_mirror_view(bases->getCurlBasisValuesForPhalanxEvaluatorRegistration().get_static_view());
-    Kokkos::deep_copy(curl_basis_scalar_h,bases->getCurlBasisValuesForPhalanxEvaluatorRegistration().get_static_view());
+    auto curl_basis_scalar_view = PHX::as_view(curl_basis_scalar);
+    auto curl_basis_scalar_h = Kokkos::create_mirror_view(curl_basis_scalar_view);
+    Kokkos::deep_copy(curl_basis_scalar_h,curl_basis_scalar_view);
     for(int i=0;i<4;i++) {
       for(int j=0;j<4;j++) {
-        for(unsigned int k=0;k<bases->getCurlBasisValuesForPhalanxEvaluatorRegistration().extent(2);k++) {
+        for(unsigned int k=0;k<curl_basis_scalar.extent(2);k++) {
           TEST_FLOATING_EQUALITY(curl_basis_scalar_h(i,j,k),curl_basis_h(i,j,k),1e-10);
         }
       }

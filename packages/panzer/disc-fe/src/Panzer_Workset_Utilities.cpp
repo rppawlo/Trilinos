@@ -24,7 +24,7 @@
 namespace panzer {
 
   namespace {
-    bool use_lazy_workset_evaluation = false;
+    bool use_lazy_workset_evaluation = true;
   }
 
   void setUseLazyWorksetEvaluation(bool use_lazy_workset_evaluation_in)

@@ -351,8 +351,12 @@ applyOrientations(const std::vector<Intrepid2::Orientation> & orientations,
 
   PANZER_FUNC_TIME_MONITOR_DIFF("panzer::basisValues2::applyOrientations()",bv_ev_app_orts);
 
-  // We only allow the orientations to be applied once
-  TEUCHOS_ASSERT(not orientations_applied_);
+  // If the orientations have already been applied, there is nothing to do.
+  // This can happen when an evaluator reuses a BasisValues2 object: the
+  // stored orientations are applied during lazy recomputation in evaluateValues,
+  // and the legacy evaluator path then calls applyOrientations again.
+  if(orientations_applied_)
+    return;
 
   const PureBasis::EElementSpace elmtspace = getElementSpace();
 
@@ -360,6 +364,10 @@ applyOrientations(const std::vector<Intrepid2::Orientation> & orientations,
   const int num_cell_orientation = orientations.size();
   const int num_cells  = num_cell_basis_layout < num_cell_orientation ? num_cell_basis_layout : num_cell_orientation;
   const int num_dim   = basis_layout->dimension();
+
+  // Keep the orientations for any future lazy recomputation of cached fields.
+  orientations_ = orientations;
+  num_orientations_cells_ = num_cells;
 
   // Copy orientations to device
   Kokkos::DynRankView<Intrepid2::Orientation,PHX::Device> device_orientations("device_orientations", num_cells);

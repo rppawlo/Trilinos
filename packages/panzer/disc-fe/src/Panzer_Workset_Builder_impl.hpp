@@ -182,6 +182,16 @@ panzer::buildWorksets(const WorksetNeeds & needs,
     const auto cell_topology = needs.cellData.getCellTopology();
     panzer::WorksetOptions options;
     for(auto & wkst : worksets) {
+      // Backward compatibility for the deprecated classic workset access path:
+      // legacy code can still query getIntegrationRuleIndex()/getBasisIndex()
+      // and then read workset.int_rules, workset.bases, ir_degrees, or
+      // basis_names. Lazy construction appends to those metadata vectors on
+      // demand, so each workset needs its own vectors to keep legacy indices
+      // local to that workset. Remove this block when the deprecated direct
+      // vector/index access path is retired in favor of descriptor getters.
+      wkst.ir_degrees = rcp(new vector<int>(0));
+      wkst.basis_names = rcp(new vector<string>(0));
+
       wkst.setup(elementBlock,
                  cell_topology,
                  wkst.cell_node_coordinates,
