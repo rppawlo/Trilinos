@@ -124,6 +124,22 @@ class CacheHazard:
     text: str | None = None
 
 
+@dataclasses.dataclass(frozen=True)
+class StaleIndex:
+    path: pathlib.Path
+    line: int
+    risk: str
+    kind: str
+    index_name: str
+    helper: str
+    summary: str
+    function: str | None = None
+    class_name: str | None = None
+    member_line: int | None = None
+    member_text: str | None = None
+    text: str | None = None
+
+
 BASIS_FIELD_GETTERS = {
     "basis_scalar": "getBasisValues(panzer::WeightBasis::No)",
     "basis_vector": "getVectorBasisValues(panzer::WeightBasis::No)",
@@ -745,6 +761,10 @@ def first_index_access_line(lines: list[str], container: str, index: str | None)
         r"\s*\[\s*" + index_pattern(index) + r"\s*\]"
     )
     return first_matching_line(lines, pattern)
+
+
+def has_index_access(lines: list[str], container: str, index: str | None) -> bool:
+    return first_index_access_line(lines, container, index) is not None
 
 
 def field_counts_for_pattern(text: str, field_getters: dict[str, str], container: str,
@@ -1460,6 +1480,94 @@ def format_cache_hazard(hazard: CacheHazard) -> list[str]:
     if hazard.text:
         lines.append(f"      evidence: {hazard.text}")
     lines.append("      guidance: reacquire BasisValues2/IntegrationValues2 fields or views after releaseCachedData(); do not reuse handles captured before release.")
+    return lines
+
+
+def scan_stale_indices(path: pathlib.Path) -> list[StaleIndex]:
+    try:
+        lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+    except OSError as exc:
+        print(f"warning: could not read {path}: {exc}", file=sys.stderr)
+        return []
+
+    regions = find_function_regions(lines)
+    declaration_path = candidate_declaration_path(path)
+    stale_indices: list[StaleIndex] = []
+
+    for assignment in find_assignments(lines, "getBasisIndex"):
+        if has_index_access(lines, "bases", assignment.index):
+            continue
+        region = region_containing(regions, assignment.line)
+        member_line, member_text = find_legacy_member(declaration_path, assignment.index)
+        stale_indices.append(StaleIndex(
+            path=path,
+            line=assignment.line,
+            risk="low",
+            kind="stale-basis-index-after-descriptor-migration",
+            index_name=assignment.index,
+            helper="getBasisIndex",
+            summary="getBasisIndex() assigns an index that is not used for workset.bases[...] access in this file.",
+            function=region.name if region else None,
+            class_name=region.class_name if region else None,
+            member_line=member_line,
+            member_text=member_text,
+            text=lines[assignment.line - 1].strip(),
+        ))
+
+    for assignment in find_assignments(lines, "getIntegrationRuleIndex"):
+        if has_index_access(lines, "int_rules", assignment.index):
+            continue
+        region = region_containing(regions, assignment.line)
+        member_line, member_text = find_legacy_member(declaration_path, assignment.index)
+        stale_indices.append(StaleIndex(
+            path=path,
+            line=assignment.line,
+            risk="low",
+            kind="stale-integration-index-after-descriptor-migration",
+            index_name=assignment.index,
+            helper="getIntegrationRuleIndex",
+            summary="getIntegrationRuleIndex() assigns an index that is not used for workset.int_rules[...] access in this file.",
+            function=region.name if region else None,
+            class_name=region.class_name if region else None,
+            member_line=member_line,
+            member_text=member_text,
+            text=lines[assignment.line - 1].strip(),
+        ))
+
+    return stale_indices
+
+
+def stale_index_to_json(stale_index: StaleIndex) -> dict[str, object]:
+    return {
+        "path": str(stale_index.path),
+        "line": stale_index.line,
+        "risk": stale_index.risk,
+        "kind": stale_index.kind,
+        "index_name": stale_index.index_name,
+        "helper": stale_index.helper,
+        "summary": stale_index.summary,
+        "function": stale_index.function,
+        "class_name": stale_index.class_name,
+        "member_line": stale_index.member_line,
+        "member_text": stale_index.member_text,
+        "text": stale_index.text,
+    }
+
+
+def format_stale_index(stale_index: StaleIndex) -> list[str]:
+    context = stale_index.function or "<unknown>"
+    if stale_index.class_name:
+        context = f"{stale_index.class_name}::{context}"
+    lines = [
+        f"  {stale_index.path}:{stale_index.line}: [{stale_index.risk}/{stale_index.kind}] {stale_index.summary}",
+        f"      function: {context}",
+        f"      index: {stale_index.index_name}",
+    ]
+    if stale_index.member_line is not None:
+        lines.append(f"      member line: {stale_index.member_line}: {stale_index.member_text}")
+    if stale_index.text:
+        lines.append(f"      evidence: {stale_index.text}")
+    lines.append("      guidance: if descriptor-based access has replaced workset indexing, remove the stored index, its get*Index() assignment, and any now-empty postRegistrationSetup() override.")
     return lines
 
 
@@ -2386,6 +2494,7 @@ def main() -> int:
     all_findings: list[Finding] = []
     all_recipes: list[Recipe] = []
     all_cache_hazards: list[CacheHazard] = []
+    all_stale_indices: list[StaleIndex] = []
     for root in args.roots:
         if not root.exists():
             print(f"warning: root does not exist: {root}", file=sys.stderr)
@@ -2395,10 +2504,12 @@ def main() -> int:
             all_findings.extend(scan_file(path))
             all_recipes.extend(scan_recipes(path))
             all_cache_hazards.extend(scan_cache_hazards(path))
+            all_stale_indices.extend(scan_stale_indices(path))
 
     all_findings.sort(key=lambda f: (str(f.path), f.line, f.rule.name))
     all_recipes.sort(key=lambda r: (str(r.path), r.line, r.name))
     all_cache_hazards.sort(key=lambda h: (str(h.path), h.line, h.kind))
+    all_stale_indices.sort(key=lambda s: (str(s.path), s.line, s.kind))
     if args.patch_sketches_only:
         args.recipes_only = True
 
@@ -2417,6 +2528,8 @@ def main() -> int:
         recipe_counts = Counter(r.name for r in all_recipes)
         cache_hazard_counts = Counter(h.kind for h in all_cache_hazards)
         cache_hazard_risk_counts = Counter(h.risk for h in all_cache_hazards)
+        stale_index_counts = Counter(s.kind for s in all_stale_indices)
+        stale_index_risk_counts = Counter(s.risk for s in all_stale_indices)
         recipes_for_output = [
             recipe for recipe in all_recipes
             if not args.patch_sketches_only or recipe_classification(recipe)[0] == "patch-sketch-candidate"
@@ -2433,6 +2546,9 @@ def main() -> int:
                 "cache_hazards": len(all_cache_hazards),
                 "cache_hazard_counts": dict(cache_hazard_counts.most_common()),
                 "cache_hazard_risk_counts": dict(sorted(cache_hazard_risk_counts.items())),
+                "stale_indices": len(all_stale_indices),
+                "stale_index_counts": dict(stale_index_counts.most_common()),
+                "stale_index_risk_counts": dict(sorted(stale_index_risk_counts.items())),
             },
             "recipes": [] if args.cache_hazards_only else [recipe_to_json(recipe) for recipe in recipes_for_output],
         }
@@ -2441,6 +2557,7 @@ def main() -> int:
         elif not args.recipes_only:
             payload["findings"] = [finding_to_json(finding) for finding in all_findings]
             payload["cache_hazards"] = [cache_hazard_to_json(hazard) for hazard in all_cache_hazards]
+            payload["stale_indices"] = [stale_index_to_json(stale_index) for stale_index in all_stale_indices]
         print(json.dumps(payload, indent=2, sort_keys=True))
     elif args.format == "tsv":
         if args.cache_hazards_only:
@@ -2497,6 +2614,12 @@ def main() -> int:
                 print(
                     f"{f.path}\t{f.line}\t{f.rule.risk}\t{f.rule.category}\t{f.rule.name}\t"
                     f"{f.rule.hint}\t{f.text}"
+                )
+            for s in all_stale_indices:
+                print(
+                    f"{s.path}\t{s.line}\t{s.risk}\tdescriptor-cleanup\t{s.kind}\t"
+                    "If descriptor-based access has replaced workset indexing, remove the stale stored index and get*Index() assignment.\t"
+                    f"{s.text or ''}"
                 )
     elif args.cache_hazards_only:
         hazard_counts = Counter(h.kind for h in all_cache_hazards)
@@ -2560,10 +2683,14 @@ def main() -> int:
                         print(line)
                 print()
     else:
+        combined_finding_count = len(all_findings) + len(all_stale_indices)
         counts = Counter(f.rule.name for f in all_findings)
+        counts.update(s.kind for s in all_stale_indices)
         risk_counts = Counter(f.rule.risk for f in all_findings)
+        risk_counts.update(s.risk for s in all_stale_indices)
         category_counts = Counter(f.rule.category for f in all_findings)
-        print(f"Panzer migration advisory scan: {len(all_findings)} finding(s)")
+        category_counts.update({"descriptor-cleanup": len(all_stale_indices)})
+        print(f"Panzer migration advisory scan: {combined_finding_count} finding(s)")
         print("Risk counts: " + ", ".join(f"{k}={risk_counts[k]}" for k in sorted(risk_counts)))
         print("Category counts: " + ", ".join(f"{k}={category_counts[k]}" for k in sorted(category_counts)))
         print("Rule counts:")
@@ -2632,6 +2759,15 @@ def main() -> int:
                 print(line)
         print()
 
+        stale_index_counts = Counter(s.kind for s in all_stale_indices)
+        print(f"Stale index cleanup candidates: {len(all_stale_indices)}")
+        for kind, count in stale_index_counts.most_common():
+            print(f"  {kind}: {count}")
+        for stale_index in all_stale_indices[:40]:
+            for line in format_stale_index(stale_index):
+                print(line)
+        print()
+
         for path, findings in grouped.items():
             print(path)
             for f in findings:
@@ -2645,6 +2781,7 @@ def main() -> int:
         any(f.rule.risk == "high" for f in all_findings)
         or any(r.risk == "high" for r in all_recipes)
         or any(h.risk == "high" for h in all_cache_hazards)
+        or any(s.risk == "high" for s in all_stale_indices)
     ) else 0
 
 
