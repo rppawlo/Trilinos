@@ -1160,13 +1160,19 @@ getBasisValues(const WeightBasis weighting,
   const int num_card   = basis_layout->cardinality();
 
   if(weighting == WeightBasis::Yes){
+    auto tmp_weighted_basis_scalar = af.buildStaticArray<Scalar, Cell, BASIS, IP>("weighted_basis_scalar",  num_cells, num_card, num_points);
+
+    if(num_evaluate_cells_ == 0 and cubature_weights_.size() == 0){
+      PANZER_CACHE_FIELD_IF_ENABLED(weighted_basis_scalar);
+      return tmp_weighted_basis_scalar;
+    }
+
     TEUCHOS_ASSERT(cubature_weights_.size() > 0);
 
     // Get the basis_scalar values - do not cache
     const auto bv = getBasisValues(WeightBasis::No, cache_dependencies == CacheDependencies::Yes ? CacheValues::Yes : CacheValues::No, force, cache_dependencies);
 
     // Apply the weighted measure (cubature weights)
-    auto tmp_weighted_basis_scalar = af.buildStaticArray<Scalar, Cell, BASIS, IP>("weighted_basis_scalar",  num_cells, num_card, num_points);
 
     const std::pair<int,int> cell_range(0,num_evaluate_cells_);
     auto s_aux = Kokkos::subview(tmp_weighted_basis_scalar.get_view(),cell_range,Kokkos::ALL(),Kokkos::ALL());
@@ -1569,6 +1575,13 @@ getGradBasisValues(const WeightBasis weighting,
 
   if(weighting == WeightBasis::Yes){
 
+    auto tmp_weighted_grad_basis = af.buildStaticArray<Scalar, Cell, BASIS, IP, Dim>("weighted_grad_basis",  num_cells, num_card, num_points, num_dim);
+
+    if(num_evaluate_cells_ == 0 and cubature_weights_.size() == 0){
+      PANZER_CACHE_FIELD_IF_ENABLED(weighted_grad_basis);
+      return tmp_weighted_grad_basis;
+    }
+
     TEUCHOS_TEST_FOR_EXCEPTION(
       cubature_weights_.size() == 0,
       std::logic_error,
@@ -1580,7 +1593,6 @@ getGradBasisValues(const WeightBasis weighting,
     const auto bv = getGradBasisValues(WeightBasis::No, cache_dependencies == CacheDependencies::Yes ? CacheValues::Yes : CacheValues::No, force, cache_dependencies);
 
     // Apply the weighted measure (cubature weights)
-    auto tmp_weighted_grad_basis = af.buildStaticArray<Scalar, Cell, BASIS, IP, Dim>("weighted_grad_basis",  num_cells, num_card, num_points, num_dim);
 
     const std::pair<int,int> cell_range(0,num_evaluate_cells_);
     auto s_aux = Kokkos::subview(tmp_weighted_grad_basis.get_view(), cell_range, Kokkos::ALL(), Kokkos::ALL(), Kokkos::ALL());
@@ -1596,13 +1608,19 @@ getGradBasisValues(const WeightBasis weighting,
 
   } else {
 
-    TEUCHOS_ASSERT(cubature_jacobian_inverse_.size() > 0);
-
     const auto element_space = getElementSpace();
     TEUCHOS_ASSERT(element_space == PureBasis::CONST || element_space == PureBasis::HGRAD);
 
-    auto cell_grad_basis_ref = af.buildStaticArray<Scalar,BASIS,IP,Dim>("cell_grad_basis_ref",num_card,num_points,num_dim);
     auto tmp_grad_basis = af.buildStaticArray<Scalar,Cell,BASIS,IP,Dim>("basis_scalar",num_cells,num_card,num_points,num_dim);
+
+    if(num_evaluate_cells_ == 0 and cubature_jacobian_inverse_.size() == 0){
+      PANZER_CACHE_FIELD_IF_ENABLED(grad_basis);
+      return tmp_grad_basis;
+    }
+
+    TEUCHOS_ASSERT(cubature_jacobian_inverse_.size() > 0);
+
+    auto cell_grad_basis_ref = af.buildStaticArray<Scalar,BASIS,IP,Dim>("cell_grad_basis_ref",num_card,num_points,num_dim);
 
     if(hasUniformReferenceSpace()){
 

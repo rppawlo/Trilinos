@@ -270,6 +270,70 @@ namespace panzer {
     TEST_EQUALITY(weighted_basis_values_with_dependencies.getBasisValuesForPhalanxEvaluatorRegistration().extent(0), num_cells);
   }
 
+  TEUCHOS_UNIT_TEST(basis_values, empty_workset_lazy_getters_without_dependencies)
+  {
+    Teuchos::RCP<shards::CellTopology> topo =
+       Teuchos::rcp(new shards::CellTopology(shards::getCellTopologyData< shards::Quadrilateral<4> >()));
+
+    const int num_cells = 2;
+    const int num_evaluate_cells = 0;
+    const panzer::CellData cell_data(num_cells,topo);
+
+    const int cubature_degree = 2;
+    RCP<IntegrationRule> int_rule =
+      rcp(new IntegrationRule(cubature_degree, cell_data));
+
+    const std::string basis_type = "Q1";
+    RCP<panzer::BasisIRLayout> basis = rcp(new panzer::BasisIRLayout(basis_type, 1, *int_rule));
+
+    PHX::MDField<const double,IP,Dim> empty_cubature_points_ref;
+    PHX::MDField<const double,Cell,IP,Dim,Dim> empty_jacobian;
+    PHX::MDField<const double,Cell,IP> empty_jacobian_determinant;
+    PHX::MDField<const double,Cell,IP,Dim,Dim> empty_jacobian_inverse;
+
+    panzer::BasisValues2<double> basis_values;
+    basis_values.setupUniform(basis,
+                              empty_cubature_points_ref,
+                              empty_jacobian,
+                              empty_jacobian_determinant,
+                              empty_jacobian_inverse,
+                              num_evaluate_cells);
+
+    const auto num_card = Teuchos::as<std::size_t>(basis->cardinality());
+    const auto num_points = Teuchos::as<std::size_t>(basis->numPoints());
+    const auto num_dim = Teuchos::as<std::size_t>(basis->dimension());
+
+    auto weighted_basis = basis_values.getBasisValues(true, true, true);
+    TEST_EQUALITY(weighted_basis.extent(0), num_cells);
+    TEST_EQUALITY(weighted_basis.extent(1), num_card);
+    TEST_EQUALITY(weighted_basis.extent(2), num_points);
+    TEST_EQUALITY(basis_values.getWeightedBasisValuesForPhalanxEvaluatorRegistration().extent(0), num_cells);
+    TEST_EQUALITY(basis_values.getWeightedBasisValuesForPhalanxEvaluatorRegistration().extent(1), num_card);
+    TEST_EQUALITY(basis_values.getWeightedBasisValuesForPhalanxEvaluatorRegistration().extent(2), num_points);
+    TEST_EQUALITY(basis_values.getBasisValuesForPhalanxEvaluatorRegistration().extent(0), 0);
+
+    auto weighted_grad_basis = basis_values.getGradBasisValues(true, true, true);
+    TEST_EQUALITY(weighted_grad_basis.extent(0), num_cells);
+    TEST_EQUALITY(weighted_grad_basis.extent(1), num_card);
+    TEST_EQUALITY(weighted_grad_basis.extent(2), num_points);
+    TEST_EQUALITY(weighted_grad_basis.extent(3), num_dim);
+    TEST_EQUALITY(basis_values.getWeightedGradBasisValuesForPhalanxEvaluatorRegistration().extent(0), num_cells);
+    TEST_EQUALITY(basis_values.getWeightedGradBasisValuesForPhalanxEvaluatorRegistration().extent(1), num_card);
+    TEST_EQUALITY(basis_values.getWeightedGradBasisValuesForPhalanxEvaluatorRegistration().extent(2), num_points);
+    TEST_EQUALITY(basis_values.getWeightedGradBasisValuesForPhalanxEvaluatorRegistration().extent(3), num_dim);
+    TEST_EQUALITY(basis_values.getGradBasisValuesForPhalanxEvaluatorRegistration().extent(0), 0);
+
+    auto grad_basis = basis_values.getGradBasisValues(false, true, true);
+    TEST_EQUALITY(grad_basis.extent(0), num_cells);
+    TEST_EQUALITY(grad_basis.extent(1), num_card);
+    TEST_EQUALITY(grad_basis.extent(2), num_points);
+    TEST_EQUALITY(grad_basis.extent(3), num_dim);
+    TEST_EQUALITY(basis_values.getGradBasisValuesForPhalanxEvaluatorRegistration().extent(0), num_cells);
+    TEST_EQUALITY(basis_values.getGradBasisValuesForPhalanxEvaluatorRegistration().extent(1), num_card);
+    TEST_EQUALITY(basis_values.getGradBasisValuesForPhalanxEvaluatorRegistration().extent(2), num_points);
+    TEST_EQUALITY(basis_values.getGradBasisValuesForPhalanxEvaluatorRegistration().extent(3), num_dim);
+  }
+
   TEUCHOS_UNIT_TEST(basis_values, grad_quad)
   {
     typedef panzer::ArrayTraits<double,PHX::MDField<double> >::size_type size_type;
