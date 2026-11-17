@@ -20,6 +20,7 @@
 
 #include "Panzer_Dimension.hpp"
 #include "Panzer_FieldLibrary.hpp"
+#include "Panzer_IntegrationDescriptor.hpp"
 
 #include <string>
 
@@ -47,10 +48,6 @@ namespace mini_em {
                             const double timeScale,
                             const std::string& basisName="E_edge");
 
-    /// \brief Looks up the integration rule index needed by evaluateFields(). Called once before the first evaluation.
-    void postRegistrationSetup(typename Traits::SetupData d,
-                               PHX::FieldManager<Traits>& fm);
-
     /// \brief Computes the analytic solution field at this workset's integration points and time, per the class description.
     void evaluateFields(typename Traits::EvalData d);
 
@@ -60,7 +57,8 @@ namespace mini_em {
 
     // Simulation source
     PHX::MDField<ScalarT,Cell,Point,Dim> source;
-    int ir_degree, ir_index, ir_dim;
+    panzer::IntegrationDescriptor integration_descriptor;
+    int ir_dim;
 
     double timeScale_;
 

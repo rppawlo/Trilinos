@@ -23,7 +23,7 @@ Solution<EvalT,Traits>::Solution(const std::string& name,
   : linear_Robin(in_linear_Robin)
 {
   Teuchos::RCP<PHX::DataLayout> data_layout = ir.dl_scalar;
-  ir_degree = ir.cubature_degree;
+  integration_descriptor = ir;
 
   solution = PHX::MDField<ScalarT,Cell,Point>(name, data_layout);
 
@@ -33,18 +33,12 @@ Solution<EvalT,Traits>::Solution(const std::string& name,
   this->setName(n);
 }
 
-template <typename EvalT,typename Traits>
-void Solution<EvalT,Traits>::postRegistrationSetup(typename Traits::SetupData sd,           
-                                                   PHX::FieldManager<Traits>& /* fm */)
-{
-  ir_index = panzer::getIntegrationRuleIndex(ir_degree,(*sd.worksets_)[0], this->wda);
-}
 
 template <typename EvalT,typename Traits>
 void Solution<EvalT,Traits>::evaluateFields(typename Traits::EvalData workset)
 {
   using panzer::index_t;
-  auto ip_coordinates = workset.int_rules[ir_index]->getCubaturePoints().get_static_view();
+  auto ip_coordinates = this->wda(workset).getIntegrationValues(integration_descriptor, panzer::useLazyWorksetEvaluation()).getCubaturePoints().get_static_view();
   auto solution_v = solution.get_static_view();
   bool ws7 = (workset.block_id[7] == '0');
   auto l_linear_Robin = linear_Robin;

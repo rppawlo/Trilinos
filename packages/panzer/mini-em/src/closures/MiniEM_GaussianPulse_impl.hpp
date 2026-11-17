@@ -31,7 +31,7 @@ GaussianPulse<EvalT,Traits>::GaussianPulse(const std::string & name,
   using Teuchos::RCP;
 
   Teuchos::RCP<PHX::DataLayout> data_layout = ir.dl_vector;
-  ir_degree = ir.cubature_degree;
+  integration_descriptor = ir;
   ir_dim = ir.spatial_dimension;
 
   current = PHX::MDField<ScalarT,Cell,Point,Dim>(name, data_layout);
@@ -48,14 +48,6 @@ GaussianPulse<EvalT,Traits>::GaussianPulse(const std::string & name,
 
 //**********************************************************************
 template <typename EvalT,typename Traits>
-void GaussianPulse<EvalT,Traits>::postRegistrationSetup(typename Traits::SetupData sd,
-                                                        PHX::FieldManager<Traits>& /* fm */)
-{
-  ir_index = panzer::getIntegrationRuleIndex(ir_degree,(*sd.worksets_)[0], this->wda);
-}
-
-//**********************************************************************
-template <typename EvalT,typename Traits>
 void GaussianPulse<EvalT,Traits>::evaluateFields(typename Traits::EvalData workset)
 {
   using panzer::index_t;
@@ -64,7 +56,7 @@ void GaussianPulse<EvalT,Traits>::evaluateFields(typename Traits::EvalData works
 
   const double factor = std::exp(-(time-2.0*beta)*(time-2.0*beta)/beta/beta);
   const double scale = 1.0/alpha/alpha;
-  const auto coords = workset.int_rules[ir_index]->getCubaturePoints().get_static_view();
+  const auto coords = this->wda(workset).getIntegrationValues(integration_descriptor, panzer::useLazyWorksetEvaluation()).getCubaturePoints().get_static_view();
   auto tmp_current = current;
   if (ir_dim == 3) {
     const int num_points = current.extent_int(1);

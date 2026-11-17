@@ -23,7 +23,7 @@ LinearCoefficient<EvalT,Traits>::LinearCoefficient(const std::string & name,
                                                    const int in_direction)
   : direction(in_direction)
 {
-  ir_degree = ir.cubature_degree;
+  integration_descriptor = ir;
 
   coeff = PHX::MDField<ScalarT,Cell,Point>(name, ir.dl_scalar);
 
@@ -35,18 +35,10 @@ LinearCoefficient<EvalT,Traits>::LinearCoefficient(const std::string & name,
 
 //**********************************************************************
 template <typename EvalT,typename Traits>
-void LinearCoefficient<EvalT,Traits>::postRegistrationSetup(typename Traits::SetupData sd,
-                                                            PHX::FieldManager<Traits>& /* fm */)
-{
-  ir_index = panzer::getIntegrationRuleIndex(ir_degree,(*sd.worksets_)[0], this->wda);
-}
-
-//**********************************************************************
-template <typename EvalT,typename Traits>
 void LinearCoefficient<EvalT,Traits>::evaluateFields(typename Traits::EvalData workset)
 {
   auto c = coeff.get_static_view();
-  auto ip_coords = this->wda(workset).int_rules[ir_index]->getCubaturePoints().get_static_view();
+  auto ip_coords = this->wda(workset).getIntegrationValues(integration_descriptor, panzer::useLazyWorksetEvaluation()).getCubaturePoints().get_static_view();
   const int d = direction;
 
   const int num_points = c.extent_int(1);

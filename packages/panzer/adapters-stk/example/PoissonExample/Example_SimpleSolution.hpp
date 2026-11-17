@@ -19,6 +19,7 @@
 
 #include "Panzer_Dimension.hpp"
 #include "Panzer_FieldLibrary.hpp"
+#include "Panzer_IntegrationDescriptor.hpp"
 
 #include <string>
 
@@ -41,9 +42,6 @@ public:
                    const panzer::IntegrationRule & ir,
                    const bool curvilinear);
                                                                         
-    void postRegistrationSetup(typename Traits::SetupData d,           
-                               PHX::FieldManager<Traits>& fm);        
-                                                                     
     void evaluateFields(typename Traits::EvalData d);               
 
 
@@ -53,7 +51,7 @@ private:
   // Simulation solution
   PHX::MDField<ScalarT,Cell,Point> solution;
   PHX::MDField<ScalarT,Cell,Point,Dim> solution_grad;
-  int ir_degree, ir_index;
+  panzer::IntegrationDescriptor integration_descriptor;
 
   const bool curvilinear_;
 };

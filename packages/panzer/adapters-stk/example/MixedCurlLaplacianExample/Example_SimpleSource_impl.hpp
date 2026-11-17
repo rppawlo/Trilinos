@@ -27,7 +27,7 @@ SimpleSource<EvalT,Traits>::SimpleSource(const std::string & name,
   using Teuchos::RCP;
 
   Teuchos::RCP<PHX::DataLayout> data_layout = ir.dl_vector;
-  ir_degree = ir.cubature_degree;
+  integration_descriptor = ir;
 
   source = PHX::MDField<ScalarT,Cell,Point,Dim>(name, data_layout);
 
@@ -39,18 +39,10 @@ SimpleSource<EvalT,Traits>::SimpleSource(const std::string & name,
 
 //**********************************************************************
 template <typename EvalT,typename Traits>
-void SimpleSource<EvalT,Traits>::postRegistrationSetup(typename Traits::SetupData sd,           
-                                                       PHX::FieldManager<Traits>& /* fm */)
-{
-  ir_index = panzer::getIntegrationRuleIndex(ir_degree,(*sd.worksets_)[0], this->wda);
-}
-
-//**********************************************************************
-template <typename EvalT,typename Traits>
 void SimpleSource<EvalT,Traits>::evaluateFields(typename Traits::EvalData workset)
 { 
   using panzer::index_t;
-  auto ip_coordinates = workset.int_rules[ir_index]->getCubaturePoints().get_static_view();
+  auto ip_coordinates = this->wda(workset).getIntegrationValues(integration_descriptor, panzer::useLazyWorksetEvaluation()).getCubaturePoints().get_static_view();
   auto source_v = source.get_static_view();
  
   Kokkos::parallel_for ("SimpleSource", workset.num_cells, KOKKOS_LAMBDA (const index_t cell) {

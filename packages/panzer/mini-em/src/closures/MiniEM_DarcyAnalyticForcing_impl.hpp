@@ -38,7 +38,7 @@ DarcyAnalyticForcing<EvalT,Traits>::DarcyAnalyticForcing(const std::string & nam
   Teuchos::RCP<const panzer::PureBasis> basis = fl.lookupBasis(basisName);
 
   Teuchos::RCP<PHX::DataLayout> data_layout = ir.dl_scalar;
-  ir_degree = ir.cubature_degree;
+  integration_descriptor = ir;
   ir_dim = ir.spatial_dimension;
 
   source = PHX::MDField<ScalarT,Cell,Point>(name, data_layout);
@@ -53,14 +53,6 @@ DarcyAnalyticForcing<EvalT,Traits>::DarcyAnalyticForcing(const std::string & nam
 
 //**********************************************************************
 template <typename EvalT,typename Traits>
-void DarcyAnalyticForcing<EvalT,Traits>::postRegistrationSetup(typename Traits::SetupData sd,
-                                                               PHX::FieldManager<Traits>& /* fm */)
-{
-  ir_index = panzer::getIntegrationRuleIndex(ir_degree,(*sd.worksets_)[0], this->wda);
-}
-
-//**********************************************************************
-template <typename EvalT,typename Traits>
 void DarcyAnalyticForcing<EvalT,Traits>::evaluateFields(typename Traits::EvalData workset)
 {
   const double time = workset.time;
@@ -69,7 +61,7 @@ void DarcyAnalyticForcing<EvalT,Traits>::evaluateFields(typename Traits::EvalDat
   const double kappa = kappa_;
   const int dim = ir_dim;
 
-  const auto coords = workset.int_rules[ir_index]->getCubaturePoints().get_static_view();
+  const auto coords = this->wda(workset).getIntegrationValues(integration_descriptor, panzer::useLazyWorksetEvaluation()).getCubaturePoints().get_static_view();
   auto tmp_source = source.get_static_view();
 
   if (ir_dim == 3) {

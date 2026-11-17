@@ -19,6 +19,7 @@
 
 #include "Panzer_Dimension.hpp"
 #include "Panzer_FieldLibrary.hpp"
+#include "Panzer_IntegrationDescriptor.hpp"
 
 #include <string>
 
@@ -42,9 +43,6 @@ public:
            const panzer::IntegrationRule & ir,
            const bool linear_Robin = true);
                                                                         
-  void postRegistrationSetup(typename Traits::SetupData d,           
-                             PHX::FieldManager<Traits>& fm);        
-                                                                     
   void evaluateFields(typename Traits::EvalData d);               
 
 
@@ -52,7 +50,7 @@ private:
   typedef typename EvalT::ScalarT ScalarT;
 
   PHX::MDField<ScalarT,Cell,Point> solution;
-  int ir_degree, ir_index;
+  panzer::IntegrationDescriptor integration_descriptor;
   bool linear_Robin;
 };
 

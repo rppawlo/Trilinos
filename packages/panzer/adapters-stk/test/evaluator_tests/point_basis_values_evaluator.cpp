@@ -195,8 +195,10 @@ namespace panzer {
     Kokkos::deep_copy(point_coords_jac_inv_h, point_coords_jac_inv.get_view());
     auto cell_node_coordinates_h = Kokkos::create_mirror_view(workset.cell_node_coordinates.get_view());
     Kokkos::deep_copy(cell_node_coordinates_h, workset.cell_node_coordinates.get_view());
-    auto basis_coordinates_ref_h = Kokkos::create_mirror_view(workset.bases[1]->getBasisCoordinatesRefForPhalanxEvaluatorRegistration().get_view());
-    Kokkos::deep_copy(basis_coordinates_ref_h, workset.bases[1]->getBasisCoordinatesRefForPhalanxEvaluatorRegistration().get_view());
+    const auto basis_coordinates_ref = workset.getBasisValues(panzer::BasisDescriptor(basis_q1->order(), basis_q1->type()), panzer::useLazyWorksetEvaluation())
+                                       .getBasisCoordinatesRef(panzer::CacheValues::Yes, panzer::ForceRecompute::No);
+    auto basis_coordinates_ref_h = Kokkos::create_mirror_view(basis_coordinates_ref.get_view());
+    Kokkos::deep_copy(basis_coordinates_ref_h, basis_coordinates_ref.get_view());
     for(int c=0;c<basis_q1->numCells();c++) {
        double dx = 0.5;
        double dy = 0.5;
@@ -318,18 +320,17 @@ namespace panzer {
     fm.getFieldData<panzer::Traits::Jacobian>(basis);
     out << basis << std::endl;
 
-    WorksetDetailsAccessor wda;
-    std::size_t basisIndex = panzer::getBasisIndex(layout->name(), workset, wda);
-    Teuchos::RCP<panzer::BasisValues2<double> > bases = workset.bases[basisIndex];
-    TEST_ASSERT(bases!=Teuchos::null);
-    // TEST_EQUALITY(bases->basis.size(),basis.size());
+    auto& bases = workset.getBasisValues(panzer::BasisDescriptor(basis_q1->order(), basis_q1->type()), *point_rule, panzer::useLazyWorksetEvaluation());
+    auto basis_scalar = bases.getBasisValues(panzer::WeightBasis::No);
+    TEST_EQUALITY(basis_scalar.size(),basis.size());
     auto basis_h = Kokkos::create_mirror_view(basis.get_view());
     Kokkos::deep_copy(basis_h, basis.get_view());
-    auto basis_scalar_h = Kokkos::create_mirror_view(bases->getBasisValuesForPhalanxEvaluatorRegistration().get_static_view());
-    Kokkos::deep_copy(basis_scalar_h, bases->getBasisValuesForPhalanxEvaluatorRegistration().get_static_view());
+    auto basis_scalar_view = PHX::as_view(basis_scalar);
+    auto basis_scalar_h = Kokkos::create_mirror_view(basis_scalar_view);
+    Kokkos::deep_copy(basis_scalar_h, basis_scalar_view);
     for(int i=0;i<4;i++) {
       for(int j=0;j<4;j++) {
-        for(unsigned int k=0;k<bases->getBasisValuesForPhalanxEvaluatorRegistration().extent(2);k++) {
+        for(unsigned int k=0;k<basis_scalar.extent(2);k++) {
           TEST_FLOATING_EQUALITY(basis_scalar_h(i,j,k),basis_h(i,j,k),1e-10);
         }
       }
@@ -473,12 +474,9 @@ namespace panzer {
     fm.getFieldData<panzer::Traits::Jacobian,panzer::Traits::Residual::ScalarT,Cell,BASIS,IP>(curl_basis);
     fm.getFieldData<panzer::Traits::Jacobian,panzer::Traits::Residual::ScalarT,Cell,IP,Dim,Dim>(jac_inv);
 
-    WorksetDetailsAccessor wda;
-    std::size_t basisIndex = panzer::getBasisIndex(layout->name(), workset, wda);
-    Teuchos::RCP<panzer::BasisValues2<double> > bases = workset.bases[basisIndex];
-    TEST_ASSERT(bases!=Teuchos::null);
-    auto basis_vector = bases->getVectorBasisValues(false);
-    auto curl_basis_scalar = bases->getCurl2DVectorBasis(false);
+    auto& bases = workset.getBasisValues(panzer::BasisDescriptor(basis_edge->order(), basis_edge->type()), *point_rule, panzer::useLazyWorksetEvaluation());
+    auto basis_vector = bases.getVectorBasisValues(panzer::WeightBasis::No);
+    auto curl_basis_scalar = bases.getCurl2DVectorBasis(panzer::WeightBasis::No);
     TEST_EQUALITY(basis_vector.size(),basis.size());
     TEST_EQUALITY(curl_basis_scalar.size(),curl_basis.size());
 

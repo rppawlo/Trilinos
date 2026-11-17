@@ -19,6 +19,7 @@
 
 #include "Panzer_Dimension.hpp"
 #include "Panzer_FieldLibrary.hpp"
+#include "Panzer_IntegrationDescriptor.hpp"
 
 #include <string>
 
@@ -46,9 +47,6 @@ public:
                        const bool weighted = false,
                        const bool anisotropic = false);
                                                                         
-    void postRegistrationSetup(typename Traits::SetupData d,           
-                               PHX::FieldManager<Traits>& fm);        
-                                                                     
     void evaluateFields(typename Traits::EvalData d);               
 
 
@@ -57,7 +55,7 @@ private:
 
   // Simulation source
   PHX::MDField<ScalarT,Cell,Point> source;
-  int ir_degree, ir_index;
+  panzer::IntegrationDescriptor integration_descriptor;
   bool weighted;
   AnisotropicTensorEntries K;
 };

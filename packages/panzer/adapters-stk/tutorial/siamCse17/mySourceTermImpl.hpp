@@ -39,7 +39,7 @@ MySourceTerm(
   const std::string&             name,
   const panzer::IntegrationRule& ir)
   :
-  irDegree_(ir.cubature_degree)
+  integrationDescriptor_(ir)
 {
   using panzer::Cell;
   using panzer::Point;
@@ -62,21 +62,6 @@ MySourceTerm(
   this->setName("MySourceTerm(" + name + ")");
 } // end of Default Constructor
 
-///////////////////////////////////////////////////////////////////////////////
-//
-//  postRegistrationSetup()
-//
-///////////////////////////////////////////////////////////////////////////////
-template<typename EvalT, typename Traits>
-void
-MySourceTerm<EvalT, Traits>::
-postRegistrationSetup(
-  typename Traits::SetupData sd,
-  PHX::FieldManager<Traits>& /* fm */)
-{
-  using panzer::getIntegrationRuleIndex;
-  irIndex_ = getIntegrationRuleIndex(irDegree_, (*sd.worksets_)[0]);
-} // end of postRegistrationSetup()
 
 ///////////////////////////////////////////////////////////////////////////////
 //
@@ -92,7 +77,7 @@ evaluateFields(
   using Kokkos::parallel_for;
   using panzer::index_t;
 
-  const auto& coords = workset.int_rules[irIndex_]->getCubaturePoints();
+  const auto& coords = workset.getIntegrationValues(integrationDescriptor_, panzer::useLazyWorksetEvaluation()).getCubaturePoints();
 
   // Loop over the cells in the workset.
   parallel_for(workset.num_cells, [=] (const index_t cell)

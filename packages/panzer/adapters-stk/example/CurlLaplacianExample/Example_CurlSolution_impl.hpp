@@ -28,7 +28,7 @@ CurlSolution<EvalT,Traits>::CurlSolution(const std::string & name,
 
   Teuchos::RCP<PHX::DataLayout> dl_vector = ir.dl_vector;
   Teuchos::RCP<PHX::DataLayout> dl_scalar = ir.dl_scalar;
-  ir_degree = ir.cubature_degree;
+  integration_descriptor = ir;
 
   solution      = PHX::MDField<ScalarT,Cell,Point,Dim>(name, dl_vector);
   solution_curl = PHX::MDField<ScalarT,Cell,Point>("CURL_"+name, dl_scalar);
@@ -45,18 +45,10 @@ CurlSolution<EvalT,Traits>::CurlSolution(const std::string & name,
 
 //**********************************************************************
 template <typename EvalT,typename Traits>
-void CurlSolution<EvalT,Traits>::postRegistrationSetup(typename Traits::SetupData sd,           
-                                                       PHX::FieldManager<Traits>& /* fm */)
-{
-  ir_index = panzer::getIntegrationRuleIndex(ir_degree,(*sd.worksets_)[0], this->wda);
-}
-
-//**********************************************************************
-template <typename EvalT,typename Traits>
 void CurlSolution<EvalT,Traits>::evaluateFields(typename Traits::EvalData workset)
 { 
   using panzer::index_t;
-  auto ip_coordinates = this->wda(workset).int_rules[ir_index]->getCubaturePoints().get_static_view();
+  auto ip_coordinates = this->wda(workset).getIntegrationValues(integration_descriptor, panzer::useLazyWorksetEvaluation()).getCubaturePoints().get_static_view();
   auto solution_v = solution.get_static_view();
   auto solution_curl_v = solution_curl.get_static_view();
 

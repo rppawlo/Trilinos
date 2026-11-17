@@ -42,7 +42,7 @@ VariableTensorConductivity<EvalT,Traits>::VariableTensorConductivity(const std::
   using Teuchos::RCP;
 
   Teuchos::RCP<PHX::DataLayout> data_layout = ir.dl_tensor;
-  ir_degree = ir.cubature_degree;
+  integration_descriptor = ir;
   ir_dim = ir.spatial_dimension;
 
   conductivity = PHX::MDField<ScalarT,Cell,Point,Dim,Dim>(name, data_layout);
@@ -74,14 +74,6 @@ VariableTensorConductivity<EvalT,Traits>::VariableTensorConductivity(const std::
 
 //**********************************************************************
 template <typename EvalT,typename Traits>
-void VariableTensorConductivity<EvalT,Traits>::postRegistrationSetup(typename Traits::SetupData sd,
-                                                                     PHX::FieldManager<Traits>& /* fm */)
-{
-  ir_index = panzer::getIntegrationRuleIndex(ir_degree,(*sd.worksets_)[0], this->wda);
-}
-
-//**********************************************************************
-template <typename EvalT,typename Traits>
 void VariableTensorConductivity<EvalT,Traits>::evaluateFields(typename Traits::EvalData workset)
 {
   using panzer::index_t;
@@ -100,13 +92,15 @@ void VariableTensorConductivity<EvalT,Traits>::evaluateFields(typename Traits::E
   const double zl1 = 0.2;
   const double zr1 = 0.8;
 
+  const auto ip_coordinates = this->wda(workset).getIntegrationValues(integration_descriptor, panzer::useLazyWorksetEvaluation()).getCubaturePoints();
+
   if (ir_dim == 3) {
     for (index_t cell = 0; cell < workset.num_cells; ++cell) {
       for (int point = 0; point < conductivity.extent_int(1); ++point) {
 
-        auto x = workset.int_rules[ir_index]->getCubaturePoints()(cell,point,0);
-        auto y = workset.int_rules[ir_index]->getCubaturePoints()(cell,point,1);
-        auto z = workset.int_rules[ir_index]->getCubaturePoints()(cell,point,2);
+        auto x = ip_coordinates(cell,point,0);
+        auto y = ip_coordinates(cell,point,1);
+        auto z = ip_coordinates(cell,point,2);
 
         if ((xl0<=x) && (x<=xr0) &&
             (yl0<=y) && (y<=yr0) &&
@@ -161,8 +155,8 @@ void VariableTensorConductivity<EvalT,Traits>::evaluateFields(typename Traits::E
     for (index_t cell = 0; cell < workset.num_cells; ++cell) {
       for (int point = 0; point < conductivity.extent_int(1); ++point) {
 
-        auto x = workset.int_rules[ir_index]->getCubaturePoints()(cell,point,0);
-        auto y = workset.int_rules[ir_index]->getCubaturePoints()(cell,point,1);
+        auto x = ip_coordinates(cell,point,0);
+        auto y = ip_coordinates(cell,point,1);
 
         if ((xl0<=x) && (x<=xr0) &&
             (yl0<=y) && (y<=yr0)) {

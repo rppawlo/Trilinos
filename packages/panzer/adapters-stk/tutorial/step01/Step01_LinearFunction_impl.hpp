@@ -26,7 +26,7 @@ LinearFunction<EvalT,Traits>::LinearFunction(const std::string & name,
                                              const panzer::IntegrationRule & ir)
   : acoeff_(acoeff) 
   , bcoeff_(bcoeff) 
-  , ir_degree_(ir.cubature_degree)
+  , integration_descriptor_(ir)
 {
   using Teuchos::RCP;
 
@@ -38,13 +38,6 @@ LinearFunction<EvalT,Traits>::LinearFunction(const std::string & name,
   this->setName("Linear Function("+name+")");
 }
 
-//**********************************************************************
-template <typename EvalT,typename Traits>
-void LinearFunction<EvalT,Traits>::postRegistrationSetup(typename Traits::SetupData sd,           
-                                                          PHX::FieldManager<Traits>& /* fm */)
-{
-  ir_index_ = panzer::getIntegrationRuleIndex(ir_degree_,(*sd.worksets_)[0]);
-}
 
 //**********************************************************************
 template <typename EvalT,typename Traits>
@@ -53,8 +46,8 @@ void LinearFunction<EvalT,Traits>::evaluateFields(typename Traits::EvalData work
   for (panzer::index_t cell = 0; cell < workset.num_cells; ++cell) {
     for (int point = 0; point < result.extent_int(1); ++point) {
 
-      const double& x = workset.int_rules[ir_index_]->getCubaturePoints()(cell,point,0);
-      const double& y = workset.int_rules[ir_index_]->getCubaturePoints()(cell,point,1);
+      const double& x = workset.getIntegrationValues(integration_descriptor_, panzer::useLazyWorksetEvaluation()).getCubaturePoints()(cell,point,0);
+      const double& y = workset.getIntegrationValues(integration_descriptor_, panzer::useLazyWorksetEvaluation()).getCubaturePoints()(cell,point,1);
 
       result(cell,point) = acoeff_*x + acoeff_*y + bcoeff_;
     }

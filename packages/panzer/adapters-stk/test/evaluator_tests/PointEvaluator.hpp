@@ -15,6 +15,7 @@
 #include "Phalanx_Evaluator_Macros.hpp"
 #include "Phalanx_MDField.hpp"
 #include "Panzer_IntegrationRule.hpp"
+#include "Panzer_IntegrationDescriptor.hpp"
 #include "Panzer_Workset_Utilities.hpp"
 #include "Panzer_Evaluator_Macros.hpp"
 
@@ -38,11 +39,6 @@ class PointEvaluator
       const Teuchos::ParameterList& p);
 
     void
-    postRegistrationSetup(
-      typename Traits::SetupData d,
-      PHX::FieldManager<Traits>& fm);
-
-    void
     evaluateFields(
       typename Traits::EvalData d);
 
@@ -54,8 +50,7 @@ class PointEvaluator
   PHX::MDField<ScalarT> vectorField;
 
   bool isVector;
-  int quad_order;
-  int quad_index;
+  panzer::IntegrationDescriptor integration_descriptor;
   Teuchos::RCP<const PointEvaluation<ScalarT> > function;
 }; // end of class PointEvaluator
 
@@ -73,7 +68,7 @@ PointEvaluator(
   isVector = p.get<bool>("Is Vector");
   function = p.get<Teuchos::RCP<const PointEvaluation<ScalarT> > >("Point Evaluator");
 
-  quad_order = ir->cubature_degree;
+  integration_descriptor = *ir;
 
   // grab information from quadrature rule
   if(isVector) {
@@ -94,24 +89,16 @@ PointEvaluator(
 template<typename EvalT, typename Traits>
 void
 PointEvaluator<EvalT, Traits>::
-postRegistrationSetup(
-  typename Traits::SetupData sd,
-  PHX::FieldManager<Traits>& /* fm */)
-{
-  quad_index =  panzer::getIntegrationRuleIndex(quad_order,(*sd.worksets_)[0], this->wda);
-}
-
-//**********************************************************************
-template<typename EvalT, typename Traits>
-void
-PointEvaluator<EvalT, Traits>::
 evaluateFields(
   typename Traits::EvalData workset)
 {
+   const auto cubature_points = this->wda(workset)
+                                .getIntegrationValues(integration_descriptor, panzer::useLazyWorksetEvaluation())
+                                .getCubaturePoints();
    if(isVector)
-      function->evaluateContainer(this->wda(workset).int_rules[quad_index]->getCubaturePoints(),vectorField);
+      function->evaluateContainer(cubature_points,vectorField);
    else
-      function->evaluateContainer(this->wda(workset).int_rules[quad_index]->getCubaturePoints(),scalar);
+      function->evaluateContainer(cubature_points,scalar);
 }
 
 //**********************************************************************

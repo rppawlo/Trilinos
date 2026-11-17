@@ -30,7 +30,7 @@ SimpleSolution<EvalT,Traits>::SimpleSolution(const std::string & name,
 
   Teuchos::RCP<PHX::DataLayout> data_layout_scalar = ir.dl_scalar;
   Teuchos::RCP<PHX::DataLayout> data_layout_vector = ir.dl_vector;
-  ir_degree = ir.cubature_degree;
+  integration_descriptor = ir;
 
   solution = PHX::MDField<ScalarT,Cell,Point>(name, data_layout_scalar);
   solution_grad = PHX::MDField<ScalarT,Cell,Point,Dim>("GRAD_"+name, data_layout_vector);
@@ -44,18 +44,10 @@ SimpleSolution<EvalT,Traits>::SimpleSolution(const std::string & name,
 
 //**********************************************************************
 template <typename EvalT,typename Traits>
-void SimpleSolution<EvalT,Traits>::postRegistrationSetup(typename Traits::SetupData sd,           
-                                                       PHX::FieldManager<Traits>& /* fm */)
-{
-  ir_index = panzer::getIntegrationRuleIndex(ir_degree,(*sd.worksets_)[0], this->wda);
-}
-
-//**********************************************************************
-template <typename EvalT,typename Traits>
 void SimpleSolution<EvalT,Traits>::evaluateFields(typename Traits::EvalData workset)
 { 
   using panzer::index_t;
-  auto ip_coordinates = this->wda(workset).int_rules[ir_index]->getCubaturePoints().get_static_view();
+  auto ip_coordinates = this->wda(workset).getIntegrationValues(integration_descriptor, panzer::useLazyWorksetEvaluation()).getCubaturePoints().get_static_view();
   auto solution_v = solution.get_static_view();
   auto solution_grad_v = solution_grad.get_static_view();
 

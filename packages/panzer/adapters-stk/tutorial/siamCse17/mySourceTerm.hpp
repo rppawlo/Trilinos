@@ -23,6 +23,7 @@
 // Panzer
 #include "Panzer_Dimension.hpp"
 #include "Panzer_FieldLibrary.hpp"
+#include "Panzer_IntegrationDescriptor.hpp"
 
 // Phalanx
 #include "Phalanx_Evaluator_Derived.hpp"
@@ -56,22 +57,6 @@ class MySourceTerm
       const std::string&             name,
       const panzer::IntegrationRule& ir);
 
-    /**
-     * 	\brief Post-Registration Setup.
-     *
-     * 	This gets the index pointing to the integration rule degree in the
-     * 	workset, which will be used later in grabbing the x- and y-locations
-     * 	that correspond to integration points.
-     *
-     * 	\param[in] d  Essentially a list of `Workset`s, which are groups of
-     * 	              cells (elements) that all reside on the same processor.
-     * 	\param[in] fm This is unused in this routine, though it is a part of
-     * 	              the `EvaluatorWithBaseImpl` interface.
-     */
-    void
-    postRegistrationSetup(
-      typename Traits::SetupData d,
-      PHX::FieldManager<Traits>& fm);
 
     /**
      * 	\brief Evaluate Fields.
@@ -97,18 +82,9 @@ class MySourceTerm
     PHX::MDField<ScalarT, panzer::Cell, panzer::Point> result_;
 
     /**
-     * 	\brief The degree of the integration rule.
+     * 	rief Descriptor for the integration rule.
      */
-    int irDegree_;
-
-    /**
-     * 	\brief The index pointing to the integration rule degree in the
-     * 	       workset.
-     *
-     * 	This is used in grabbing the x- and y-locations corresponding to the
-     * 	integration points.
-     */
-    int irIndex_;
+    panzer::IntegrationDescriptor integrationDescriptor_;
 }; // end of class MySourceTerm
 
 #endif // __mySourceTerm_hpp__

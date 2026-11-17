@@ -6,6 +6,8 @@
 #include "Panzer_Evaluator_Macros.hpp"
 #include "Panzer_Dimension.hpp"
 #include "Panzer_HierarchicParallelism.hpp"
+#include "Panzer_BasisDescriptor.hpp"
+#include "Panzer_IntegrationDescriptor.hpp"
 #include "Panzer_Workset_Utilities.hpp"
 
 namespace user_app {
@@ -22,7 +24,8 @@ namespace user_app {
 
     EnergyFluxEvaluator(const std::string& flux_name,
                         const std::string& dof_name,
-                        const std::string& basis_name,
+                        const panzer::BasisDescriptor& basis_descriptor,
+                        const panzer::IntegrationDescriptor& integration_descriptor,
                         const std::string& grad_dof_name,
                         const std::string& velocity_name,
                         const std::string& density_name,
@@ -44,7 +47,8 @@ namespace user_app {
         side_normals_("Side Normal",vector_layout),
         apply_weak_dirichlet_(apply_weak_dirichlet),
         value_(value),
-        basis_name_(basis_name)
+        basis_descriptor_(basis_descriptor),
+        integration_descriptor_(integration_descriptor)
     {
       this->addEvaluatedField(flux_);
       if (apply_weak_dirichlet) {
@@ -61,17 +65,13 @@ namespace user_app {
       this->setName("user_app::EnergyFluxEvaluator - "+dof_name);
     }
 
-    void postRegistrationSetup(typename TRAITS::SetupData sd,
-                               PHX::FieldManager<TRAITS>& fm)
-    {
-      basis_index_ = getBasisIndex(basis_name_, (*sd.worksets_)[0], this->wda);
-    }
-
     void evaluateFields(typename TRAITS::EvalData workset)
     {
       using team_policy = Kokkos::TeamPolicy<PHX::ExecutionSpace>::member_type;
       auto policy = panzer::HP::inst().teamPolicy<ScalarT,PHX::ExecutionSpace>(workset.num_cells);
-      PHX::MDField<double,panzer::Cell,panzer::BASIS,panzer::IP,panzer::Dim> grad_basis = this->wda(workset).bases[basis_index_]->getGradBasisValuesForPhalanxEvaluatorRegistration();
+      const auto grad_basis = this->wda(workset)
+                              .getBasisValues(basis_descriptor_, integration_descriptor_, panzer::useLazyWorksetEvaluation())
+                              .getGradBasisValues(panzer::WeightBasis::No);
       const int num_ip = grad_basis.extent(2);
       const int num_basis = grad_basis.extent(1);
       const int num_dim = grad_basis.extent(3);
@@ -127,8 +127,8 @@ namespace user_app {
     PHX::MDField<const ScalarT,Cell,IP,Dim> side_normals_;
     bool apply_weak_dirichlet_;
     double value_;
-    size_t basis_index_;
-    std::string basis_name_;
+    panzer::BasisDescriptor basis_descriptor_;
+    panzer::IntegrationDescriptor integration_descriptor_;
   };
 
 }
