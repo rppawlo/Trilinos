@@ -18,6 +18,7 @@
 #include "Panzer_Dimension.hpp"
 #include "Panzer_CellData.hpp"
 #include "Panzer_Response_IPCoordinates.hpp"
+#include "Panzer_IntegrationDescriptor.hpp"
 
 #include "Phalanx_Evaluator_Macros.hpp"
 #include "Phalanx_MDField.hpp"
@@ -37,9 +38,6 @@ public:
   //! A constructor with concrete arguments instead of a parameter list.
   ResponseScatterEvaluator_IPCoordinates(const std::string & name,int ir_order);
 
-  void postRegistrationSetup(typename Traits::SetupData d,
-                             PHX::FieldManager<Traits>& fm);
-
   void evaluateFields(typename Traits::EvalData d);
 
   void preEvaluate(typename Traits::PreEvalData d);
@@ -49,8 +47,7 @@ private:
   typedef typename EvalT::ScalarT ScalarT;
 
   std::string responseName_;
-  int ir_order_;
-  int ir_index_;
+  panzer::IntegrationDescriptor integration_descriptor_;
 
   Teuchos::RCP<Response_IPCoordinates<EvalT> > responseObj_;
   std::vector<std::vector<ScalarT> > tmpCoords_;

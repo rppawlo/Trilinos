@@ -23,13 +23,13 @@ namespace panzer {
 template<typename EvalT, typename Traits>
 Integrator_Scalar<EvalT, Traits>::
 Integrator_Scalar(
-  const Teuchos::ParameterList& p) : quad_index(0)
+  const Teuchos::ParameterList& p)
 {
   Teuchos::RCP<Teuchos::ParameterList> valid_params = this->getValidParameters();
   p.validateParameters(*valid_params);
 
   Teuchos::RCP<panzer::IntegrationRule> ir = p.get< Teuchos::RCP<panzer::IntegrationRule> >("IR");
-  quad_order = ir->cubature_degree;
+  integration_descriptor = *ir;
 
   Teuchos::RCP<PHX::DataLayout> dl_cell = Teuchos::rcp(new PHX::MDALayout<Cell>(ir->dl_scalar->extent(0)));
   integral = PHX::MDField<ScalarT>( p.get<std::string>("Integral Name"), dl_cell);
@@ -67,12 +67,11 @@ template<typename EvalT, typename Traits>
 void
 Integrator_Scalar<EvalT, Traits>::
 postRegistrationSetup(
-  typename Traits::SetupData sd,
+  typename Traits::SetupData /* sd */,
   PHX::FieldManager<Traits>& /* fm */)
 {
   num_qp = scalar.extent(1);
   tmp = Sacado::createDynRankView(scalar.get_static_view(),"tmp", scalar.extent(0), num_qp);
-  quad_index =  panzer::getIntegrationRuleIndex(quad_order,(*sd.worksets_)[0], this->wda);
 
   Kokkos::deep_copy(field_multipliers, field_multipliers_h);
 }
@@ -86,7 +85,7 @@ evaluateFields(
   typename Traits::EvalData workset)
 { 
 
-  const auto wm = this->wda(workset).int_rules[quad_index]->getWeightedMeasure();
+  const auto wm = this->wda(workset).getIntegrationValues(integration_descriptor, panzer::useLazyWorksetEvaluation()).getWeightedMeasure();
 
   auto l_tmp = tmp;
   auto l_multiplier = multiplier;

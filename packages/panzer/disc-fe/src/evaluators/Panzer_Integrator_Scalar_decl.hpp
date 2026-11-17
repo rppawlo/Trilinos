@@ -18,6 +18,7 @@
 #include "Kokkos_DynRankView.hpp"
 
 #include "Panzer_Evaluator_Macros.hpp"
+#include "Panzer_IntegrationDescriptor.hpp"
 
 namespace panzer {
     
@@ -69,8 +70,7 @@ class Integrator_Scalar
   PHX::View<PHX::UnmanagedView<const ScalarT**>* > field_multipliers;
 
   std::size_t num_qp;
-  std::size_t quad_index;
-  int quad_order;
+  panzer::IntegrationDescriptor integration_descriptor;
 
   double multiplier;
 

@@ -34,7 +34,8 @@ template<typename EvalT, typename Traits>
 ResponseScatterEvaluator_IPCoordinates<EvalT,Traits>::
 ResponseScatterEvaluator_IPCoordinates(const std::string & name,
                                        int ir_order)
-  : responseName_(name), ir_order_(ir_order)
+  : responseName_(name)
+  , integration_descriptor_(ir_order, panzer::IntegrationDescriptor::VOLUME)
 {
   using Teuchos::RCP;
   using Teuchos::rcp;
@@ -62,17 +63,9 @@ preEvaluate(typename Traits::PreEvalData d)
 
 template<typename EvalT, typename Traits>
 void ResponseScatterEvaluator_IPCoordinates<EvalT,Traits>::
-postRegistrationSetup(typename Traits::SetupData sd,
-                      PHX::FieldManager<Traits>& /* fm */)
-{
-  ir_index_ = panzer::getIntegrationRuleIndex(ir_order_,(*sd.worksets_)[0], this->wda);
-}
-
-template<typename EvalT, typename Traits>
-void ResponseScatterEvaluator_IPCoordinates<EvalT,Traits>::
 evaluateFields(typename Traits::EvalData workset)
 {
-  IntegrationValues2<double> & iv = *this->wda(workset).int_rules[ir_index_];
+  const IntegrationValues2<double> & iv = this->wda(workset).getIntegrationValues(integration_descriptor_, panzer::useLazyWorksetEvaluation());
   const auto ip_coordinates = iv.getCubaturePoints();
 
   if (tmpCoords_.size() != Teuchos::as<std::size_t>(ip_coordinates.extent(2))) {

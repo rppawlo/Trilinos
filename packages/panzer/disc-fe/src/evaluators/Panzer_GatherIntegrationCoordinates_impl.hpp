@@ -32,24 +32,23 @@ fieldName(int degree)
 template<typename EvalT,typename TRAITS>
 panzer::GatherIntegrationCoordinates<EvalT, TRAITS>::
 GatherIntegrationCoordinates(const panzer::IntegrationRule & quad)
-{ 
-  quadDegree_ = quad.cubature_degree;
+{
+  integration_descriptor_ = quad;
 
-  quadCoordinates_ = PHX::MDField<ScalarT,Cell,Point,Dim>(fieldName(quadDegree_),quad.dl_vector);
+  quadCoordinates_ = PHX::MDField<ScalarT,Cell,Point,Dim>(fieldName(quad.cubature_degree),quad.dl_vector);
 
   this->addEvaluatedField(quadCoordinates_);
   this->addUnsharedField(Teuchos::rcp_const_cast<PHX::FieldTag>(quadCoordinates_.fieldTagPtr()));
 
-  this->setName("GatherIntegrationCoordinates: "+fieldName(quadDegree_));
+  this->setName("GatherIntegrationCoordinates: "+fieldName(quad.cubature_degree));
 }
 
 // **********************************************************************
 template<typename EvalT,typename TRAITS>
 void panzer::GatherIntegrationCoordinates<EvalT, TRAITS>::
-postRegistrationSetup(typename TRAITS::SetupData sd, 
+postRegistrationSetup(typename TRAITS::SetupData /* sd */,
 		      PHX::FieldManager<TRAITS>& /* fm */)
 {
-  quadIndex_ = panzer::getIntegrationRuleIndex(quadDegree_, (*sd.worksets_)[0], this->wda);
   // make sure to zero out derivative array as we only set the value for AD types in the loop below
   Kokkos::deep_copy(quadCoordinates_.get_static_view(),0.0);
 }
@@ -59,7 +58,7 @@ template<typename EvalT,typename TRAITS>
 void panzer::GatherIntegrationCoordinates<EvalT, TRAITS>::
 evaluateFields(typename TRAITS::EvalData workset)
 {
-  const IntegrationValues2<double> & iv = *this->wda(workset).int_rules[quadIndex_];
+  const IntegrationValues2<double> & iv = this->wda(workset).getIntegrationValues(integration_descriptor_, panzer::useLazyWorksetEvaluation());
   auto s_ip_coordinates = iv.getCubaturePoints().get_static_view();
   auto d_quadCoordinates = quadCoordinates_.get_static_view();
 

@@ -20,6 +20,7 @@
 #include "Teuchos_Comm.hpp"
 
 #include "Panzer_Evaluator_Macros.hpp"
+#include "Panzer_IntegrationDescriptor.hpp"
 
 namespace panzer {
 
@@ -74,8 +75,7 @@ class GlobalStatistics
   std::vector<ScalarT> global_maxs;
   std::vector<ScalarT> global_mins;
 
-  int ir_order;
-  std::size_t ir_index;
+  panzer::IntegrationDescriptor integration_descriptor;
 
   Teuchos::RCP<const Teuchos::Comm<int> > comm;
 

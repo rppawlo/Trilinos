@@ -42,6 +42,7 @@ GlobalStatistics(
   panzer::StringTokenizer(names, names_string);
 
   Teuchos::RCP<panzer::IntegrationRule> ir = p.get< Teuchos::RCP<panzer::IntegrationRule> >("IR");
+  integration_descriptor = *ir;
 
   field_values.clear();
   for (typename std::vector<std::string>::const_iterator name = names.begin(); name != names.end(); ++name)
@@ -68,8 +69,6 @@ GlobalStatistics(
   global_mins.resize(field_values.size());
   global_averages.resize(field_values.size());
 
-  ir_order = ir->cubature_degree;
-
   std::string n = "GlobalStatistics: " + names_string;
   this->setName(n);
 }
@@ -79,10 +78,9 @@ template<typename EvalT, typename Traits>
 void
 GlobalStatistics<EvalT, Traits>::
 postRegistrationSetup(
-  typename Traits::SetupData sd,
+  typename Traits::SetupData /* sd */,
   PHX::FieldManager<Traits>& /* fm */)
 {
-  ir_index = panzer::getIntegrationRuleIndex(ir_order,(*sd.worksets_)[0], this->wda);
   auto l_ones = ones.get_static_view();
   Kokkos::parallel_for("GlobalStatistics", l_ones.extent(0), KOKKOS_LAMBDA(int cell) {
       for (std::size_t ip = 0; ip < l_ones.extent(1); ++ip)
@@ -100,7 +98,7 @@ evaluateFields(
   if (workset.num_cells == 0)
     return;
 
-  const auto weighted_measure = (this->wda(workset).int_rules[ir_index])->getWeightedMeasure();
+  const auto weighted_measure = this->wda(workset).getIntegrationValues(integration_descriptor, panzer::useLazyWorksetEvaluation()).getWeightedMeasure();
   Intrepid2::FunctionSpaceTools<PHX::Device>::integrate(volumes.get_view(),
                                                                          ones.get_view(),
                                                                          weighted_measure.get_view());
