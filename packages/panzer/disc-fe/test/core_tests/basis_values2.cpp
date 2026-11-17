@@ -180,82 +180,97 @@ namespace panzer {
 
     panzer::BasisValues2<double> basis_values;
     basis_values.setupUniform(basis,
-                              int_values.getUniformCubaturePointsRef(false),
-                              int_values.getJacobian(false),
-                              int_values.getJacobianDeterminant(false),
-                              int_values.getJacobianInverse(false));
+                              int_values.getUniformCubaturePointsRef(CacheValues::No),
+                              int_values.getJacobian(CacheValues::No),
+                              int_values.getJacobianDeterminant(CacheValues::No),
+                              int_values.getJacobianInverse(CacheValues::No));
 
     TEST_EQUALITY(basis_values.getBasisValuesForPhalanxEvaluatorRegistration().extent(0), 0);
 
     panzer::BasisValues2<double> weighted_basis_values;
     weighted_basis_values.setupUniform(basis,
-                                       int_values.getUniformCubaturePointsRef(false),
-                                       int_values.getJacobian(false),
-                                       int_values.getJacobianDeterminant(false),
-                                       int_values.getJacobianInverse(false));
-    weighted_basis_values.setWeightedMeasure(int_values.getWeightedMeasure(false));
+                                       int_values.getUniformCubaturePointsRef(CacheValues::No),
+                                       int_values.getJacobian(CacheValues::No),
+                                       int_values.getJacobianDeterminant(CacheValues::No),
+                                       int_values.getJacobianInverse(CacheValues::No));
+    weighted_basis_values.setWeightedMeasure(int_values.getWeightedMeasure(CacheValues::No));
 
-    auto weighted_basis = weighted_basis_values.getBasisValues(true, true, true);
+    auto weighted_basis =
+      weighted_basis_values.getBasisValues(WeightBasis::Yes,
+                                           CacheValues::Yes,
+                                           ForceRecompute::Yes);
     TEST_EQUALITY(weighted_basis.extent(0), num_cells);
     TEST_EQUALITY(weighted_basis_values.getWeightedBasisValuesForPhalanxEvaluatorRegistration().extent(0), num_cells);
     TEST_EQUALITY(weighted_basis_values.getBasisValuesForPhalanxEvaluatorRegistration().extent(0), num_cells);
 
     panzer::BasisValues2<double> weighted_basis_values_without_dependencies;
     weighted_basis_values_without_dependencies.setupUniform(basis,
-                                                            int_values.getUniformCubaturePointsRef(false),
-                                                            int_values.getJacobian(false),
-                                                            int_values.getJacobianDeterminant(false),
-                                                            int_values.getJacobianInverse(false));
-    weighted_basis_values_without_dependencies.setWeightedMeasure(int_values.getWeightedMeasure(false));
+                                                            int_values.getUniformCubaturePointsRef(CacheValues::No),
+                                                            int_values.getJacobian(CacheValues::No),
+                                                            int_values.getJacobianDeterminant(CacheValues::No),
+                                                            int_values.getJacobianInverse(CacheValues::No));
+    weighted_basis_values_without_dependencies.setWeightedMeasure(int_values.getWeightedMeasure(CacheValues::No));
 
-    auto weighted_basis_without_dependencies = weighted_basis_values_without_dependencies.getBasisValues(true, true, true, false);
+    auto weighted_basis_without_dependencies =
+      weighted_basis_values_without_dependencies.getBasisValues(WeightBasis::Yes,
+                                                                CacheValues::Yes,
+                                                                ForceRecompute::Yes,
+                                                                CacheDependencies::No);
     TEST_EQUALITY(weighted_basis_without_dependencies.extent(0), num_cells);
     TEST_EQUALITY(weighted_basis_values_without_dependencies.getWeightedBasisValuesForPhalanxEvaluatorRegistration().extent(0), num_cells);
     TEST_EQUALITY(weighted_basis_values_without_dependencies.getBasisValuesForPhalanxEvaluatorRegistration().extent(0), 0);
 
     panzer::BasisValues2<double> weighted_basis_values_cached_dependencies_only;
     weighted_basis_values_cached_dependencies_only.setupUniform(basis,
-                                                                int_values.getUniformCubaturePointsRef(false),
-                                                                int_values.getJacobian(false),
-                                                                int_values.getJacobianDeterminant(false),
-                                                                int_values.getJacobianInverse(false));
-    weighted_basis_values_cached_dependencies_only.setWeightedMeasure(int_values.getWeightedMeasure(false));
+                                                                int_values.getUniformCubaturePointsRef(CacheValues::No),
+                                                                int_values.getJacobian(CacheValues::No),
+                                                                int_values.getJacobianDeterminant(CacheValues::No),
+                                                                int_values.getJacobianInverse(CacheValues::No));
+    weighted_basis_values_cached_dependencies_only.setWeightedMeasure(int_values.getWeightedMeasure(CacheValues::No));
 
-    auto uncached_weighted_basis_with_cached_dependencies = weighted_basis_values_cached_dependencies_only.getBasisValues(true, false, true, true);
+    auto uncached_weighted_basis_with_cached_dependencies =
+      weighted_basis_values_cached_dependencies_only.getBasisValues(WeightBasis::Yes,
+                                                                    CacheValues::No,
+                                                                    ForceRecompute::Yes,
+                                                                    CacheDependencies::Yes);
     TEST_EQUALITY(uncached_weighted_basis_with_cached_dependencies.extent(0), num_cells);
     TEST_EQUALITY(weighted_basis_values_cached_dependencies_only.getWeightedBasisValuesForPhalanxEvaluatorRegistration().extent(0), 0);
     TEST_EQUALITY(weighted_basis_values_cached_dependencies_only.getBasisValuesForPhalanxEvaluatorRegistration().extent(0), num_cells);
 
     panzer::BasisValues2<double> weighted_basis_values_with_dependencies;
     weighted_basis_values_with_dependencies.setupUniform(basis,
-                                                         int_values.getUniformCubaturePointsRef(false),
-                                                         int_values.getJacobian(false),
-                                                         int_values.getJacobianDeterminant(false),
-                                                         int_values.getJacobianInverse(false));
-    weighted_basis_values_with_dependencies.setWeightedMeasure(int_values.getWeightedMeasure(false));
+                                                         int_values.getUniformCubaturePointsRef(CacheValues::No),
+                                                         int_values.getJacobian(CacheValues::No),
+                                                         int_values.getJacobianDeterminant(CacheValues::No),
+                                                         int_values.getJacobianInverse(CacheValues::No));
+    weighted_basis_values_with_dependencies.setWeightedMeasure(int_values.getWeightedMeasure(CacheValues::No));
 
-    auto weighted_basis_with_dependencies = weighted_basis_values_with_dependencies.getBasisValues(true, true, true, true);
+    auto weighted_basis_with_dependencies =
+      weighted_basis_values_with_dependencies.getBasisValues(WeightBasis::Yes,
+                                                             CacheValues::Yes,
+                                                             ForceRecompute::Yes,
+                                                             CacheDependencies::Yes);
     TEST_EQUALITY(weighted_basis_with_dependencies.extent(0), num_cells);
     TEST_EQUALITY(weighted_basis_values_with_dependencies.getWeightedBasisValuesForPhalanxEvaluatorRegistration().extent(0), num_cells);
     TEST_EQUALITY(weighted_basis_values_with_dependencies.getBasisValuesForPhalanxEvaluatorRegistration().extent(0), num_cells);
 
-    auto uncached_basis = basis_values.getBasisValues(false, false);
+    auto uncached_basis = basis_values.getBasisValues(WeightBasis::No, CacheValues::No);
     TEST_EQUALITY(uncached_basis.extent(0), num_cells);
     TEST_EQUALITY(basis_values.getBasisValuesForPhalanxEvaluatorRegistration().extent(0), 0);
 
-    auto cached_basis = basis_values.getBasisValues(false, true);
+    auto cached_basis = basis_values.getBasisValues(WeightBasis::No, CacheValues::Yes);
     TEST_EQUALITY(cached_basis.extent(0), num_cells);
     TEST_EQUALITY(basis_values.getBasisValuesForPhalanxEvaluatorRegistration().extent(0), num_cells);
     TEST_EQUALITY(cached_basis.get_view().data(), basis_values.getBasisValuesForPhalanxEvaluatorRegistration().get_view().data());
 
-    auto cached_basis_again = basis_values.getBasisValues(false, true);
+    auto cached_basis_again = basis_values.getBasisValues(WeightBasis::No, CacheValues::Yes);
     TEST_EQUALITY(cached_basis_again.get_view().data(), basis_values.getBasisValuesForPhalanxEvaluatorRegistration().get_view().data());
 
     basis_values.releaseCachedData();
     TEST_EQUALITY(basis_values.getBasisValuesForPhalanxEvaluatorRegistration().size(), 0);
     TEST_EQUALITY(basis_values.getWeightedBasisValuesForPhalanxEvaluatorRegistration().size(), 0);
 
-    auto rebuilt_cached_basis = basis_values.getBasisValues(false, true);
+    auto rebuilt_cached_basis = basis_values.getBasisValues(WeightBasis::No, CacheValues::Yes);
     TEST_EQUALITY(rebuilt_cached_basis.extent(0), num_cells);
     TEST_EQUALITY(basis_values.getBasisValuesForPhalanxEvaluatorRegistration().extent(0), num_cells);
     TEST_EQUALITY(rebuilt_cached_basis.get_view().data(), basis_values.getBasisValuesForPhalanxEvaluatorRegistration().get_view().data());
@@ -264,7 +279,11 @@ namespace panzer {
     TEST_EQUALITY(weighted_basis_values_with_dependencies.getWeightedBasisValuesForPhalanxEvaluatorRegistration().size(), 0);
     TEST_EQUALITY(weighted_basis_values_with_dependencies.getBasisValuesForPhalanxEvaluatorRegistration().size(), 0);
 
-    auto rebuilt_weighted_basis = weighted_basis_values_with_dependencies.getBasisValues(true, true, true, true);
+    auto rebuilt_weighted_basis =
+      weighted_basis_values_with_dependencies.getBasisValues(WeightBasis::Yes,
+                                                             CacheValues::Yes,
+                                                             ForceRecompute::Yes,
+                                                             CacheDependencies::Yes);
     TEST_EQUALITY(rebuilt_weighted_basis.extent(0), num_cells);
     TEST_EQUALITY(weighted_basis_values_with_dependencies.getWeightedBasisValuesForPhalanxEvaluatorRegistration().extent(0), num_cells);
     TEST_EQUALITY(weighted_basis_values_with_dependencies.getBasisValuesForPhalanxEvaluatorRegistration().extent(0), num_cells);
@@ -303,7 +322,10 @@ namespace panzer {
     const auto num_points = Teuchos::as<std::size_t>(basis->numPoints());
     const auto num_dim = Teuchos::as<std::size_t>(basis->dimension());
 
-    auto weighted_basis = basis_values.getBasisValues(true, true, true);
+    auto weighted_basis =
+      basis_values.getBasisValues(WeightBasis::Yes,
+                                  CacheValues::Yes,
+                                  ForceRecompute::Yes);
     TEST_EQUALITY(weighted_basis.extent(0), num_cells);
     TEST_EQUALITY(weighted_basis.extent(1), num_card);
     TEST_EQUALITY(weighted_basis.extent(2), num_points);
@@ -312,7 +334,10 @@ namespace panzer {
     TEST_EQUALITY(basis_values.getWeightedBasisValuesForPhalanxEvaluatorRegistration().extent(2), num_points);
     TEST_EQUALITY(basis_values.getBasisValuesForPhalanxEvaluatorRegistration().extent(0), 0);
 
-    auto weighted_grad_basis = basis_values.getGradBasisValues(true, true, true);
+    auto weighted_grad_basis =
+      basis_values.getGradBasisValues(WeightBasis::Yes,
+                                      CacheValues::Yes,
+                                      ForceRecompute::Yes);
     TEST_EQUALITY(weighted_grad_basis.extent(0), num_cells);
     TEST_EQUALITY(weighted_grad_basis.extent(1), num_card);
     TEST_EQUALITY(weighted_grad_basis.extent(2), num_points);
@@ -323,7 +348,7 @@ namespace panzer {
     TEST_EQUALITY(basis_values.getWeightedGradBasisValuesForPhalanxEvaluatorRegistration().extent(3), num_dim);
     TEST_EQUALITY(basis_values.getGradBasisValuesForPhalanxEvaluatorRegistration().extent(0), 0);
 
-    auto grad_basis = basis_values.getGradBasisValues(false, true, true);
+    auto grad_basis = basis_values.getGradBasisValues(WeightBasis::No, CacheValues::Yes, ForceRecompute::Yes);
     TEST_EQUALITY(grad_basis.extent(0), num_cells);
     TEST_EQUALITY(grad_basis.extent(1), num_card);
     TEST_EQUALITY(grad_basis.extent(2), num_points);

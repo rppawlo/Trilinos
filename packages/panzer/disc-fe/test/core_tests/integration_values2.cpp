@@ -198,76 +198,107 @@ namespace panzer {
     panzer::IntegrationValues2<double> int_values("prefix_");
     int_values.setup(int_rule, node_coordinates);
 
-    auto uncached_jac = int_values.getJacobian(false);
+    auto uncached_jac = int_values.getJacobian(CacheValues::No);
     TEST_EQUALITY(uncached_jac.extent(0), num_cells);
 
-    auto cached_jac = int_values.getJacobian(true);
+    auto cached_jac = int_values.getJacobian(CacheValues::Yes);
     TEST_EQUALITY(cached_jac.extent(0), num_cells);
 
-    auto cached_jac_again = int_values.getJacobian(true);
+    auto cached_jac_again = int_values.getJacobian(CacheValues::Yes);
     TEST_EQUALITY(cached_jac_again.get_view().data(), cached_jac.get_view().data());
 
-    auto cached_ref_points = int_values.getUniformCubaturePointsRef(true, false, false);
-    auto cached_weights = int_values.getUniformCubatureWeightsRef(true, false, false);
+    auto cached_ref_points =
+      int_values.getUniformCubaturePointsRef(CacheValues::Yes,
+                                             ForceRecompute::No,
+                                             false);
+    auto cached_weights =
+      int_values.getUniformCubatureWeightsRef(CacheValues::Yes,
+                                              ForceRecompute::No,
+                                              false);
     TEST_EQUALITY(cached_ref_points.extent_int(0), int_rule->num_points);
     TEST_EQUALITY(cached_weights.extent_int(0), int_rule->num_points);
 
     int_values.releaseCachedData();
 
-    auto rebuilt_cached_jac = int_values.getJacobian(true);
+    auto rebuilt_cached_jac = int_values.getJacobian(CacheValues::Yes);
     TEST_EQUALITY(rebuilt_cached_jac.extent(0), num_cells);
 
     panzer::IntegrationValues2<double> det_values("prefix_");
     det_values.setup(int_rule, node_coordinates);
 
-    auto uncached_det_with_cached_dependencies = det_values.getJacobianDeterminant(false, false, true);
+    auto uncached_det_with_cached_dependencies =
+      det_values.getJacobianDeterminant(CacheValues::No,
+                                        ForceRecompute::No,
+                                        CacheDependencies::Yes);
     TEST_EQUALITY(uncached_det_with_cached_dependencies.extent(0), num_cells);
 
     panzer::IntegrationValues2<double> det_values_default_cache("prefix_");
     det_values_default_cache.setup(int_rule, node_coordinates);
 
-    auto cached_det_default = det_values_default_cache.getJacobianDeterminant(true, false);
+    auto cached_det_default =
+      det_values_default_cache.getJacobianDeterminant(CacheValues::Yes,
+                                                      ForceRecompute::No);
     TEST_EQUALITY(cached_det_default.extent(0), num_cells);
 
     panzer::IntegrationValues2<double> det_values_without_dependencies("prefix_");
     det_values_without_dependencies.setup(int_rule, node_coordinates);
 
-    auto cached_det_without_dependencies = det_values_without_dependencies.getJacobianDeterminant(true, false, false);
+    auto cached_det_without_dependencies =
+      det_values_without_dependencies.getJacobianDeterminant(CacheValues::Yes,
+                                                             ForceRecompute::No,
+                                                             CacheDependencies::No);
     TEST_EQUALITY(cached_det_without_dependencies.extent(0), num_cells);
 
     panzer::IntegrationValues2<double> det_values_with_dependencies("prefix_");
     det_values_with_dependencies.setup(int_rule, node_coordinates);
 
-    auto cached_det_with_dependencies = det_values_with_dependencies.getJacobianDeterminant(true, false, true);
+    auto cached_det_with_dependencies =
+      det_values_with_dependencies.getJacobianDeterminant(CacheValues::Yes,
+                                                          ForceRecompute::No,
+                                                          CacheDependencies::Yes);
     TEST_EQUALITY(cached_det_with_dependencies.extent(0), num_cells);
 
     panzer::IntegrationValues2<double> weighted_values("prefix_");
     weighted_values.setup(int_rule, node_coordinates);
 
-    auto uncached_weighted_with_cached_dependencies = weighted_values.getWeightedMeasure(false, false, true);
+    auto uncached_weighted_with_cached_dependencies =
+      weighted_values.getWeightedMeasure(CacheValues::No,
+                                         ForceRecompute::No,
+                                         CacheDependencies::Yes);
     TEST_EQUALITY(uncached_weighted_with_cached_dependencies.extent(0), num_cells);
 
     panzer::IntegrationValues2<double> weighted_values_default_cache("prefix_");
     weighted_values_default_cache.setup(int_rule, node_coordinates);
 
-    auto cached_weighted_default = weighted_values_default_cache.getWeightedMeasure(true, false);
+    auto cached_weighted_default =
+      weighted_values_default_cache.getWeightedMeasure(CacheValues::Yes,
+                                                       ForceRecompute::No);
     TEST_EQUALITY(cached_weighted_default.extent(0), num_cells);
 
     panzer::IntegrationValues2<double> weighted_values_without_dependencies("prefix_");
     weighted_values_without_dependencies.setup(int_rule, node_coordinates);
 
-    auto cached_weighted_without_dependencies = weighted_values_without_dependencies.getWeightedMeasure(true, false, false);
+    auto cached_weighted_without_dependencies =
+      weighted_values_without_dependencies.getWeightedMeasure(CacheValues::Yes,
+                                                              ForceRecompute::No,
+                                                              CacheDependencies::No);
     TEST_EQUALITY(cached_weighted_without_dependencies.extent(0), num_cells);
 
     panzer::IntegrationValues2<double> weighted_values_with_dependencies("prefix_");
     weighted_values_with_dependencies.setup(int_rule, node_coordinates);
 
-    auto cached_weighted_with_dependencies = weighted_values_with_dependencies.getWeightedMeasure(true, false, true);
+    auto cached_weighted_with_dependencies =
+      weighted_values_with_dependencies.getWeightedMeasure(CacheValues::Yes,
+                                                           ForceRecompute::No,
+                                                           CacheDependencies::Yes);
     TEST_EQUALITY(cached_weighted_with_dependencies.extent(0), num_cells);
 
     weighted_values_with_dependencies.releaseCachedData();
 
-    auto rebuilt_cached_weighted = weighted_values_with_dependencies.getWeightedMeasure(true, false, true);
+    auto rebuilt_cached_weighted =
+      weighted_values_with_dependencies.getWeightedMeasure(CacheValues::Yes,
+                                                           ForceRecompute::No,
+                                                           CacheDependencies::Yes);
     TEST_EQUALITY(rebuilt_cached_weighted.extent(0), num_cells);
   }
 
@@ -289,13 +320,31 @@ namespace panzer {
     panzer::IntegrationValues2<double> int_values("prefix_");
     int_values.setup(int_rule, node_coordinates);
 
-    auto cached_jacobian = int_values.getJacobian(true);
-    auto cached_jacobian_inverse = int_values.getJacobianInverse(true, false, true);
-    auto cached_jacobian_determinant = int_values.getJacobianDeterminant(true, false, true);
-    auto cached_weighted_measure = int_values.getWeightedMeasure(true, false, true);
-    auto cached_covarient = int_values.getCovarientMatrix(true, false, true);
-    auto cached_contravarient = int_values.getContravarientMatrix(true, false, true);
-    auto cached_norm_contravarient = int_values.getNormContravarientMatrix(true, false, true);
+    auto cached_jacobian = int_values.getJacobian(CacheValues::Yes);
+    auto cached_jacobian_inverse =
+      int_values.getJacobianInverse(CacheValues::Yes,
+                                    ForceRecompute::No,
+                                    CacheDependencies::Yes);
+    auto cached_jacobian_determinant =
+      int_values.getJacobianDeterminant(CacheValues::Yes,
+                                        ForceRecompute::No,
+                                        CacheDependencies::Yes);
+    auto cached_weighted_measure =
+      int_values.getWeightedMeasure(CacheValues::Yes,
+                                    ForceRecompute::No,
+                                    CacheDependencies::Yes);
+    auto cached_covarient =
+      int_values.getCovarientMatrix(CacheValues::Yes,
+                                    ForceRecompute::No,
+                                    CacheDependencies::Yes);
+    auto cached_contravarient =
+      int_values.getContravarientMatrix(CacheValues::Yes,
+                                        ForceRecompute::No,
+                                        CacheDependencies::Yes);
+    auto cached_norm_contravarient =
+      int_values.getNormContravarientMatrix(CacheValues::Yes,
+                                            ForceRecompute::No,
+                                            CacheDependencies::Yes);
 
     auto cached_jacobian_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),cached_jacobian.get_view());
     auto cached_jacobian_inverse_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),cached_jacobian_inverse.get_view());
@@ -307,21 +356,21 @@ namespace panzer {
 
     int_values.releaseCachedData();
 
-    TEST_NOTHROW(int_values.getJacobian(true));
-    TEST_NOTHROW(int_values.getJacobianInverse(true, false, true));
-    TEST_NOTHROW(int_values.getJacobianDeterminant(true, false, true));
-    TEST_NOTHROW(int_values.getWeightedMeasure(true, false, true));
-    TEST_NOTHROW(int_values.getCovarientMatrix(true, false, true));
-    TEST_NOTHROW(int_values.getContravarientMatrix(true, false, true));
-    TEST_NOTHROW(int_values.getNormContravarientMatrix(true, false, true));
+    TEST_NOTHROW(int_values.getJacobian(CacheValues::Yes));
+    TEST_NOTHROW(int_values.getJacobianInverse(CacheValues::Yes, ForceRecompute::No, CacheDependencies::Yes));
+    TEST_NOTHROW(int_values.getJacobianDeterminant(CacheValues::Yes, ForceRecompute::No, CacheDependencies::Yes));
+    TEST_NOTHROW(int_values.getWeightedMeasure(CacheValues::Yes, ForceRecompute::No, CacheDependencies::Yes));
+    TEST_NOTHROW(int_values.getCovarientMatrix(CacheValues::Yes, ForceRecompute::No, CacheDependencies::Yes));
+    TEST_NOTHROW(int_values.getContravarientMatrix(CacheValues::Yes, ForceRecompute::No, CacheDependencies::Yes));
+    TEST_NOTHROW(int_values.getNormContravarientMatrix(CacheValues::Yes, ForceRecompute::No, CacheDependencies::Yes));
 
-    auto rebuilt_jacobian = int_values.getJacobian(true);
-    auto rebuilt_jacobian_inverse = int_values.getJacobianInverse(true, false, true);
-    auto rebuilt_jacobian_determinant = int_values.getJacobianDeterminant(true, false, true);
-    auto rebuilt_weighted_measure = int_values.getWeightedMeasure(true, false, true);
-    auto rebuilt_covarient = int_values.getCovarientMatrix(true, false, true);
-    auto rebuilt_contravarient = int_values.getContravarientMatrix(true, false, true);
-    auto rebuilt_norm_contravarient = int_values.getNormContravarientMatrix(true, false, true);
+    auto rebuilt_jacobian = int_values.getJacobian(CacheValues::Yes);
+    auto rebuilt_jacobian_inverse = int_values.getJacobianInverse(CacheValues::Yes, ForceRecompute::No, CacheDependencies::Yes);
+    auto rebuilt_jacobian_determinant = int_values.getJacobianDeterminant(CacheValues::Yes, ForceRecompute::No, CacheDependencies::Yes);
+    auto rebuilt_weighted_measure = int_values.getWeightedMeasure(CacheValues::Yes, ForceRecompute::No, CacheDependencies::Yes);
+    auto rebuilt_covarient = int_values.getCovarientMatrix(CacheValues::Yes, ForceRecompute::No, CacheDependencies::Yes);
+    auto rebuilt_contravarient = int_values.getContravarientMatrix(CacheValues::Yes, ForceRecompute::No, CacheDependencies::Yes);
+    auto rebuilt_norm_contravarient = int_values.getNormContravarientMatrix(CacheValues::Yes, ForceRecompute::No, CacheDependencies::Yes);
 
     TEST_EQUALITY(rebuilt_jacobian.extent(0), num_cells);
     TEST_EQUALITY(rebuilt_jacobian_inverse.extent(0), num_cells);
@@ -518,8 +567,8 @@ namespace panzer {
     panzer::IntegrationValues2<double> int_values_vol("prefix_");
     int_values_vol.setup(int_rule_vol, node_coordinates);
 
-    auto cached_vol_points = int_values_vol.getCubaturePoints(true);
-    auto cached_vol_ref_points = int_values_vol.getCubaturePointsRef(true);
+    auto cached_vol_points = int_values_vol.getCubaturePoints(CacheValues::Yes);
+    auto cached_vol_ref_points = int_values_vol.getCubaturePointsRef(CacheValues::Yes);
     TEST_EQUALITY(cached_vol_points.extent(0), num_cells);
     TEST_EQUALITY(cached_vol_ref_points.extent(0), num_cells);
     auto cached_vol_points_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),cached_vol_points.get_view());
@@ -527,10 +576,10 @@ namespace panzer {
 
     int_values_vol.releaseCachedData();
 
-    TEST_NOTHROW(int_values_vol.getCubaturePoints(true));
-    TEST_NOTHROW(int_values_vol.getCubaturePointsRef(true));
-    auto rebuilt_vol_points = int_values_vol.getCubaturePoints(true);
-    auto rebuilt_vol_ref_points = int_values_vol.getCubaturePointsRef(true);
+    TEST_NOTHROW(int_values_vol.getCubaturePoints(CacheValues::Yes));
+    TEST_NOTHROW(int_values_vol.getCubaturePointsRef(CacheValues::Yes));
+    auto rebuilt_vol_points = int_values_vol.getCubaturePoints(CacheValues::Yes);
+    auto rebuilt_vol_ref_points = int_values_vol.getCubaturePointsRef(CacheValues::Yes);
     TEST_EQUALITY(rebuilt_vol_points.extent(0), num_cells);
     TEST_EQUALITY(rebuilt_vol_points.extent_int(1), int_rule_vol->num_points);
     TEST_EQUALITY(rebuilt_vol_ref_points.extent(0), num_cells);
@@ -543,24 +592,24 @@ namespace panzer {
     panzer::IntegrationValues2<double> int_values_side("prefix_");
     int_values_side.setup(int_rule_side, node_coordinates);
 
-    TEST_NOTHROW(int_values_side.getCubaturePoints(true));
-    TEST_NOTHROW(int_values_side.getCubaturePointsRef(true));
-    TEST_NOTHROW(int_values_side.getWeightedNormals(true));
-    auto cached_side_points = int_values_side.getCubaturePoints(true);
-    auto cached_side_ref_points = int_values_side.getCubaturePointsRef(true);
-    auto cached_side_weighted_normals = int_values_side.getWeightedNormals(true);
+    TEST_NOTHROW(int_values_side.getCubaturePoints(CacheValues::Yes));
+    TEST_NOTHROW(int_values_side.getCubaturePointsRef(CacheValues::Yes));
+    TEST_NOTHROW(int_values_side.getWeightedNormals(CacheValues::Yes));
+    auto cached_side_points = int_values_side.getCubaturePoints(CacheValues::Yes);
+    auto cached_side_ref_points = int_values_side.getCubaturePointsRef(CacheValues::Yes);
+    auto cached_side_weighted_normals = int_values_side.getWeightedNormals(CacheValues::Yes);
     auto cached_side_points_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),cached_side_points.get_view());
     auto cached_side_ref_points_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),cached_side_ref_points.get_view());
     auto cached_side_weighted_normals_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),cached_side_weighted_normals.get_view());
 
     int_values_side.releaseCachedData();
 
-    TEST_NOTHROW(int_values_side.getCubaturePoints(true));
-    TEST_NOTHROW(int_values_side.getCubaturePointsRef(true));
-    TEST_NOTHROW(int_values_side.getWeightedNormals(true));
-    auto rebuilt_side_points = int_values_side.getCubaturePoints(true);
-    auto rebuilt_side_ref_points = int_values_side.getCubaturePointsRef(true);
-    auto rebuilt_side_weighted_normals = int_values_side.getWeightedNormals(true);
+    TEST_NOTHROW(int_values_side.getCubaturePoints(CacheValues::Yes));
+    TEST_NOTHROW(int_values_side.getCubaturePointsRef(CacheValues::Yes));
+    TEST_NOTHROW(int_values_side.getWeightedNormals(CacheValues::Yes));
+    auto rebuilt_side_points = int_values_side.getCubaturePoints(CacheValues::Yes);
+    auto rebuilt_side_ref_points = int_values_side.getCubaturePointsRef(CacheValues::Yes);
+    auto rebuilt_side_weighted_normals = int_values_side.getWeightedNormals(CacheValues::Yes);
     TEST_EQUALITY(rebuilt_side_points.extent(0), num_cells);
     TEST_EQUALITY(rebuilt_side_points.extent_int(1), int_rule_side->num_points);
     TEST_EQUALITY(rebuilt_side_ref_points.extent(0), num_cells);
@@ -796,15 +845,15 @@ namespace panzer {
 
     int_values.releaseCachedData();
 
-    TEST_NOTHROW(int_values.getCubaturePoints(true));
-    TEST_NOTHROW(int_values.getCubaturePointsRef(true));
-    TEST_NOTHROW(int_values.getSurfaceNormals(true));
-    TEST_NOTHROW(int_values.getSurfaceRotationMatrices(true));
+    TEST_NOTHROW(int_values.getCubaturePoints(CacheValues::Yes));
+    TEST_NOTHROW(int_values.getCubaturePointsRef(CacheValues::Yes));
+    TEST_NOTHROW(int_values.getSurfaceNormals(CacheValues::Yes));
+    TEST_NOTHROW(int_values.getSurfaceRotationMatrices(CacheValues::Yes));
 
-    auto rebuilt_points = int_values.getCubaturePoints(true);
-    auto rebuilt_ref_points = int_values.getCubaturePointsRef(true);
-    auto rebuilt_normals = int_values.getSurfaceNormals(true);
-    auto rebuilt_rotation_matrices = int_values.getSurfaceRotationMatrices(true);
+    auto rebuilt_points = int_values.getCubaturePoints(CacheValues::Yes);
+    auto rebuilt_ref_points = int_values.getCubaturePointsRef(CacheValues::Yes);
+    auto rebuilt_normals = int_values.getSurfaceNormals(CacheValues::Yes);
+    auto rebuilt_rotation_matrices = int_values.getSurfaceRotationMatrices(CacheValues::Yes);
     TEST_EQUALITY(rebuilt_points.extent(0), 2);
     TEST_EQUALITY(rebuilt_points.extent_int(1), int_rule->num_points);
     TEST_EQUALITY(rebuilt_ref_points.extent(0), 2);

@@ -2227,8 +2227,8 @@ evaluateEverything()
 
   // Base cubature stuff
   if(is_cv){
-    getCubaturePoints(true);
-    getCubaturePointsRef(true);
+    getCubaturePoints(CacheValues::Yes);
+    getCubaturePointsRef(CacheValues::Yes);
   } else {
     if(not is_surface){
       getUniformCubaturePointsRef(CacheValues::Yes, ForceRecompute::Yes, requires_permutation_);
@@ -2236,18 +2236,18 @@ evaluateEverything()
       if(is_side)
         getUniformSideCubaturePointsRef(CacheValues::Yes, ForceRecompute::Yes, requires_permutation_);
     }
-    getCubaturePointsRef(true);
-    getCubaturePoints(true);
+    getCubaturePointsRef(CacheValues::Yes);
+    getCubaturePoints(CacheValues::Yes);
   }
 
   // Measure stuff
-  getJacobian(true);
-  getJacobianDeterminant(true);
-  getJacobianInverse(true);
+  getJacobian(CacheValues::Yes);
+  getJacobianDeterminant(CacheValues::Yes);
+  getJacobianInverse(CacheValues::Yes);
   if(int_rule->cv_type == "side")
-    getWeightedNormals(true);
+    getWeightedNormals(CacheValues::Yes);
   else
-    getWeightedMeasure(true);
+    getWeightedMeasure(CacheValues::Yes);
 
   // Surface stuff
   if(is_surface){

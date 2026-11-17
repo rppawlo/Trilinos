@@ -258,12 +258,12 @@ TEUCHOS_UNIT_TEST(L2Projection, ToNodal)
       Teuchos::RCP<panzer::BasisValues2<double>> bv = Teuchos::rcp(new panzer::BasisValues2<double>);
       Teuchos::RCP<panzer::BasisIRLayout> birl = Teuchos::rcp(new panzer::BasisIRLayout(hgradBD.getType(),hgradBD.getOrder(),*ir));
       bv->setupUniform(birl,
-                       iv->getUniformCubaturePointsRef(true),
-                       iv->getJacobian(true),
-                       iv->getJacobianDeterminant(true),
-                       iv->getJacobianInverse(true));
+                       iv->getUniformCubaturePointsRef(panzer::CacheValues::Yes),
+                       iv->getJacobian(panzer::CacheValues::Yes),
+                       iv->getJacobianDeterminant(panzer::CacheValues::Yes),
+                       iv->getJacobianInverse(panzer::CacheValues::Yes));
       bv->setOrientations(orientations[eblock]);
-      bv->setWeightedMeasure(iv->getWeightedMeasure(true));
+      bv->setWeightedMeasure(iv->getWeightedMeasure(panzer::CacheValues::Yes));
       bv->setCellNodeCoordinates(nodal_coords);
       map_basis_values[eblock] = bv;
     }

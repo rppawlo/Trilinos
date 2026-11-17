@@ -122,8 +122,8 @@ namespace panzer {
     const BasisValues2<double> & hdiv_basis_values = worksets[0].getBasisValues(hdiv_basis_desc,hdiv_basis_desc.getPointDescriptor());
     const BasisValues2<double> & hcurl_basis_values = worksets[0].getBasisValues(hcurl_basis_desc,hdiv_basis_desc.getPointDescriptor());
 
-    auto hdiv_basis_vector = hdiv_basis_values.getVectorBasisValues(false);
-    auto hcurl_curl_basis = hcurl_basis_values.getCurlVectorBasis(false);
+    auto hdiv_basis_vector = hdiv_basis_values.getVectorBasisValues(panzer::WeightBasis::No);
+    auto hcurl_curl_basis = hcurl_basis_values.getCurlVectorBasis(panzer::WeightBasis::No);
 
     // check some sizing stuff
     ///////////////////////////////////////////////////////////////////////
@@ -274,12 +274,12 @@ namespace panzer {
     out << (*worksets[0].basis_names)[0]
         << " " << (*worksets[0].basis_names)[1] << std::endl;
 
-    auto hdiv_weighted_basis_vector = hdiv_basis_values.getVectorBasisValues(true);
+    auto hdiv_weighted_basis_vector = hdiv_basis_values.getVectorBasisValues(panzer::WeightBasis::Yes);
     auto hdiv_weighted_basis_vector_view = PHX::as_view(hdiv_weighted_basis_vector);
     auto hdiv_weighted_basis_vector_h = Kokkos::create_mirror_view(hdiv_weighted_basis_vector_view);
     Kokkos::deep_copy(hdiv_weighted_basis_vector_h, hdiv_weighted_basis_vector_view);
 
-    auto hdiv_basis_vector = hdiv_basis_values.getVectorBasisValues(false);
+    auto hdiv_basis_vector = hdiv_basis_values.getVectorBasisValues(panzer::WeightBasis::No);
     auto hdiv_basis_vector_view = PHX::as_view(hdiv_basis_vector);
     auto hdiv_basis_vector_h = Kokkos::create_mirror_view(hdiv_basis_vector_view);
     Kokkos::deep_copy(hdiv_basis_vector_h, hdiv_basis_vector_view);

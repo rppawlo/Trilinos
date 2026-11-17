@@ -168,8 +168,8 @@ namespace panzer {
         }
         const auto& basisValues = *bv_ptr;
 
-        const auto unweightedBasis = basisValues.getBasisValues(false).get_static_view();
-        const auto weightedBasis = basisValues.getBasisValues(true).get_static_view();
+        const auto unweightedBasis = basisValues.getBasisValues(WeightBasis::No).get_static_view();
+        const auto weightedBasis = basisValues.getBasisValues(WeightBasis::Yes).get_static_view();
 
         const std::vector<panzer::LocalOrdinal>& offsets = targetGlobalIndexer_->getGIDFieldOffsets(block,fieldIndex);
         PHX::View<panzer::LocalOrdinal*> kOffsets("MassMatrix: Offsets",offsets.size());
@@ -302,8 +302,8 @@ namespace panzer {
         }
         const auto& basisValues = *bv_ptr;
 
-        const auto unweightedBasis = basisValues.getVectorBasisValues(false).get_static_view();
-        const auto weightedBasis = basisValues.getVectorBasisValues(true).get_static_view();
+        const auto unweightedBasis = basisValues.getVectorBasisValues(WeightBasis::No).get_static_view();
+        const auto weightedBasis = basisValues.getVectorBasisValues(WeightBasis::Yes).get_static_view();
 
         const std::vector<panzer::LocalOrdinal>& offsets = targetGlobalIndexer_->getGIDFieldOffsets(block,fieldIndex);
         PHX::View<panzer::LocalOrdinal*> kOffsets("MassMatrix: Offsets",offsets.size());
@@ -506,7 +506,7 @@ namespace panzer {
 
         // Get target basis values: current implementation assumes target basis is HGrad
         const auto& targetBasisValues = workset.getBasisValues(targetBasisDescriptor_,integrationDescriptor_);
-        const auto& targetWeightedBasis = targetBasisValues.getBasisValues(true).get_static_view();
+        const auto& targetWeightedBasis = targetBasisValues.getBasisValues(WeightBasis::Yes).get_static_view();
 
         // Sources can be any basis
         const auto& sourceBasisValues = workset.getBasisValues(sourceBasisDescriptor,integrationDescriptor_);
@@ -515,15 +515,15 @@ namespace panzer {
         bool useRankThreeBasis = false; // default to gradient or vector basis
         if ( (sourceBasisDescriptor.getType() == "HGrad") || (sourceBasisDescriptor.getType() == "Const") || (sourceBasisDescriptor.getType() == "HVol") ) {
           if (directionIndex == -1) { // Project dof value
-            sourceUnweightedScalarBasis = sourceBasisValues.getBasisValues(false).get_static_view();
+            sourceUnweightedScalarBasis = sourceBasisValues.getBasisValues(WeightBasis::No).get_static_view();
             useRankThreeBasis = true;
           }
           else { // Project dof gradient of scalar basis
-            sourceUnweightedVectorBasis = sourceBasisValues.getGradBasisValues(false).get_static_view();
+            sourceUnweightedVectorBasis = sourceBasisValues.getGradBasisValues(WeightBasis::No).get_static_view();
           }
         }
         else { // Project vector value
-          sourceUnweightedVectorBasis = sourceBasisValues.getVectorBasisValues(false).get_static_view();
+          sourceUnweightedVectorBasis = sourceBasisValues.getVectorBasisValues(WeightBasis::No).get_static_view();
         }
 
         // Get the element local ids

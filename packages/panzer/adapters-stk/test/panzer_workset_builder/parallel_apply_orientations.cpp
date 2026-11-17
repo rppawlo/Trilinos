@@ -140,7 +140,7 @@ testApplyOrientations(const bool by_container,
   }
 
   // Grab the basis values vector for the given integration points
-  const auto basis_vector_device = basis_values.getVectorBasisValues(false).get_static_view();
+  const auto basis_vector_device = basis_values.getVectorBasisValues(panzer::WeightBasis::No).get_static_view();
   auto basis_vector = Kokkos::create_mirror_view(basis_vector_device);
   Kokkos::deep_copy(basis_vector,basis_vector_device);
 
