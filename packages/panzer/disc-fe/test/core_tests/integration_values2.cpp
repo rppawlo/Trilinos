@@ -210,11 +210,11 @@ namespace panzer {
     auto cached_ref_points =
       int_values.getUniformCubaturePointsRef(CacheValues::Yes,
                                              ForceRecompute::No,
-                                             false);
+                                             ApplyPermutation::No);
     auto cached_weights =
       int_values.getUniformCubatureWeightsRef(CacheValues::Yes,
                                               ForceRecompute::No,
-                                              false);
+                                              ApplyPermutation::No);
     TEST_EQUALITY(cached_ref_points.extent_int(0), int_rule->num_points);
     TEST_EQUALITY(cached_weights.extent_int(0), int_rule->num_points);
 

@@ -38,6 +38,14 @@ namespace panzer {
   };
 
   /**
+   * \brief Controls whether reference cubature data is reordered by the stored permutation.
+   */
+  enum class ApplyPermutation {
+    No,  //!< Return data in the base cubature order.
+    Yes  //!< Apply the stored permutation when one is required.
+  };
+
+  /**
    * \brief Controls whether basis values are multiplied by the weighted measure.
    */
   enum class WeightBasis {

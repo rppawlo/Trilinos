@@ -189,9 +189,9 @@ INTEGRATION_FIELD_GETTERS = {
     "cub_weights": "getUniformCubatureWeightsRef()",
     "ip_coordinates": "getCubaturePoints()",
     "ref_ip_coordinates": "getCubaturePointsRef()",
-    "covarient": "getCovarientMatrix(true)",
-    "contravarient": "getContravarientMatrix(true)",
-    "norm_contravarient": "getNormContravarientMatrix(true)",
+    "covarient": "getCovarientMatrix(panzer::CacheValues::Yes)",
+    "contravarient": "getContravarientMatrix(panzer::CacheValues::Yes)",
+    "norm_contravarient": "getNormContravarientMatrix(panzer::CacheValues::Yes)",
     "surface_normals": "getSurfaceNormals()",
     "surface_rotation_matrices": "getSurfaceRotationMatrices()",
     "node_coordinates": "getNodeCoordinates()",
@@ -365,11 +365,21 @@ RULES: tuple[Rule, ...] = (
         risk="low",
         pattern=re.compile(
             r"\bget(?:Jacobian|JacobianInverse|JacobianDeterminant|WeightedMeasure|WeightedNormals|"
-            r"CubaturePoints|CubaturePointsRef|BasisCoordinatesRef|BasisCoordinates|"
+            r"CubaturePoints|CubaturePointsRef|UniformCubaturePointsRef|UniformSideCubaturePointsRef|"
+            r"UniformCubatureWeightsRef|BasisCoordinatesRef|BasisCoordinates|"
             r"BasisValuesRef|VectorBasisValuesRef|GradBasisValuesRef|Curl2DVectorBasisRef|"
             r"CurlVectorBasisRef|DivVectorBasisRef)\s*\(\s*(?:true|false)\b"
         ),
         hint="Bool is a cache control. Consider CacheValues::{Yes,No} and ForceRecompute for clarity.",
+    ),
+    Rule(
+        name="uniform-cubature-apply-permutation-bool-arg",
+        category="bool-api",
+        risk="medium",
+        pattern=re.compile(
+            r"\bgetUniform(?:Side)?Cubature(?:Points|Weights)Ref\s*\([^;\n]*,\s*[^;\n]*,\s*(?:true|false)\b"
+        ),
+        hint="Third bool is apply_permutation. Use ApplyPermutation::{Yes,No}.",
     ),
     Rule(
         name="release-cached-data",
@@ -1970,7 +1980,7 @@ void ExampleEvaluator::evaluateFields(typename Traits::EvalData workset)
         direct_text = direct_path.read_text(encoding="utf-8")
         expected_direct_fragments = [
             "workset.int_rules[ir_index]->getWeightedMeasure()",
-            "workset.int_rules[ir_index]->getNormContravarientMatrix(true)(cell,point)",
+            "workset.int_rules[ir_index]->getNormContravarientMatrix(panzer::CacheValues::Yes)(cell,point)",
             "workset.bases[basis_index]->getGradBasisValues(panzer::WeightBasis::Yes).get_view()",
         ]
         missing_direct = [fragment for fragment in expected_direct_fragments if fragment not in direct_text]

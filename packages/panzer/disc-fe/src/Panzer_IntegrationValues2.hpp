@@ -167,23 +167,9 @@ namespace panzer {
      * \return Array <point, dim>
      */
     ConstArray_IPDim
-    getUniformCubaturePointsRef(const CacheValues cache,
+    getUniformCubaturePointsRef(const CacheValues cache = CacheValues::Yes,
                                 const ForceRecompute force = ForceRecompute::No,
-                                const bool apply_permutation = true) const;
-
-    /**
-     * \brief Compatibility overload using boolean cache controls
-     *
-     * \param[in] cache If true, the result will be stored in the IntegrationValues2 class
-     * \param[in] force If true, force re-evaluation of the cached array
-     * \param[in] apply_permutation ADVANCED Do not change this unless you know what it does (it can break things)
-     *
-     * \return Array <point, dim>
-     */
-    ConstArray_IPDim
-    getUniformCubaturePointsRef(const bool cache = true,
-                                const bool force = false,
-                                const bool apply_permutation = true) const;
+                                const ApplyPermutation apply_permutation = ApplyPermutation::Yes) const;
 
     /**
      * \brief Get the uniform cubature points for a side
@@ -198,23 +184,9 @@ namespace panzer {
      * \return Array <point, dim>
      */
     ConstArray_IPDim
-    getUniformSideCubaturePointsRef(const CacheValues cache,
+    getUniformSideCubaturePointsRef(const CacheValues cache = CacheValues::Yes,
                                     const ForceRecompute force = ForceRecompute::No,
-                                    const bool apply_permutation = true) const;
-
-    /**
-     * \brief Compatibility overload using boolean cache controls
-     *
-     * \param[in] cache If true, the result will be stored in the IntegrationValues2 class
-     * \param[in] force If true, force re-evaluation of the cached array
-     * \param[in] apply_permutation ADVANCED Do not change this unless you know what it does (it can break things)
-     *
-     * \return Array <point, dim>
-     */
-    ConstArray_IPDim
-    getUniformSideCubaturePointsRef(const bool cache = true,
-                                    const bool force = false,
-                                    const bool apply_permutation = true) const;
+                                    const ApplyPermutation apply_permutation = ApplyPermutation::Yes) const;
 
     /**
      * \brief Get the uniform cubature weights
@@ -229,23 +201,9 @@ namespace panzer {
      * \return Array <point>
      */
     ConstArray_IP
-    getUniformCubatureWeightsRef(const CacheValues cache,
+    getUniformCubatureWeightsRef(const CacheValues cache = CacheValues::Yes,
                                  const ForceRecompute force = ForceRecompute::No,
-                                 const bool apply_permutation = true) const;
-
-    /**
-     * \brief Compatibility overload using boolean cache controls
-     *
-     * \param[in] cache If true, the result will be stored in the IntegrationValues2 class
-     * \param[in] force If true, force re-evaluation of the cached array
-     * \param[in] apply_permutation ADVANCED Do not change this unless you know what it does (it can break things)
-     *
-     * \return Array <point>
-     */
-    ConstArray_IP
-    getUniformCubatureWeightsRef(const bool cache = true,
-                                 const bool force = false,
-                                 const bool apply_permutation = true) const;
+                                 const ApplyPermutation apply_permutation = ApplyPermutation::Yes) const;
 
 
     /**

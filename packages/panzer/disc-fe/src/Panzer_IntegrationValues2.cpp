@@ -796,9 +796,10 @@ typename IntegrationValues2<Scalar>::ConstArray_IPDim
 IntegrationValues2<Scalar>::
 getUniformCubaturePointsRef(const CacheValues cache,
                             const ForceRecompute force,
-                            const bool apply_permutation) const
+                            const ApplyPermutation apply_permutation) const
 {
-  if(cub_points_evaluated_ and (apply_permutation == requires_permutation_) and force != ForceRecompute::Yes)
+  const bool should_apply_permutation = apply_permutation == ApplyPermutation::Yes;
+  if(cub_points_evaluated_ and (should_apply_permutation == requires_permutation_) and force != ForceRecompute::Yes)
     return cub_points;
 
   // Only log time if values computed (i.e. don't log if values are already cached)
@@ -837,10 +838,10 @@ getUniformCubaturePointsRef(const CacheValues cache,
 
   PHX::ExecutionSpace().fence();
 
-  if(apply_permutation and requires_permutation_)
+  if(should_apply_permutation and requires_permutation_)
     applyBasePermutation(aux, permutations_);
 
-  if(cache == CacheValues::Yes and (apply_permutation == requires_permutation_)){
+  if(cache == CacheValues::Yes and (should_apply_permutation == requires_permutation_)){
     cub_points = aux;
     cub_points_evaluated_ = true;
   }
@@ -852,23 +853,12 @@ getUniformCubaturePointsRef(const CacheValues cache,
 template <typename Scalar>
 typename IntegrationValues2<Scalar>::ConstArray_IPDim
 IntegrationValues2<Scalar>::
-getUniformCubaturePointsRef(const bool cache,
-                            const bool force,
-                            const bool apply_permutation) const
-{
-  return getUniformCubaturePointsRef(IntegrationValues2<Scalar>::cacheValues(cache),
-                                     IntegrationValues2<Scalar>::forceRecompute(force),
-                                     apply_permutation);
-}
-
-template <typename Scalar>
-typename IntegrationValues2<Scalar>::ConstArray_IPDim
-IntegrationValues2<Scalar>::
 getUniformSideCubaturePointsRef(const CacheValues cache,
                                 const ForceRecompute force,
-                                const bool apply_permutation) const
+                                const ApplyPermutation apply_permutation) const
 {
-  if(side_cub_points_evaluated_ and (apply_permutation == requires_permutation_) and force != ForceRecompute::Yes)
+  const bool should_apply_permutation = apply_permutation == ApplyPermutation::Yes;
+  if(side_cub_points_evaluated_ and (should_apply_permutation == requires_permutation_) and force != ForceRecompute::Yes)
     return side_cub_points;
 
   // Only log time if values computed (i.e. don't log if values are already cached)
@@ -902,10 +892,10 @@ getUniformSideCubaturePointsRef(const CacheValues cache,
 
   PHX::ExecutionSpace().fence();
 
-  if(apply_permutation and requires_permutation_)
+  if(should_apply_permutation and requires_permutation_)
     applyBasePermutation(aux, permutations_);
 
-  if(cache == CacheValues::Yes and (apply_permutation == requires_permutation_)){
+  if(cache == CacheValues::Yes and (should_apply_permutation == requires_permutation_)){
     side_cub_points = aux;
     side_cub_points_evaluated_ = true;
   }
@@ -914,25 +904,14 @@ getUniformSideCubaturePointsRef(const CacheValues cache,
 }
 
 template <typename Scalar>
-typename IntegrationValues2<Scalar>::ConstArray_IPDim
-IntegrationValues2<Scalar>::
-getUniformSideCubaturePointsRef(const bool cache,
-                                const bool force,
-                                const bool apply_permutation) const
-{
-  return getUniformSideCubaturePointsRef(IntegrationValues2<Scalar>::cacheValues(cache),
-                                         IntegrationValues2<Scalar>::forceRecompute(force),
-                                         apply_permutation);
-}
-
-template <typename Scalar>
 typename IntegrationValues2<Scalar>::ConstArray_IP
 IntegrationValues2<Scalar>::
 getUniformCubatureWeightsRef(const CacheValues cache,
                              const ForceRecompute force,
-                             const bool apply_permutation) const
+                             const ApplyPermutation apply_permutation) const
 {
-  if(cub_weights_evaluated_ and (apply_permutation == requires_permutation_) and force != ForceRecompute::Yes)
+  const bool should_apply_permutation = apply_permutation == ApplyPermutation::Yes;
+  if(cub_weights_evaluated_ and (should_apply_permutation == requires_permutation_) and force != ForceRecompute::Yes)
     return cub_weights;
 
   // Only log time if values computed (i.e. don't log if values are already cached)
@@ -963,28 +942,16 @@ getUniformCubatureWeightsRef(const CacheValues cache,
 
   PHX::ExecutionSpace().fence();
 
-  if(apply_permutation and requires_permutation_)
+  if(should_apply_permutation and requires_permutation_)
     applyBasePermutation(aux, permutations_);
 
-  if(cache == CacheValues::Yes and (apply_permutation == requires_permutation_)){
+  if(cache == CacheValues::Yes and (should_apply_permutation == requires_permutation_)){
     cub_weights = aux;
     cub_weights_evaluated_ = true;
   }
 
   return aux;
 
-}
-
-template <typename Scalar>
-typename IntegrationValues2<Scalar>::ConstArray_IP
-IntegrationValues2<Scalar>::
-getUniformCubatureWeightsRef(const bool cache,
-                             const bool force,
-                             const bool apply_permutation) const
-{
-  return getUniformCubatureWeightsRef(IntegrationValues2<Scalar>::cacheValues(cache),
-                                      IntegrationValues2<Scalar>::forceRecompute(force),
-                                      apply_permutation);
 }
 
 template <typename Scalar>
@@ -1038,7 +1005,9 @@ getJacobian(const CacheValues cache,
   } else {
 
     // Keep the managed field alive while the non-const wrapper is in use.
-    auto const_ref_coord = getUniformCubaturePointsRef(CacheValues::No, force, false);
+    auto const_ref_coord = getUniformCubaturePointsRef(CacheValues::No,
+                                                       force,
+                                                       ApplyPermutation::No);
     auto ref_coord = PHX::getNonConstDynRankViewFromConstMDField(const_ref_coord);
     auto node_coord = PHX::getNonConstDynRankViewFromConstMDField(getNodeCoordinates());
 
@@ -1367,7 +1336,7 @@ getWeightedMeasure(const CacheValues cache,
     auto s_weighted_measure = Kokkos::subview(aux.get_view(),cell_range,Kokkos::ALL());
     auto cubature_weights = getUniformCubatureWeightsRef(CacheValues::No,
                                                          force,
-                                                         false);
+                                                         ApplyPermutation::No);
 
     if (!int_rule->isSide()) {
 
@@ -2015,7 +1984,7 @@ getCubaturePoints(const CacheValues cache,
     // Keep the managed field alive while the non-const wrapper is in use.
     auto const_ref_coord = getUniformCubaturePointsRef(CacheValues::No,
                                                        force,
-                                                       false);
+                                                       ApplyPermutation::No);
     auto ref_coord = PHX::getNonConstDynRankViewFromConstMDField(const_ref_coord);
 
     const auto cell_range = std::make_pair(0,num_evaluate_cells_);
@@ -2177,7 +2146,7 @@ getCubaturePointsRef(const CacheValues cache,
 
     auto cub_points2 = getUniformCubaturePointsRef(cache_dependencies == CacheDependencies::Yes ? CacheValues::Yes : CacheValues::No,
                                                    force,
-                                                   false);
+                                                   ApplyPermutation::No);
 
     Kokkos::MDRangePolicy<PHX::ExecutionSpace,Kokkos::Rank<3>> policy({0,0,0},{num_evaluate_cells_,num_ip,num_space_dim});
     Kokkos::parallel_for(policy, KOKKOS_LAMBDA(const int & cell, const int & ip, const int & dim){
@@ -2231,10 +2200,11 @@ evaluateEverything()
     getCubaturePointsRef(CacheValues::Yes);
   } else {
     if(not is_surface){
-      getUniformCubaturePointsRef(CacheValues::Yes, ForceRecompute::Yes, requires_permutation_);
-      getUniformCubatureWeightsRef(CacheValues::Yes, ForceRecompute::Yes, requires_permutation_);
+      const auto apply_permutation = requires_permutation_ ? ApplyPermutation::Yes : ApplyPermutation::No;
+      getUniformCubaturePointsRef(CacheValues::Yes, ForceRecompute::Yes, apply_permutation);
+      getUniformCubatureWeightsRef(CacheValues::Yes, ForceRecompute::Yes, apply_permutation);
       if(is_side)
-        getUniformSideCubaturePointsRef(CacheValues::Yes, ForceRecompute::Yes, requires_permutation_);
+        getUniformSideCubaturePointsRef(CacheValues::Yes, ForceRecompute::Yes, apply_permutation);
     }
     getCubaturePointsRef(CacheValues::Yes);
     getCubaturePoints(CacheValues::Yes);
