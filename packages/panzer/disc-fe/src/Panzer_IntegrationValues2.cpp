@@ -988,12 +988,12 @@ getJacobian(const CacheValues cache,
 
   if(is_cv or is_surface){
 
-    // Keep the managed field alive while the non-const wrapper is in use.
-    auto const_ref_coord = getCubaturePointsRef(CacheValues::No,
-                                                force,
-                                                CacheDependencies::Yes);
-    auto ref_coord = PHX::getNonConstDynRankViewFromConstMDField(const_ref_coord);
-    auto node_coord = PHX::getNonConstDynRankViewFromConstMDField(getNodeCoordinates());
+    const auto ref_coord_field = getCubaturePointsRef(CacheValues::No,
+                                                      force,
+                                                      CacheDependencies::Yes);
+    auto ref_coord = PHX::getNonConstDynRankViewFromConstMDField(ref_coord_field);
+    const auto node_coord_field = getNodeCoordinates();
+    auto node_coord = PHX::getNonConstDynRankViewFromConstMDField(node_coord_field);
 
     const auto cell_range = std::make_pair(0,num_evaluate_cells_);
     auto s_ref_coord  = Kokkos::subview(ref_coord,     cell_range,Kokkos::ALL(),Kokkos::ALL());
@@ -1004,12 +1004,12 @@ getJacobian(const CacheValues cache,
 
   } else {
 
-    // Keep the managed field alive while the non-const wrapper is in use.
-    auto const_ref_coord = getUniformCubaturePointsRef(CacheValues::No,
-                                                       force,
-                                                       ApplyPermutation::No);
-    auto ref_coord = PHX::getNonConstDynRankViewFromConstMDField(const_ref_coord);
-    auto node_coord = PHX::getNonConstDynRankViewFromConstMDField(getNodeCoordinates());
+    const auto ref_coord_field = getUniformCubaturePointsRef(CacheValues::No,
+                                                             force,
+                                                             ApplyPermutation::No);
+    auto ref_coord = PHX::getNonConstDynRankViewFromConstMDField(ref_coord_field);
+    const auto node_coord_field = getNodeCoordinates();
+    auto node_coord = PHX::getNonConstDynRankViewFromConstMDField(node_coord_field);
 
     const auto cell_range = std::make_pair(0,num_evaluate_cells_);
     auto s_node_coord = Kokkos::subview(node_coord,    cell_range,Kokkos::ALL(),Kokkos::ALL());
@@ -1944,7 +1944,8 @@ getCubaturePoints(const CacheValues cache,
   const bool is_cv = (int_rule->getType() == ID::CV_VOLUME) or (int_rule->getType() == ID::CV_SIDE) or (int_rule->getType() == ID::CV_BOUNDARY);
   const bool is_surface = int_rule->getType() == ID::SURFACE;
 
-  auto node_coord = PHX::getNonConstDynRankViewFromConstMDField(getNodeCoordinates());
+  const auto node_coord_field = getNodeCoordinates();
+  auto node_coord = PHX::getNonConstDynRankViewFromConstMDField(node_coord_field);
 
   if(is_cv){
 
@@ -1966,26 +1967,25 @@ getCubaturePoints(const CacheValues cache,
 
   } else if(is_surface){
 
-    // Keep the managed field alive while the non-const wrapper is in use.
-    auto const_ref_coord = getCubaturePointsRef(cache_dependencies == CacheDependencies::Yes ? CacheValues::Yes : CacheValues::No,
-                                                force,
-                                                cache_dependencies);
-    auto ref_coord = PHX::getNonConstDynRankViewFromConstMDField(const_ref_coord);
+    const auto ref_coord_field = getCubaturePointsRef(cache_dependencies == CacheDependencies::Yes ? CacheValues::Yes : CacheValues::No,
+                                                       force,
+                                                       cache_dependencies);
+    auto ref_coord = PHX::getNonConstDynRankViewFromConstMDField(ref_coord_field);
 
     const auto cell_range = std::make_pair(0,num_evaluate_cells_);
     auto s_coord      = Kokkos::subview(aux.get_view(),cell_range,Kokkos::ALL(),Kokkos::ALL());
     auto s_node_coord = Kokkos::subview(node_coord,    cell_range,Kokkos::ALL(),Kokkos::ALL());
+    auto s_ref_coord  = Kokkos::subview(ref_coord,     cell_range,Kokkos::ALL(),Kokkos::ALL());
 
     Intrepid2::CellTools<PHX::Device> cell_tools;
-    cell_tools.mapToPhysicalFrame(s_coord, ref_coord, s_node_coord, *(int_rule->topology));
+    cell_tools.mapToPhysicalFrame(s_coord, s_ref_coord, s_node_coord, *(int_rule->topology));
 
   } else {
 
-    // Keep the managed field alive while the non-const wrapper is in use.
-    auto const_ref_coord = getUniformCubaturePointsRef(CacheValues::No,
-                                                       force,
-                                                       ApplyPermutation::No);
-    auto ref_coord = PHX::getNonConstDynRankViewFromConstMDField(const_ref_coord);
+    const auto ref_coord_field = getUniformCubaturePointsRef(CacheValues::No,
+                                                             force,
+                                                             ApplyPermutation::No);
+    auto ref_coord = PHX::getNonConstDynRankViewFromConstMDField(ref_coord_field);
 
     const auto cell_range = std::make_pair(0,num_evaluate_cells_);
     auto s_coord      = Kokkos::subview(aux.get_view(),cell_range,Kokkos::ALL(),Kokkos::ALL());
@@ -2070,13 +2070,13 @@ getCubaturePointsRef(const CacheValues cache,
 
     // Control volume reference points are actually generated from the physical points (i.e. reverse to everything else)
 
-    auto node_coord = PHX::getNonConstDynRankViewFromConstMDField(getNodeCoordinates());
+    const auto node_coord_field = getNodeCoordinates();
+    auto node_coord = PHX::getNonConstDynRankViewFromConstMDField(node_coord_field);
 
-    // Keep the managed field alive while the non-const wrapper is in use.
-    auto const_coord = getCubaturePoints(cache_dependencies == CacheDependencies::Yes ? CacheValues::Yes : CacheValues::No,
-                                         force,
-                                         cache_dependencies);
-    auto coord = PHX::getNonConstDynRankViewFromConstMDField(const_coord);
+    const auto coord_field = getCubaturePoints(cache_dependencies == CacheDependencies::Yes ? CacheValues::Yes : CacheValues::No,
+                                               force,
+                                               cache_dependencies);
+    auto coord = PHX::getNonConstDynRankViewFromConstMDField(coord_field);
 
     const auto cell_range = std::make_pair(0,num_evaluate_cells_);
     auto s_ref_coord  = Kokkos::subview(aux.get_view(),cell_range,Kokkos::ALL(),Kokkos::ALL());

@@ -570,56 +570,73 @@ namespace panzer {
 
     auto cached_vol_points = int_values_vol.getCubaturePoints(CacheValues::Yes);
     auto cached_vol_ref_points = int_values_vol.getCubaturePointsRef(CacheValues::Yes);
+    auto cached_vol_jacobian = int_values_vol.getJacobian(CacheValues::Yes);
     TEST_EQUALITY(cached_vol_points.extent(0), num_cells);
     TEST_EQUALITY(cached_vol_ref_points.extent(0), num_cells);
     auto cached_vol_points_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),cached_vol_points.get_view());
     auto cached_vol_ref_points_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),cached_vol_ref_points.get_view());
+    auto cached_vol_jacobian_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),cached_vol_jacobian.get_view());
 
     int_values_vol.releaseCachedData();
 
     TEST_NOTHROW(int_values_vol.getCubaturePoints(CacheValues::Yes));
     TEST_NOTHROW(int_values_vol.getCubaturePointsRef(CacheValues::Yes));
+    TEST_NOTHROW(int_values_vol.getJacobian(CacheValues::Yes));
     auto rebuilt_vol_points = int_values_vol.getCubaturePoints(CacheValues::Yes);
     auto rebuilt_vol_ref_points = int_values_vol.getCubaturePointsRef(CacheValues::Yes);
+    auto rebuilt_vol_jacobian = int_values_vol.getJacobian(CacheValues::Yes);
     TEST_EQUALITY(rebuilt_vol_points.extent(0), num_cells);
     TEST_EQUALITY(rebuilt_vol_points.extent_int(1), int_rule_vol->num_points);
     TEST_EQUALITY(rebuilt_vol_ref_points.extent(0), num_cells);
     TEST_EQUALITY(rebuilt_vol_ref_points.extent_int(1), int_rule_vol->num_points);
+    TEST_EQUALITY(rebuilt_vol_jacobian.extent(0), num_cells);
+    TEST_EQUALITY(rebuilt_vol_jacobian.extent_int(1), int_rule_vol->num_points);
     auto rebuilt_vol_points_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),rebuilt_vol_points.get_view());
     auto rebuilt_vol_ref_points_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),rebuilt_vol_ref_points.get_view());
+    auto rebuilt_vol_jacobian_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),rebuilt_vol_jacobian.get_view());
     testFloatingEqualityRank3(cached_vol_points_host, rebuilt_vol_points_host, 1.0e-14, out, success);
     testFloatingEqualityRank3(cached_vol_ref_points_host, rebuilt_vol_ref_points_host, 1.0e-14, out, success);
+    testFloatingEqualityRank4(cached_vol_jacobian_host, rebuilt_vol_jacobian_host, 1.0e-14, out, success);
 
     panzer::IntegrationValues2<double> int_values_side("prefix_");
     int_values_side.setup(int_rule_side, node_coordinates);
 
     TEST_NOTHROW(int_values_side.getCubaturePoints(CacheValues::Yes));
     TEST_NOTHROW(int_values_side.getCubaturePointsRef(CacheValues::Yes));
+    TEST_NOTHROW(int_values_side.getJacobian(CacheValues::Yes));
     TEST_NOTHROW(int_values_side.getWeightedNormals(CacheValues::Yes));
     auto cached_side_points = int_values_side.getCubaturePoints(CacheValues::Yes);
     auto cached_side_ref_points = int_values_side.getCubaturePointsRef(CacheValues::Yes);
+    auto cached_side_jacobian = int_values_side.getJacobian(CacheValues::Yes);
     auto cached_side_weighted_normals = int_values_side.getWeightedNormals(CacheValues::Yes);
     auto cached_side_points_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),cached_side_points.get_view());
     auto cached_side_ref_points_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),cached_side_ref_points.get_view());
+    auto cached_side_jacobian_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),cached_side_jacobian.get_view());
     auto cached_side_weighted_normals_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),cached_side_weighted_normals.get_view());
 
     int_values_side.releaseCachedData();
 
     TEST_NOTHROW(int_values_side.getCubaturePoints(CacheValues::Yes));
     TEST_NOTHROW(int_values_side.getCubaturePointsRef(CacheValues::Yes));
+    TEST_NOTHROW(int_values_side.getJacobian(CacheValues::Yes));
     TEST_NOTHROW(int_values_side.getWeightedNormals(CacheValues::Yes));
     auto rebuilt_side_points = int_values_side.getCubaturePoints(CacheValues::Yes);
     auto rebuilt_side_ref_points = int_values_side.getCubaturePointsRef(CacheValues::Yes);
+    auto rebuilt_side_jacobian = int_values_side.getJacobian(CacheValues::Yes);
     auto rebuilt_side_weighted_normals = int_values_side.getWeightedNormals(CacheValues::Yes);
     TEST_EQUALITY(rebuilt_side_points.extent(0), num_cells);
     TEST_EQUALITY(rebuilt_side_points.extent_int(1), int_rule_side->num_points);
     TEST_EQUALITY(rebuilt_side_ref_points.extent(0), num_cells);
     TEST_EQUALITY(rebuilt_side_ref_points.extent_int(1), int_rule_side->num_points);
+    TEST_EQUALITY(rebuilt_side_jacobian.extent(0), num_cells);
+    TEST_EQUALITY(rebuilt_side_jacobian.extent_int(1), int_rule_side->num_points);
     auto rebuilt_side_points_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),rebuilt_side_points.get_view());
     auto rebuilt_side_ref_points_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),rebuilt_side_ref_points.get_view());
+    auto rebuilt_side_jacobian_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),rebuilt_side_jacobian.get_view());
     auto rebuilt_side_weighted_normals_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),rebuilt_side_weighted_normals.get_view());
     testFloatingEqualityRank3(cached_side_points_host, rebuilt_side_points_host, 1.0e-14, out, success);
     testFloatingEqualityRank3(cached_side_ref_points_host, rebuilt_side_ref_points_host, 1.0e-14, out, success);
+    testFloatingEqualityRank4(cached_side_jacobian_host, rebuilt_side_jacobian_host, 1.0e-14, out, success);
     testFloatingEqualityRank3(cached_side_weighted_normals_host, rebuilt_side_weighted_normals_host, 1.0e-14, out, success);
   }
 
@@ -753,6 +770,8 @@ namespace panzer {
     const auto points = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),points_field.get_static_view());
     const auto ref_points_field = int_values.getCubaturePointsRef();
     const auto ref_points = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),ref_points_field.get_static_view());
+    const auto jacobian_field = int_values.getJacobian();
+    const auto jacobian = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),jacobian_field.get_static_view());
     const int num_points_per_cell = points.extent_int(1);
     const int num_points_per_face = num_points_per_cell / 4;
 
@@ -852,23 +871,29 @@ namespace panzer {
 
     TEST_NOTHROW(int_values.getCubaturePoints(CacheValues::Yes));
     TEST_NOTHROW(int_values.getCubaturePointsRef(CacheValues::Yes));
+    TEST_NOTHROW(int_values.getJacobian(CacheValues::Yes));
     TEST_NOTHROW(int_values.getSurfaceNormals(CacheValues::Yes));
     TEST_NOTHROW(int_values.getSurfaceRotationMatrices(CacheValues::Yes));
 
     auto rebuilt_points = int_values.getCubaturePoints(CacheValues::Yes);
     auto rebuilt_ref_points = int_values.getCubaturePointsRef(CacheValues::Yes);
+    auto rebuilt_jacobian = int_values.getJacobian(CacheValues::Yes);
     auto rebuilt_normals = int_values.getSurfaceNormals(CacheValues::Yes);
     auto rebuilt_rotation_matrices = int_values.getSurfaceRotationMatrices(CacheValues::Yes);
     TEST_EQUALITY(rebuilt_points.extent(0), 2);
     TEST_EQUALITY(rebuilt_points.extent_int(1), int_rule->num_points);
     TEST_EQUALITY(rebuilt_ref_points.extent(0), 2);
     TEST_EQUALITY(rebuilt_ref_points.extent_int(1), int_rule->num_points);
+    TEST_EQUALITY(rebuilt_jacobian.extent(0), 2);
+    TEST_EQUALITY(rebuilt_jacobian.extent_int(1), int_rule->num_points);
     const auto rebuilt_points_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),rebuilt_points.get_static_view());
     const auto rebuilt_ref_points_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),rebuilt_ref_points.get_static_view());
+    const auto rebuilt_jacobian_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),rebuilt_jacobian.get_static_view());
     const auto rebuilt_normals_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),rebuilt_normals.get_static_view());
     const auto rebuilt_rotation_matrices_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),rebuilt_rotation_matrices.get_static_view());
     testFloatingEqualityRank3(points, rebuilt_points_host, 1.0e-14, out, success);
     testFloatingEqualityRank3(ref_points, rebuilt_ref_points_host, 1.0e-14, out, success);
+    testFloatingEqualityRank4(jacobian, rebuilt_jacobian_host, 1.0e-14, out, success);
     testFloatingEqualityRank3(normals, rebuilt_normals_host, 1.0e-14, out, success);
     testFloatingEqualityRank4(rotation_matrices, rebuilt_rotation_matrices_host, 1.0e-14, out, success);
   }
