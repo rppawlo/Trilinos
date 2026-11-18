@@ -20,7 +20,7 @@ Common Panzer-application dry-run commands:
       Apply the safest descriptor-migration patch sketches in place.
 
   python3 -I panzer_lazy_workset_evaluation_migration.py <application-root> --cache-hazards-only
-      Focused releaseCachedData() lifecycle hazard report.
+      Focused releaseCachedData() stale-handle lifecycle report.
 
   python3 -I panzer_lazy_workset_evaluation_migration.py --self-test
       Built-in scanner self-test for lifecycle hazard detection.
@@ -223,6 +223,7 @@ LEGACY_FIELD_PATTERN = re.compile(
 VIEW_HANDLE_ASSIGN_PATTERN = re.compile(
     r"\b(?P<name>[A-Za-z_][A-Za-z0-9_]*)\s*=\s*[^;]*(?:get_static_view|get_view)\s*\("
 )
+MIRROR_VIEW_COPY_PATTERN = re.compile(r"\bKokkos::create_mirror_view(?:_and_copy)?\s*\(")
 FIELD_HANDLE_ASSIGN_PATTERN = re.compile(
     r"\b(?P<name>[A-Za-z_][A-Za-z0-9_]*)\s*=\s*[^;]*\.\s*(?:"
     + "|".join(re.escape(field) for field in ALL_LEGACY_FIELDS)
@@ -315,7 +316,10 @@ RULES: tuple[Rule, ...] = (
         risk="medium",
         pattern=re.compile(
             r"(?:\(?\s*\b(?:this->wda\([^)]*\)|wda\([^)]*\)|workset)\.int_rules\s*\[[^\]]+\]\s*\)?"
-            r"|\b(?:[A-Za-z_]\w*(?:integration|Integration|values|Values|int_rule|ir|IR)[A-Za-z0-9_]*|iv)\b)"
+            r"|\b(?:integration[A-Za-z0-9_]*|Integration[A-Za-z0-9_]*|"
+            r"integration_values[A-Za-z0-9_]*|IntegrationValues[A-Za-z0-9_]*|"
+            r"int_values[A-Za-z0-9_]*|intValues[A-Za-z0-9_]*|"
+            r"int_rule[A-Za-z0-9_]*|intRule[A-Za-z0-9_]*|IntRule[A-Za-z0-9_]*|iv|ir)\b)"
             r"\s*(?:\.|->)\s*(?:ip_coordinates|ref_ip_coordinates|weighted_measure|jac|jac_det|jac_inv|"
             r"covarient|contravarient|norm_contravarient|weighted_normals|surface_normals|"
             r"surface_rotation_matrices|cub_points|side_cub_points|cub_weights|node_coordinates)\b"
@@ -341,7 +345,8 @@ RULES: tuple[Rule, ...] = (
         category="const-getter-fallout",
         risk="medium",
         pattern=re.compile(
-            r"\bPHX::MDField\s*<\s*(?!const\b)[^,>]+,\s*[^>]*\b(?:panzer::)?IP\b[^>]*>\s*(?:const\s*)?&"
+            r"\bconst\s+PHX::MDField\s*<\s*(?!const\b)[^,>]+,\s*"
+            r"[^>]*\b(?:panzer::)?Cell\b[^>]*\b(?:panzer::)?IP\b[^>]*>\s*&"
         ),
         hint=(
             "IntegrationValues2 getters return const-valued MDFields. If this field is populated from an "
@@ -410,13 +415,6 @@ RULES: tuple[Rule, ...] = (
             "Do not take a view/subview directly from a temporary lazy getter result. Store the getter result "
             "in a named local first, then take get_view()/get_static_view() from that local."
         ),
-    ),
-    Rule(
-        name="stored-view-handle",
-        category="lifecycle",
-        risk="high",
-        pattern=re.compile(r"\b(?:auto|const\s+auto|typename\s+[^=;]+|PHX::View<[^>]+>)\s+\w+\s*=\s*[^;]*(?:get_static_view|get_view)\s*\("),
-        hint="Review whether this view is retained across phases or cache release; reacquire near use if needed.",
     ),
 )
 
@@ -583,6 +581,8 @@ def scan_cache_hazards_from_lines(path: pathlib.Path, lines: list[str]) -> list[
         handles: dict[str, tuple[int, str]] = {}
         for line_no, line in region_lines:
             view_match = VIEW_HANDLE_ASSIGN_PATTERN.search(line)
+            if view_match and MIRROR_VIEW_COPY_PATTERN.search(line):
+                view_match = None
             field_match = FIELD_HANDLE_ASSIGN_PATTERN.search(line)
             match = view_match or field_match
             if match:
@@ -605,13 +605,13 @@ def scan_cache_hazards_from_lines(path: pathlib.Path, lines: list[str]) -> list[
                         release_line=release_line,
                         text=stripped,
                     ))
-                if re.search(r"\b(?:get_static_view|get_view)\s*\(", line):
+                if re.search(r"\b(?:get_static_view|get_view)\s*\(", line) and not MIRROR_VIEW_COPY_PATTERN.search(line):
                     hazards.append(CacheHazard(
                         path=path,
                         line=line_no,
                         risk="medium",
                         kind="view-after-release",
-                        summary="A view handle is acquired after releaseCachedData(); verify the owning field was reacquired through a getter first.",
+                        summary="A view handle is acquired after releaseCachedData(); verify it refers to newly reacquired data, not stale pre-release data.",
                         function=region.name,
                         class_name=region.class_name,
                         release_line=release_line,
@@ -626,7 +626,7 @@ def scan_cache_hazards_from_lines(path: pathlib.Path, lines: list[str]) -> list[
                             line=line_no,
                             risk="high",
                             kind="retained-handle-after-release",
-                            summary="A handle assigned before releaseCachedData() appears to be used after the release in the same function.",
+                            summary="A handle assigned before releaseCachedData() appears to be used after release; the view is memory-safe but may reference stale cached data.",
                             function=region.name,
                             class_name=region.class_name,
                             release_line=release_line,
@@ -1489,7 +1489,7 @@ def format_cache_hazard(hazard: CacheHazard) -> list[str]:
         lines.append(f"      retained handle: {hazard.handle_name} from line {hazard.handle_line}")
     if hazard.text:
         lines.append(f"      evidence: {hazard.text}")
-    lines.append("      guidance: reacquire BasisValues2/IntegrationValues2 fields or views after releaseCachedData(); do not reuse handles captured before release.")
+    lines.append("      guidance: Kokkos::View handles keep allocations alive; this is a stale-data check. Reacquire BasisValues2/IntegrationValues2 fields or views after releaseCachedData() when current cache contents are required.")
     return lines
 
 
@@ -2485,15 +2485,36 @@ def apply_patch_sketches(recipes: list[Recipe], findings: list[Finding] | None =
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(
+        description=__doc__.strip(),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
     parser.add_argument("roots", nargs="*", type=pathlib.Path, help="Source roots to scan")
     parser.add_argument("--self-test", action="store_true", help="Run built-in scanner self-tests and exit")
-    parser.add_argument("--format", choices=("text", "tsv", "json"), default="text")
-    parser.add_argument("--max-line-length", type=int, default=180)
+    parser.add_argument(
+        "--format",
+        choices=("text", "tsv", "json"),
+        default="text",
+        help="Output format for findings and reports (default: text)",
+    )
+    parser.add_argument(
+        "--max-line-length",
+        type=int,
+        default=180,
+        help="Maximum source-line text length in text output (default: 180)",
+    )
     parser.add_argument("--recipes-only", action="store_true", help="Only print migration recipe candidates")
-    parser.add_argument("--patch-sketches-only", action="store_true", help="Only print non-applied patch sketches for patch-sketch candidates")
+    parser.add_argument(
+        "--patch-sketches-only",
+        action="store_true",
+        help="Only print non-applied patch sketches for patch-sketch candidates",
+    )
     parser.add_argument("--apply-patch-sketches", action="store_true", help="Apply patch-sketch candidates in place")
-    parser.add_argument("--cache-hazards-only", action="store_true", help="Only print releaseCachedData() lifecycle hazard candidates")
+    parser.add_argument(
+        "--cache-hazards-only",
+        action="store_true",
+        help="Only print releaseCachedData() stale-handle lifecycle candidates",
+    )
     args = parser.parse_args()
 
     if args.self_test:
