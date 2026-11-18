@@ -523,7 +523,8 @@ namespace panzer {
     panzer::IntegrationValues2<double> int_values_bc("prefix_");
     int_values_bc.setup(int_rule_bc, node_coordinates);
 
-    auto ip_coords_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),int_values_bc.getCubaturePoints().get_view());
+    auto ip_coords = int_values_bc.getCubaturePoints();
+    auto ip_coords_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),ip_coords.get_view());
 
     out << "Points:\n";
     for(int i=0; i<ip_coords_host.extent_int(0); ++i){
@@ -744,10 +745,14 @@ namespace panzer {
     int_values.evaluateValues(node_coordinates,-1,connectivity,0);
 
     // This test will focus on normals and points
-    const auto normals = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),int_values.getSurfaceNormals().get_static_view());
-    const auto rotation_matrices = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),int_values.getSurfaceRotationMatrices().get_static_view());
-    const auto points = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),int_values.getCubaturePoints().get_static_view());
-    const auto ref_points = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),int_values.getCubaturePointsRef().get_static_view());
+    const auto normals_field = int_values.getSurfaceNormals();
+    const auto normals = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),normals_field.get_static_view());
+    const auto rotation_matrices_field = int_values.getSurfaceRotationMatrices();
+    const auto rotation_matrices = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),rotation_matrices_field.get_static_view());
+    const auto points_field = int_values.getCubaturePoints();
+    const auto points = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),points_field.get_static_view());
+    const auto ref_points_field = int_values.getCubaturePointsRef();
+    const auto ref_points = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),ref_points_field.get_static_view());
     const int num_points_per_cell = points.extent_int(1);
     const int num_points_per_face = num_points_per_cell / 4;
 

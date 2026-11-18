@@ -111,10 +111,13 @@ namespace panzer {
 
     out << "check output" << std::endl;
     double relCellVol = 0.25*0.25; // this is the relative (to the reference cell) volume
-    auto cub_weights_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),int_values.getUniformCubatureWeightsRef().get_static_view());
-    auto cub_weighted_measure_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),int_values.getWeightedMeasure().get_view());
+    auto cub_weights = int_values.getUniformCubatureWeightsRef();
+    auto cub_weights_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),cub_weights.get_static_view());
+    auto cub_weighted_measure = int_values.getWeightedMeasure();
+    auto cub_weighted_measure_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),cub_weighted_measure.get_view());
     auto basis_ref_scalar_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),basis_values.getBasisValuesRefForPhalanxEvaluatorRegistration().get_static_view());
-    auto jac_det_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),int_values.getJacobianDeterminant().get_static_view());
+    auto jac_det = int_values.getJacobianDeterminant();
+    auto jac_det_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),jac_det.get_static_view());
     auto weighted_basis_scalar_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),basis_values.getWeightedBasisValuesForPhalanxEvaluatorRegistration().get_static_view());
     auto basis_scalar_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),basis_values.getBasisValuesForPhalanxEvaluatorRegistration().get_static_view());
     for(int i=0;i<num_qp;i++) {
@@ -439,15 +442,18 @@ namespace panzer {
                                 node_coordinates);
 
     double relCellVol = 0.25*0.25; // this is the relative (to the reference cell) volume
-    auto cub_points_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),int_values.getUniformCubaturePointsRef().get_view());
-    auto cub_weights_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),int_values.getUniformCubatureWeightsRef().get_view());
+    auto cub_points = int_values.getUniformCubaturePointsRef();
+    auto cub_points_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),cub_points.get_view());
+    auto cub_weights = int_values.getUniformCubatureWeightsRef();
+    auto cub_weights_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),cub_weights.get_view());
     auto basis_ref_scalar_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),basis_values.getBasisValuesRefForPhalanxEvaluatorRegistration().get_view());
     auto basis_scalar_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),basis_values.getBasisValuesForPhalanxEvaluatorRegistration().get_view());
     auto grad_basis_ref_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),basis_values.getGradBasisValuesRefForPhalanxEvaluatorRegistration().get_view());
     auto weighted_basis_scalar_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),basis_values.getWeightedBasisValuesForPhalanxEvaluatorRegistration().get_view());
     auto grad_basis_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),basis_values.getGradBasisValuesForPhalanxEvaluatorRegistration().get_view());
     auto weighted_grad_basis_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),basis_values.getWeightedGradBasisValuesForPhalanxEvaluatorRegistration().get_view());
-    auto jac_det_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),int_values.getJacobianDeterminant().get_view());
+    auto jac_det = int_values.getJacobianDeterminant();
+    auto jac_det_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),jac_det.get_view());
     for(int i=0;i<num_qp;i++) {
        double x = cub_points_host(i,0);
        double y = cub_points_host(i,1);
@@ -575,9 +581,12 @@ namespace panzer {
     TEST_EQUALITY(basis_values.getCurlBasisValuesRefForPhalanxEvaluatorRegistration().extent(1),num_qp);
 
     double relCellVol = 0.25*0.25; // this is the relative (to the reference cell) volume
-    auto cub_points_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),int_values.getUniformCubaturePointsRef().get_view());
-    auto cub_weights_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),int_values.getUniformCubatureWeightsRef().get_view());
-    auto jac_det_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),int_values.getJacobianDeterminant().get_view());
+    auto cub_points = int_values.getUniformCubaturePointsRef();
+    auto cub_points_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),cub_points.get_view());
+    auto cub_weights = int_values.getUniformCubatureWeightsRef();
+    auto cub_weights_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),cub_weights.get_view());
+    auto jac_det = int_values.getJacobianDeterminant();
+    auto jac_det_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),jac_det.get_view());
     auto basis_ref_vector_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),basis_values.getVectorBasisValuesRefForPhalanxEvaluatorRegistration().get_view());
     auto basis_vector_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),basis_values.getVectorBasisValuesForPhalanxEvaluatorRegistration().get_view());
     auto curl_basis_ref_scalar_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),basis_values.getCurlBasisValuesRefForPhalanxEvaluatorRegistration().get_view());
@@ -709,9 +718,12 @@ namespace panzer {
     TEST_EQUALITY(basis_values.getDivBasisValuesRefForPhalanxEvaluatorRegistration().extent(1),num_qp);
 
     double relCellVol = (1.0/72) / (1.0/6.0);
-    auto cub_points_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),int_values.getUniformCubaturePointsRef().get_view());
-    auto cub_weights_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),int_values.getUniformCubatureWeightsRef().get_view());
-    auto jac_det_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),int_values.getJacobianDeterminant().get_view());
+    auto cub_points = int_values.getUniformCubaturePointsRef();
+    auto cub_points_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),cub_points.get_view());
+    auto cub_weights = int_values.getUniformCubatureWeightsRef();
+    auto cub_weights_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),cub_weights.get_view());
+    auto jac_det = int_values.getJacobianDeterminant();
+    auto jac_det_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),jac_det.get_view());
     auto basis_ref_vector_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),basis_values.getVectorBasisValuesRefForPhalanxEvaluatorRegistration().get_view());
     auto basis_vector_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),basis_values.getVectorBasisValuesForPhalanxEvaluatorRegistration().get_view());
     auto div_basis_ref_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),basis_values.getDivBasisValuesRefForPhalanxEvaluatorRegistration().get_view());
@@ -1192,7 +1204,8 @@ namespace panzer {
     TEST_EQUALITY(basis_values.getBasisValuesForPhalanxEvaluatorRegistration().extent(2),num_qp);
 
     // check basis values, control volume integration points are defined on physical cells
-    auto ref_ip_coordinates_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),int_values_vol.getCubaturePointsRef().get_view());
+    auto ref_ip_coordinates = int_values_vol.getCubaturePointsRef();
+    auto ref_ip_coordinates_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),ref_ip_coordinates.get_view());
     auto basis_scalar_host = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(),basis_values.getBasisValuesForPhalanxEvaluatorRegistration().get_view());
     for(int cell=0;cell<num_cells;cell++) {
 
